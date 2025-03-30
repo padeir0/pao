@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for filename in ./*_test.c; do
+  if gcc -Wall -Wextra -Werror -pedantic -Wconversion -std=c23 "$filename" -o "out123"; then
+    ./out123
+    rm out123
+  else
+    echo "Compilation failed for $filename with gcc (c23), skipping execution."
+  fi
+done

@@ -16,16 +16,16 @@ void check_status(pao_status ns) {
 char buffer[BUFF_LENGTH];
 
 void print_nat(pao_Natural n) {
-  int written = pao_natural_snprint(n, buffer, BUFF_LENGTH);
+  usize written = pao_natural_snprint(n, buffer, BUFF_LENGTH);
   if (written == 0) {
     printf("nothing printed :(");
     abort();
   }
-  printf("%.*s", written, buffer);
+  printf("%.*s", (int)written, buffer);
   printf(" (length: %d, cap: %d)\n", n.len, n.cap);
 }
 
-bool test_natural_add_digit_1() {
+bool test_natural_add_digit_1(void) {
   pao_Natural a = pao_natural_empty();
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
@@ -45,7 +45,7 @@ bool test_natural_add_digit_1() {
 
 char test_buffer[BUFF_LENGTH];
 
-bool test_natural_snprint_1() {
+bool test_natural_snprint_1(void) {
   pao_Natural A = pao_natural_empty();
 
   #define DILEN 3
@@ -67,7 +67,7 @@ bool test_natural_snprint_1() {
 
 typedef struct {
   char* name;
-  bool (*func)();
+  bool (*func)(void);
 } Tester;
 
 char print_buff[BUFF_LENGTH];
@@ -89,7 +89,7 @@ Tester tests[TEST_LEN] = {
   {"test_natural_add_digit_1", test_natural_add_digit_1},
 };
 
-int main() {
+int main(void) {
   int i = 0;
   while (i < TEST_LEN) {
     test(tests[i]);

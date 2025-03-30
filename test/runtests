@@ -1,7 +1,0 @@
-#!/bin/bash
-
-for filename in ./*_test.c; do
-  gcc -Wall -Wextra -Werror -std=c23 "$filename" -o "out123"
-  ./out123
-  rm out123
-done

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+echo "Running tests on multiple C versions and compilers..."
+
+for compiler in gcc clang; do
+  if ! command -v $compiler &> /dev/null; then
+    echo "$compiler not found, skipping..."
+    continue
+  fi
+  
+  for version in c99 c11 c17 c23; do
+    echo "Running tests on $compiler with $version..."
+    for filename in ./*_test.c; do
+      if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -std=$version "$filename" -o "out123"; then
+        ./out123
+        rm out123
+      else
+        echo "Compilation failed for $filename with $compiler ($version), skipping execution."
+      fi
+    done
+    echo ""
+  done
+  echo ""
+done

@@ -40,8 +40,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 typedef struct {
   u32* digits;
-  i32  cap;
-  i32  len;
+  u32  cap;
+  u32  len;
 } pao_Natural;
 
 /* BEGIN: CONSTANTS */
@@ -52,12 +52,12 @@ typedef struct {
 
 /* BEGIN: NATVEC */
 static inline
-u32* _pao_natural_natvec_alloc(pao_Allocator mem, int size) {
+u32* _pao_natural_natvec_alloc(pao_Allocator mem, usize size) {
   return (u32*)mem.alloc(mem.heap, size*sizeof(u32));
 }
 
 static inline
-void _pao_natural_natvec_copy(u32* dest, u32* source, int len) {
+void _pao_natural_natvec_copy(u32* dest, u32* source, usize len) {
   memcpy(dest, source, len*sizeof(u32));
 }
 
@@ -75,7 +75,7 @@ bool _pao_natural_not_digit(u32 digit) {
 }
 
 /* END: UTIL */
-pao_Natural pao_natural_empty() {
+pao_Natural pao_natural_empty(void) {
   pao_Natural n;
   n.cap = 0;
   n.len = 0;
@@ -93,7 +93,7 @@ bool _pao_natural_push_digit(pao_Allocator mem, pao_Natural* out, u32 digit) {
     out->cap = PAO_NATURAL_MIN_NAT_VEC;
   }
   if (out->len == out->cap) {
-    i32 new_cap = 2 * out->cap;
+    u32 new_cap = 2 * out->cap;
     u32* new_vec = _pao_natural_natvec_alloc(mem, new_cap);
     if (new_vec == NULL) {
       return false;
@@ -103,7 +103,7 @@ bool _pao_natural_push_digit(pao_Allocator mem, pao_Natural* out, u32 digit) {
     out->digits = new_vec;
     out->cap = new_cap;
   }
-  int index = out->len;
+  u32 index = out->len;
   out->len++;
   out->digits[index] = digit;
   return true;
@@ -154,7 +154,7 @@ bool pao_natural_equal(const pao_Natural A, const pao_Natural B) {
   if (A.len != B.len) {
     return false;
   }
-  i32 i = 0;
+  u32 i = 0;
   while (i < A.len) {
     if (A.digits[i] != B.digits[i]) {
       return false;
@@ -176,7 +176,7 @@ pao_status pao_natural_add_digit(pao_Allocator mem, const pao_Natural A, u32 B, 
     _pao_natural_push_digit(mem, out, 0);
   }
 
-  int i = 0;
+  u32 i = 0;
   u32 carry = B;
   i64 res = 0;
 
@@ -190,9 +190,10 @@ pao_status pao_natural_add_digit(pao_Allocator mem, const pao_Natural A, u32 B, 
 
     if (PAO_NATURAL_BASE <= res) {
       carry = 1;
-      out->digits[i] = res - PAO_NATURAL_BASE;
-      /* since our carry is set to the digit in the first iteration,
-         we need to prove the operation above is valid:
+      out->digits[i] = (u32)(res - PAO_NATURAL_BASE);
+      /* UNSAFE:
+         since our carry is set to the digit in the first iteration,
+         we need to prove the cast above is valid:
 
          if (carry < BASE) and (digit < BASE)
             and ((res = carry+digit) >= BASE)
@@ -206,7 +207,7 @@ pao_status pao_natural_add_digit(pao_Allocator mem, const pao_Natural A, u32 B, 
       */
     } else {
       carry = 0;
-      out->digits[i] = res;
+      out->digits[i] = (u32)res;
     }
     i++;
   } while (0 < carry || i < A.len);
@@ -241,7 +242,8 @@ int _pao_natural_write_u32(u32 n, char* buffer) {
     n = n/10;
   }
 
-  int distance = (uptr)b - (uptr)buffer;
+  // UNSAFE: overflow here is unrealistic, it would require a 2GB string
+  i32 distance = (i32)((uptr)b - (uptr)buffer);
   return 9 - distance;
 }
 
@@ -262,15 +264,16 @@ size_t _pao_natural_snprint(const pao_Natural nat, char* buffer, usize bufflen, 
     return 1;
   }
 
-  int i = nat.len -1;
+  // UNSAFE: nat.len here is guaranteed to be > 0
+  u32 i = nat.len -1;
   char* block = buffer;
 
-  while (0 <= i) {
+   do {
     u32 curr_digit = nat.digits[i];
     _pao_natural_write_u32(curr_digit, block);
     block += PAO_NATURAL_DIGITS_PER_INT;
     i--;
-  }
+  } while (0 < i);
 
   usize size = (uptr)block - (uptr)buffer;
   if (!pad_right) {

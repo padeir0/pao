@@ -29,7 +29,9 @@ Types often define the namespaces of functions, for example
 
 Guidelines are for libraries, tests can ignore some of these.
 
- - All code must be run with `-Wall -Wextra -Werror -std=c23`
+ - All code must run with `-Wall -Wextra -Werror -pedantic -Wconversion`
+ for each C version from C99 to C23 in _both_ `gcc` and `clang`
+ (see `tests/run_portable_tests`).
  - Macro usage is restricted to `#define` constants and header guards.
  - Never use global variables.
  - Functions that need dynamic allocation should receive allocators as arguments.
@@ -39,7 +41,6 @@ Guidelines are for libraries, tests can ignore some of these.
  - All private functions must be `static`.
  - Only private functions may be marked with `inline`.
  - Only depend on standard library.
- - Never use inline assembly.
  - Provide no compile-time library configuration options.
  - Provide no compatibility with C++.
  - Assume POSIX compliant operating systems.
