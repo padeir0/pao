@@ -21,11 +21,11 @@ int pi() {
   u32 B = 2;
   pao_Natural OUT = pao_natural_empty();
 
-  #define PILEN 5
-  u32 pidigits[PILEN] = {
+  u32 pidigits[] = {
     314159265, 358979323, 846265338,
     327950288, 419716000,
   };
+  #define PILEN (sizeof(pidigits) / sizeof(pidigits[0]))
 
   pao_natural_set_vec(PAO_STDMALLOC, &A, pidigits, PILEN);
  

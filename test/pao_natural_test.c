@@ -30,8 +30,9 @@ bool test_natural_add_digit_1(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  #define A_DIGS_LEN 2
-  u32 A_DIGS[A_DIGS_LEN] = {999999999, 999999999};
+  u32 A_DIGS[] = {999999999, 999999999};
+  #define A_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
+
   pao_natural_set_vec(PAO_STDMALLOC, &a, A_DIGS, A_DIGS_LEN);
   
   u32 EXP_DIGS[A_DIGS_LEN+1] = {1, 0, 0};
@@ -48,10 +49,11 @@ char test_buffer[BUFF_LENGTH];
 bool test_natural_snprint_1(void) {
   pao_Natural A = pao_natural_empty();
 
-  #define DILEN 3
-  u32 digits[DILEN] = {
+  u32 digits[] = {
     1,0,0
   };
+  #define DILEN (sizeof(digits) / sizeof(digits[0]))
+
   pao_natural_set_vec(PAO_STDMALLOC, &A, digits, DILEN);
 
   usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
