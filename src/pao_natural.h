@@ -62,8 +62,8 @@ void _pao_natural_natvec_copy(u32* dest, u32* source, int len) {
 }
 
 static inline
-void _pao_natural_natvec_free(u32* vec) {
-  free(vec);
+void _pao_natural_natvec_free(pao_Allocator mem, u32* vec) {
+  mem.free(mem.heap, vec);
 }
 /* END: NATVEC */
 
@@ -99,7 +99,7 @@ bool _pao_natural_push_digit(pao_Allocator mem, pao_Natural* out, u32 digit) {
       return false;
     }
     _pao_natural_natvec_copy(new_vec, out->digits, out->len);
-    _pao_natural_natvec_free(out->digits);
+    _pao_natural_natvec_free(mem, out->digits);
     out->digits = new_vec;
     out->cap = new_cap;
   }
