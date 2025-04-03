@@ -225,14 +225,14 @@ char* _pao_natural_first_nonzero_char(char* buffer, usize bufflen) {
 }
 
 static
-int _pao_natural_write_u32(u32 n, char* buffer) {
+void _pao_natural_write_u32(u32 n, char* buffer) {
   int i = 0;
   while (i < PAO_NATURAL_DIGITS_PER_INT) {
     buffer[i] = '0';
     i++;
   }
   if (n == 0) {
-    return PAO_NATURAL_DIGITS_PER_INT;
+    return;
   }
 
   char* b = buffer + PAO_NATURAL_DIGITS_PER_INT -1;
@@ -241,10 +241,7 @@ int _pao_natural_write_u32(u32 n, char* buffer) {
     b--;
     n = n/10;
   }
-
-  // UNSAFE: overflow here is unrealistic, it would require a 2GB string
-  i32 distance = (i32)((uptr)b - (uptr)buffer);
-  return 9 - distance;
+  return;
 }
 
 static
@@ -264,11 +261,10 @@ size_t _pao_natural_snprint(const pao_Natural nat, char* buffer, usize bufflen, 
     return 1;
   }
 
-  // UNSAFE: nat.len here is guaranteed to be > 0
-  u32 i = nat.len -1;
+  i64 i = (i64)nat.len -1;
   char* block = buffer;
 
-   do {
+  do {
     u32 curr_digit = nat.digits[i];
     _pao_natural_write_u32(curr_digit, block);
     block += PAO_NATURAL_DIGITS_PER_INT;

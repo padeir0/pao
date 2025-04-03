@@ -44,6 +44,34 @@ bool test_natural_add_digit_1(void) {
   return pao_natural_equal(out, expected);
 }
 
+bool test_natural_add_digit_2(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_STDMALLOC, &a, 0);
+  pao_natural_set(PAO_STDMALLOC, &expected, 42);
+
+  pao_status s = pao_natural_add_digit(PAO_STDMALLOC, a, 42, &out);
+  check_status(s);
+
+  return pao_natural_equal(out, expected);
+}
+
+bool test_natural_add_digit_3(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_STDMALLOC, &a, 314159);
+  pao_natural_set(PAO_STDMALLOC, &expected, 314159);
+
+  pao_status s = pao_natural_add_digit(PAO_STDMALLOC, a, 0, &out);
+  check_status(s);
+
+  return pao_natural_equal(out, expected);
+}
+
 char test_buffer[BUFF_LENGTH];
 
 bool test_natural_snprint_1(void) {
@@ -62,6 +90,38 @@ bool test_natural_snprint_1(void) {
   }
 
   if (strncmp("1000000000000000000", test_buffer, written) != 0) {
+    return false;
+  }
+  return true;
+}
+
+bool test_natural_snprint_2(void) {
+  pao_Natural A = pao_natural_empty();
+
+  pao_natural_set(PAO_STDMALLOC, &A, 314159);
+
+  usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
+  if (written == 0) {
+    return false;
+  }
+
+  if (strncmp("314159", test_buffer, written) != 0) {
+    return false;
+  }
+  return true;
+}
+
+bool test_natural_snprint_3(void) {
+  pao_Natural A = pao_natural_empty();
+
+  pao_natural_set(PAO_STDMALLOC, &A, 0);
+
+  usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
+  if (written == 0) {
+    return false;
+  }
+
+  if (strncmp("0", test_buffer, written) != 0) {
     return false;
   }
   return true;
@@ -87,7 +147,11 @@ void test(Tester t) {
 
 Tester tests[] = {
   {"test_natural_snprint_1", test_natural_snprint_1},
+  {"test_natural_snprint_2", test_natural_snprint_2},
+  {"test_natural_snprint_3", test_natural_snprint_3},
   {"test_natural_add_digit_1", test_natural_add_digit_1},
+  {"test_natural_add_digit_2", test_natural_add_digit_2},
+  {"test_natural_add_digit_3", test_natural_add_digit_3},
 };
 #define TEST_LEN (u32)(sizeof(tests) / sizeof(tests[0]))
 
