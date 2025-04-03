@@ -11,7 +11,7 @@ for compiler in gcc clang; do
   for version in c99 c11 c17 c23; do
     echo "Running tests on $compiler with $version..."
     for filename in ./*_test.c; do
-      if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -std=$version "$filename" -o "out123"; then
+      if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=$version "$filename" -o "out123"; then
         ./out123
         rm out123
       else

@@ -85,14 +85,14 @@ void test(Tester t) {
   printf("%s", print_buff);
 }
 
-#define TEST_LEN 2
-Tester tests[TEST_LEN] = {
+Tester tests[] = {
   {"test_natural_snprint_1", test_natural_snprint_1},
   {"test_natural_add_digit_1", test_natural_add_digit_1},
 };
+#define TEST_LEN (u32)(sizeof(tests) / sizeof(tests[0]))
 
 int main(void) {
-  int i = 0;
+  u32 i = 0;
   while (i < TEST_LEN) {
     test(tests[i]);
     i++;

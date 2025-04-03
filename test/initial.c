@@ -7,16 +7,16 @@
 char buffer[BUFF_LENGTH];
 
 void print_nat(pao_Natural n) {
-  int written = pao_natural_snprint(n, buffer, BUFF_LENGTH);
+  usize written = pao_natural_snprint(n, buffer, BUFF_LENGTH);
   if (written == 0) {
     printf("nothing printed :(");
     abort();
   }
-  printf("%.*s", written, buffer);
+  printf("%.*s", (int)written, buffer);
   printf(" (length: %d, cap: %d)\n", n.len, n.cap);
 }
 
-int pi() {
+int pi(void) {
   pao_Natural A = pao_natural_empty();
   u32 B = 2;
   pao_Natural OUT = pao_natural_empty();
@@ -41,7 +41,7 @@ int pi() {
   return 0;
 }
 
-int beep() {
+int beep(void) {
   pao_Natural A = pao_natural_empty();
 
   #define DILEN 5
@@ -54,7 +54,7 @@ int beep() {
   return 0;
 }
 
-int main() {
+int main(void) {
   pi();
   //beep();
 }
