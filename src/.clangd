@@ -2,3 +2,4 @@ Diagnostics:
   Suppress: misc-definitions-in-headers
 CompileFlags:
   Add: [-Wall, -Wextra, -Werror, -pedantic, -Wconversion, -std=c99]
+  Remove: [-xobjective-c++-header]

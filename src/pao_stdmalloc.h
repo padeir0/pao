@@ -28,7 +28,11 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdio.h>
 
 static
-void* _pao_stdmalloc_alloc(__attribute__((unused)) void* heap, usize size) {
+void* _pao_stdmalloc_alloc(
+  __attribute__((unused)) void* heap,
+  usize size,
+  __attribute__((unused)) char* func
+) {
   return malloc(size);
 }
 

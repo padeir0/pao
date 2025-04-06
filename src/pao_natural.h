@@ -52,8 +52,8 @@ typedef struct {
 
 /* BEGIN: NATVEC */
 static inline
-u32* _pao_natural_natvec_alloc(pao_Allocator mem, usize size) {
-  return (u32*)mem.alloc(mem.heap, size*sizeof(u32));
+u32* _pao_natural_natvec_alloc(pao_Allocator mem, usize size, char* func) {
+  return (u32*)mem.alloc(mem.heap, size*sizeof(u32), func);
 }
 
 static inline
@@ -86,7 +86,7 @@ pao_Natural pao_natural_empty(void) {
 static
 bool _pao_natural_push_digit(pao_Allocator mem, pao_Natural* out, u32 digit) {
   if (out->cap == 0) {
-    out->digits = _pao_natural_natvec_alloc(mem, PAO_NATURAL_MIN_NAT_VEC);
+    out->digits = _pao_natural_natvec_alloc(mem, PAO_NATURAL_MIN_NAT_VEC, (char*)__func__);
     if (out->digits == NULL) {
       return false;
     }
@@ -94,7 +94,7 @@ bool _pao_natural_push_digit(pao_Allocator mem, pao_Natural* out, u32 digit) {
   }
   if (out->len == out->cap) {
     u32 new_cap = 2 * out->cap;
-    u32* new_vec = _pao_natural_natvec_alloc(mem, new_cap);
+    u32* new_vec = _pao_natural_natvec_alloc(mem, new_cap, (char*)__func__);
     if (new_vec == NULL) {
       return false;
     }

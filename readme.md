@@ -1,4 +1,4 @@
-# Padeir0's C23 Library (pao)
+# Padeir0's C99 Library (pao)
 
 [Rationale](https://www.youtube.com/watch?v=Fm5Ust7vEhk).
 
@@ -47,4 +47,3 @@ Guidelines are for libraries, tests can ignore some of these.
  - Write sufficient tests for a feature before plunging into the next.
  - Bad usage and internal errors should crash the program.
  - Recoverable errors should return a `pao_status` code.
-

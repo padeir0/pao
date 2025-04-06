@@ -25,6 +25,7 @@ void print_nat(pao_Natural n) {
   printf(" (length: %d, cap: %d)\n", n.len, n.cap);
 }
 
+// tests carry
 bool test_natural_add_digit_1(void) {
   pao_Natural a = pao_natural_empty();
   pao_Natural out = pao_natural_empty();
@@ -44,6 +45,7 @@ bool test_natural_add_digit_1(void) {
   return pao_natural_equal(out, expected);
 }
 
+// tests 0 as identity
 bool test_natural_add_digit_2(void) {
   pao_Natural a = pao_natural_empty();
   pao_Natural out = pao_natural_empty();
@@ -58,6 +60,7 @@ bool test_natural_add_digit_2(void) {
   return pao_natural_equal(out, expected);
 }
 
+// tests 0 as identity
 bool test_natural_add_digit_3(void) {
   pao_Natural a = pao_natural_empty();
   pao_Natural out = pao_natural_empty();
@@ -70,6 +73,21 @@ bool test_natural_add_digit_3(void) {
   check_status(s);
 
   return pao_natural_equal(out, expected);
+}
+
+// ensures operands are not modified
+bool test_natural_add_digit_4(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_STDMALLOC, &a, 314159);
+  pao_natural_set(PAO_STDMALLOC, &expected, 314160);
+
+  pao_status s = pao_natural_add_digit(PAO_STDMALLOC, a, 1, &out);
+  check_status(s);
+
+  return pao_natural_equal_digit(a, 314159);
 }
 
 char test_buffer[BUFF_LENGTH];
@@ -152,6 +170,7 @@ Tester tests[] = {
   {"test_natural_add_digit_1", test_natural_add_digit_1},
   {"test_natural_add_digit_2", test_natural_add_digit_2},
   {"test_natural_add_digit_3", test_natural_add_digit_3},
+  {"test_natural_add_digit_4", test_natural_add_digit_4},
 };
 #define TEST_LEN (u32)(sizeof(tests) / sizeof(tests[0]))
 
