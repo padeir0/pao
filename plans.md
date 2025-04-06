@@ -23,9 +23,5 @@
   - [ ] `str -> void*` linear hashmap (only insert, lookup and clear, can use a simple arena allocator)
   - [ ] `str -> void*` hashmap (insert, lookup, clear, remove and update, must use freelist or similar)
 - [ ] Guira
-  - [ ] Lexing
-  - [ ] Number tower structure
-  - [ ] List data structure
-  - [ ] Parsing
-  - [ ] Eval
-  - [ ] guiracore
+- [ ] AMD64 compiler backend
+- [ ] ARM64 compiler backend

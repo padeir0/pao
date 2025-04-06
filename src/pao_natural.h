@@ -22,19 +22,19 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* TODO:
   natural_add,
-  natural_distance_digit, natural_distance,
-  natural_mult_digit,     natural_mult,
-  natural_div_digit,      natural_div
+  natural_distanceDigit, natural_distance,
+  natural_multDigit,     natural_mult,
+  natural_divDigit,      natural_div
 */
 
-#ifndef PAO_NATURAL_H
-#define PAO_NATURAL_H
+#ifndef PAO_natural_H
+#define PAO_natural_H
 
 // remove when finished debugging.
 #include <stdio.h>
 #include <string.h>
 
-#include "pao_basic_types.h"
+#include "pao_basicTypes.h"
 #include "pao_status.h"
 #include "pao_allocator.h"
 
@@ -45,24 +45,24 @@ typedef struct {
 } pao_Natural;
 
 /* BEGIN: CONSTANTS */
-#define PAO_NATURAL_MIN_NAT_VEC 4
-#define PAO_NATURAL_DIGITS_PER_INT 9
-#define PAO_NATURAL_BASE 1000000000
+#define PAO_NATURAL_minNatVec 4
+#define PAO_NATURAL_digitsPerInt 9
+#define PAO_NATURAL_base 1000000000
 /* END: CONSTANTS */
 
 /* BEGIN: NATVEC */
 static inline
-u32* _pao_natural_natvec_alloc(pao_Allocator mem, usize size, char* func) {
+u32* i_pao_natural_natVecAlloc(pao_Allocator mem, usize size, char* func) {
   return (u32*)mem.alloc(mem.heap, size*sizeof(u32), func);
 }
 
 static inline
-void _pao_natural_natvec_copy(u32* dest, u32* source, usize len) {
+void i_pao_natural_natVecCopy(u32* dest, u32* source, usize len) {
   memcpy(dest, source, len*sizeof(u32));
 }
 
 static inline
-void _pao_natural_natvec_free(pao_Allocator mem, u32* vec) {
+void i_pao_natural_natVecFree(pao_Allocator mem, u32* vec) {
   mem.free(mem.heap, vec);
 }
 /* END: NATVEC */
@@ -70,8 +70,8 @@ void _pao_natural_natvec_free(pao_Allocator mem, u32* vec) {
 /* BEGIN: UTIL */
 
 static inline
-bool _pao_natural_not_digit(u32 digit) {
-  return PAO_NATURAL_BASE <= digit;
+bool i_pao_natural_notDigit(u32 digit) {
+  return PAO_NATURAL_base <= digit;
 }
 
 /* END: UTIL */
@@ -84,22 +84,22 @@ pao_Natural pao_natural_empty(void) {
 }
 
 static
-bool _pao_natural_push_digit(pao_Allocator mem, pao_Natural* out, u32 digit) {
+bool i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digit) {
   if (out->cap == 0) {
-    out->digits = _pao_natural_natvec_alloc(mem, PAO_NATURAL_MIN_NAT_VEC, (char*)__func__);
+    out->digits = i_pao_natural_natVecAlloc(mem, PAO_NATURAL_minNatVec, (char*)__func__);
     if (out->digits == NULL) {
       return false;
     }
-    out->cap = PAO_NATURAL_MIN_NAT_VEC;
+    out->cap = PAO_NATURAL_minNatVec;
   }
   if (out->len == out->cap) {
     u32 new_cap = 2 * out->cap;
-    u32* new_vec = _pao_natural_natvec_alloc(mem, new_cap, (char*)__func__);
+    u32* new_vec = i_pao_natural_natVecAlloc(mem, new_cap, (char*)__func__);
     if (new_vec == NULL) {
       return false;
     }
-    _pao_natural_natvec_copy(new_vec, out->digits, out->len);
-    _pao_natural_natvec_free(mem, out->digits);
+    i_pao_natural_natVecCopy(new_vec, out->digits, out->len);
+    i_pao_natural_natVecFree(mem, out->digits);
     out->digits = new_vec;
     out->cap = new_cap;
   }
@@ -109,41 +109,41 @@ bool _pao_natural_push_digit(pao_Allocator mem, pao_Natural* out, u32 digit) {
   return true;
 }
 
-pao_status pao_natural_set_vec(pao_Allocator mem, pao_Natural* out, u32* digits, i32 len) {
+pao_status pao_natural_setVec(pao_Allocator mem, pao_Natural* out, u32* digits, i32 len) {
   out->len = 0;
   int i = len-1;
   while (0 <= i) {
-    bool ok = _pao_natural_push_digit(mem, out, digits[i]);
+    bool ok = i_pao_natural_pushDigit(mem, out, digits[i]);
     if (!ok) {
-      return pao_status_OUT_OF_MEMORY;
+      return PAO_status_outOfMemory;
     }
     i--;
   }
-  return pao_status_OK;
+  return PAO_status_ok;
 }
 
 pao_status pao_natural_set(pao_Allocator mem, pao_Natural* out, u32 digit) {
-  if (_pao_natural_not_digit(digit)){
-    return pao_status_INVALID_DIGIT;
+  if (i_pao_natural_notDigit(digit)){
+    return PAO_status_invalidDigit;
   }
   if (digit == 0) {
     out->len = 0;
-    return pao_status_OK;
+    return PAO_status_ok;
   }
   if (out->cap > 0) {
     out->len = 1;
     out->digits[0] = digit;
-    return pao_status_OK;
+    return PAO_status_ok;
   }
-  _pao_natural_push_digit(mem, out, digit);
-  return pao_status_OK;
+  i_pao_natural_pushDigit(mem, out, digit);
+  return PAO_status_ok;
 }
 
-bool pao_natural_is_zero(const pao_Natural N) {
+bool pao_natural_isZero(const pao_Natural N) {
   return N.len == 0;
 }
 
-bool pao_natural_equal_digit(const pao_Natural A, u32 digit) {
+bool pao_natural_equalDigit(const pao_Natural A, u32 digit) {
   if (A.len == 0 && digit == 0) {
     return true;
   }
@@ -164,16 +164,16 @@ bool pao_natural_equal(const pao_Natural A, const pao_Natural B) {
   return true;
 }
 
-pao_status pao_natural_add_digit(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
-  if (_pao_natural_not_digit(B)) {
-    return pao_status_INVALID_DIGIT;
+pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
+  if (i_pao_natural_notDigit(B)) {
+    return PAO_status_invalidDigit;
   }
-  if (pao_natural_is_zero(A)) {
+  if (pao_natural_isZero(A)) {
     pao_natural_set(mem, out, B);
-    return pao_status_OK;
+    return PAO_status_ok;
   }
   if (out->len == 0) {
-    _pao_natural_push_digit(mem, out, 0);
+    i_pao_natural_pushDigit(mem, out, 0);
   }
 
   u32 i = 0;
@@ -182,15 +182,15 @@ pao_status pao_natural_add_digit(pao_Allocator mem, const pao_Natural A, u32 B, 
 
   do {
     if (i == out->len) {
-      _pao_natural_push_digit(mem, out, 0);
+      i_pao_natural_pushDigit(mem, out, 0);
     }
 
     res = carry;
     res += A.digits[i];
 
-    if (PAO_NATURAL_BASE <= res) {
+    if (PAO_NATURAL_base <= res) {
       carry = 1;
-      out->digits[i] = (u32)(res - PAO_NATURAL_BASE);
+      out->digits[i] = (u32)(res - PAO_NATURAL_base);
       /* UNSAFE:
          since our carry is set to the digit in the first iteration,
          we need to prove the cast above is valid:
@@ -212,22 +212,22 @@ pao_status pao_natural_add_digit(pao_Allocator mem, const pao_Natural A, u32 B, 
     i++;
   } while (0 < carry || i < A.len);
 
-  return pao_status_OK;
+  return PAO_status_ok;
 }
 
 static
-char* _pao_natural_first_nonzero_char(char* buffer, usize bufflen) {
+char* i_pao_natural_firstNonzeroChar(char* buffer, usize buffSize) {
   usize i = 0;
-  while (i < bufflen && buffer[i] == '0') {
+  while (i < buffSize && buffer[i] == '0') {
     i++;
   }
   return buffer+i;
 }
 
 static
-void _pao_natural_write_u32(u32 n, char* buffer) {
+void i_pao_natural_WriteU32(u32 n, char* buffer) {
   int i = 0;
-  while (i < PAO_NATURAL_DIGITS_PER_INT) {
+  while (i < PAO_NATURAL_digitsPerInt) {
     buffer[i] = '0';
     i++;
   }
@@ -235,7 +235,7 @@ void _pao_natural_write_u32(u32 n, char* buffer) {
     return;
   }
 
-  char* b = buffer + PAO_NATURAL_DIGITS_PER_INT -1;
+  char* b = buffer + PAO_NATURAL_digitsPerInt -1;
   while (n > 0) {
     *b = (char)(n%10) + '0';
     b--;
@@ -245,15 +245,15 @@ void _pao_natural_write_u32(u32 n, char* buffer) {
 }
 
 static
-size_t _pao_natural_snprint(const pao_Natural nat, char* buffer, usize bufflen, bool pad_left, bool pad_right) {
+size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize, bool padLeft, bool padRight) {
   // Checks if the buffer size is sufficient, we're generous here and
   // don't care if padding is omitted. We also expect that no useless
   // digits are present, ie: 000000000_000000001,
   // which should be true for all arithmetic implemented here.
   // If for some reason some useless digits are present and
   // padd_left is false, then this will return 0.
-  usize needed_bytes = (usize)(nat.len * PAO_NATURAL_DIGITS_PER_INT);
-  if (bufflen == 0 || needed_bytes >= bufflen) {
+  usize neededBytes = (usize)(nat.len * PAO_NATURAL_digitsPerInt);
+  if (buffSize == 0 || neededBytes >= buffSize) {
     return 0;
   }
   if (nat.len == 0) {
@@ -265,14 +265,14 @@ size_t _pao_natural_snprint(const pao_Natural nat, char* buffer, usize bufflen, 
   char* block = buffer;
 
   do {
-    u32 curr_digit = nat.digits[i];
-    _pao_natural_write_u32(curr_digit, block);
-    block += PAO_NATURAL_DIGITS_PER_INT;
+    u32 currDigit = nat.digits[i];
+    i_pao_natural_WriteU32(currDigit, block);
+    block += PAO_NATURAL_digitsPerInt;
     i--;
   } while (0 < i);
 
   usize size = (uptr)block - (uptr)buffer;
-  if (!pad_right) {
+  if (!padRight) {
     while (0 < size && *(buffer+size-1) == '0') {
         size--;
     }
@@ -280,15 +280,15 @@ size_t _pao_natural_snprint(const pao_Natural nat, char* buffer, usize bufflen, 
 
   // if there are zeros on the left and we don't want padding,
   // then we shift everything to the left until we get rid of the zeros.
-  if (!pad_left) {
-    char* first_nonzero = _pao_natural_first_nonzero_char(buffer, size);
-    if (buffer < first_nonzero) {
-      uptr pad_len = (uptr)first_nonzero - (uptr)buffer;
-      size = size - pad_len;
+  if (!padLeft) {
+    char* firstNonZero = i_pao_natural_firstNonzeroChar(buffer, size);
+    if (buffer < firstNonZero) {
+      uptr padLen = (uptr)firstNonZero - (uptr)buffer;
+      size = size - padLen;
 
       uptr i = 0;
       while (i < size) {
-        buffer[i] = first_nonzero[i];
+        buffer[i] = firstNonZero[i];
         i++;
       }
     }
@@ -297,8 +297,8 @@ size_t _pao_natural_snprint(const pao_Natural nat, char* buffer, usize bufflen, 
   return size;
 }
 
-usize pao_natural_snprint(const pao_Natural nat, char* buffer, size_t bufflen) {
-  return _pao_natural_snprint(nat, buffer, bufflen, false, true);
+usize pao_natural_snprint(const pao_Natural nat, char* buffer, size_t buffSize) {
+  return i_pao_natural_snprint(nat, buffer, buffSize, false, true);
 }
 
-#endif /* PAO_NATURAL_H */
+#endif

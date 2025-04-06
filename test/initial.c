@@ -1,6 +1,6 @@
 #include "../src/pao_natural.h"
 #include "../src/pao_status.h"
-#include "../src/pao_stdmalloc.h"
+#include "../src/pao_stdAlloc.h"
 #include <stdio.h>
 
 #define BUFF_LENGTH 2048
@@ -27,10 +27,10 @@ int pi(void) {
   };
   #define PILEN (sizeof(pidigits) / sizeof(pidigits[0]))
 
-  pao_natural_set_vec(PAO_STDMALLOC, &A, pidigits, PILEN);
+  pao_natural_setVec(PAO_STDMALLOC, &A, pidigits, PILEN);
  
-  pao_status s = pao_natural_add_digit(PAO_STDMALLOC, A, B, &OUT);
-  if (s != pao_status_OK) {
+  pao_status s = pao_natural_addDigit(PAO_STDMALLOC, A, B, &OUT);
+  if (s != PAO_status_ok) {
     printf("fail: %d\n", s);
     abort();
   }
@@ -49,7 +49,7 @@ int beep(void) {
     1, 0, 0,
   };
 
-  pao_natural_set_vec(PAO_STDMALLOC, &A, digits, DILEN);
+  pao_natural_setVec(PAO_STDMALLOC, &A, digits, DILEN);
   print_nat(A);
   return 0;
 }

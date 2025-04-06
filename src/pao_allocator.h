@@ -21,10 +21,10 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef PAO_ALLOCATOR_H
-#define PAO_ALLOCATOR_H
+#ifndef PAO_allocator_H
+#define PAO_allocator_H
 
-#include "pao_basic_types.h"
+#include "pao_basicTypes.h"
 
 /*
 Allocates an object of given size.
@@ -51,7 +51,7 @@ typedef void  (*pao_Free)(void* heap, void* obj);
 Frees the entire heap. Allocators that do not provide this should
 crash the program when this function is called (ie, pao_stdmalloc).
 */
-typedef void  (*pao_Free_All)(void* heap);
+typedef void  (*pao_FreeAll)(void* heap);
 
 /*
 Generic allocator interface.
@@ -67,7 +67,7 @@ typedef struct {
   void* heap;
   pao_Alloc alloc;
   pao_Free free;
-  pao_Free_All free_all;
+  pao_FreeAll freeAll;
 } pao_Allocator;
 
-#endif /* PAO_ALLOCATOR_H */
+#endif

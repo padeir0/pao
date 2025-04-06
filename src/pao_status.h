@@ -21,14 +21,14 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef PAO_STATUS_H
-#define PAO_STATUS_H
+#ifndef PAO_status_H
+#define PAO_status_H
 
 typedef enum __attribute__((__packed__)) {
-  pao_status_OK,
-  pao_status_DIVISION_BY_ZERO,
-  pao_status_OUT_OF_MEMORY,
-  pao_status_INVALID_DIGIT,
+  PAO_status_ok,
+  PAO_status_divisionByZero,
+  PAO_status_outOfMemory,
+  PAO_status_invalidDigit,
 } pao_status;
 
-#endif /* PAO_STATUS_H */
+#endif

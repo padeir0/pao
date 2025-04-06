@@ -52,7 +52,7 @@ pao_Allocator PAO_STDMALLOC = {
   .heap = NULL,
   .alloc = _pao_stdmalloc_alloc,
   .free = _pao_stdmalloc_free,
-  .free_all = _pao_stdmalloc_free_all,
+  .freeAll = _pao_stdmalloc_free_all,
 };
 
 #endif /* PAO_STDMALLOC_H */

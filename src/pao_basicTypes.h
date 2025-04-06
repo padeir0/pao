@@ -21,8 +21,8 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef PAO_BASIC_TYPES_H
-#define PAO_BASIC_TYPES_H
+#ifndef PAO_basicTypes_H
+#define PAO_basicTypes_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -43,4 +43,4 @@ typedef int64_t i64;
 typedef uintptr_t uptr;
 typedef size_t    usize;
 
-#endif /* PAO_BASIC_TYPES_H */
+#endif
