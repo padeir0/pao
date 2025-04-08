@@ -26,6 +26,7 @@ of the form `pao_<NameUpperCamelCase>`, private types must be
 of the form `i_pao_<NameUpperCamelCase>`.
  - All local variables, arguments, struct fields and union fields must be camelCase,
  no need to prefix them with `i_pao_` or `pao_`.
+ - All global variables must be prefixed with `g_pao_` and must only exist inside tests.
 
 Types often define the namespaces of functions, for example
 `pao_Natural` will define the namespace for the functions
@@ -37,11 +38,11 @@ Exceptions to this naming rule are the types inside `pao_basicTypes.h`.
 
 Guidelines are for libraries, tests can ignore some of these.
 
- - All code must run with `-Wall -Wextra -Werror -pedantic -Wconversion`
- for each C version from C99 to C23 in _both_ `gcc` and `clang`
+ - All code must run with `-Wall -Wextra -Werror -pedantic -Wconversion`,
+ with _both_ `--std=c99` and `--std=c17` in _both_ `gcc` and `clang`
  (see `tests/run_portable_tests`).
  - Macro usage is restricted to `#define` constants and header guards.
- - Never use global variables.
+ - Never use global variables inside library code (inside tests, this is fine).
  - Functions that need dynamic allocation should receive allocators as arguments.
  - Never use `goto`, `continue` or `for` loops.
  - Never take the address of local variables.
@@ -55,4 +56,4 @@ Guidelines are for libraries, tests can ignore some of these.
  - Assume architecture is either amd64 or arm64.
  - Write sufficient tests for a feature before plunging into the next.
  - Bad usage and internal errors should crash the program.
- - Recoverable errors should return a `pao_status` code.
+ - Recoverable errors should return a `pao_status` code (or should document the return values).

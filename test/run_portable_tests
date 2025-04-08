@@ -8,15 +8,17 @@ for compiler in gcc clang; do
     continue
   fi
   
-  for version in c99 c11 c17 c23; do
-    echo "Running tests on $compiler with $version..."
-    for filename in ./*_test.c; do
-      if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=$version "$filename" -o "out123"; then
-        ./out123
-        rm out123
-      else
-        echo "Compilation failed for $filename with $compiler ($version), skipping execution."
-      fi
+  for version in c99 c17; do
+    for opt in -O0 -O2; do
+    echo "Running tests on $compiler. version: $version; optimization: $opt;"
+      for filename in ./*_test.c; do
+        if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes $opt -std=$version "$filename" -o "out123"; then
+          ./out123
+          rm out123
+        else
+          echo "Compilation failed for $filename with $compiler ($version) $opt, skipping execution."
+        fi
+      done
     done
     echo ""
   done

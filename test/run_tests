@@ -1,7 +1,7 @@
 #!/bin/bash
 
 for filename in ./*_test.c; do
-  if gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 "$filename" -o "out123"; then
+  if gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "out123"; then
     ./out123
     rm out123
   else

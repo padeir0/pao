@@ -8,7 +8,7 @@
   - [ ] Rationals.
   - [ ] Decimals (fixed point).
 - [ ] Allocators with static heap size (returns `null` when full)
-  - [ ] Arena allocator.
+  - [x] Arena allocator.
   - [ ] Pool allocator.
   - [ ] Free-list allocator.
   - [ ] Stack allocator.
