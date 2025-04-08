@@ -21,7 +21,6 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-// LINEARALLOC
 #ifndef PAO_linearAlloc_H
 #define PAO_linearAlloc_H
 
@@ -30,9 +29,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "pao_allocator.h"
 
 typedef struct {
-  u8* buffer;
-  usize   buffSize;
-  usize   allocated;
+  u8*   buffer;
+  usize buffSize;
+  usize allocated;
 } pao_LinearAlloc;
 
 /* returns a arena allocated at the beginning of the buffer */

@@ -7,17 +7,15 @@
   - [ ] Integers.
   - [ ] Rationals.
   - [ ] Decimals (fixed point).
-- [ ] Allocators with static heap size (returns `null` when full)
-  - [x] Arena allocator.
-  - [ ] Pool allocator.
-  - [ ] Free-list allocator.
-  - [ ] Stack allocator.
-- [ ] Allocators with dynamic heap size (calls `malloc` internally when full, may still return `null`)
+- [ ] Allocators with static heap size.
   - [ ] Arena allocator.
   - [ ] Stack allocator.
+  - [ ] Queue allocator.
   - [ ] Pool allocator.
   - [ ] Free-list allocator.
-  - [ ] Debug allocator (generic free-list allocator that tracks where things were allocated)
+  - [ ] Debug allocator (generic free-list allocator that tracks where things were allocated).
+- [ ] Generic multi-block allocator
+(keeps track of block ranges, creates new fixed-sized-blocks when memory is full, uses a single type of static-heap allocator internally).
 - [ ] Command line argument parsing
 - [ ] Associative arrays
   - [ ] `str -> void*` linear hashmap (only insert, lookup and clear, can use a simple arena allocator)
