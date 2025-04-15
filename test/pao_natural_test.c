@@ -18,7 +18,7 @@ char buffer[BUFF_LENGTH];
 void print_nat(pao_Natural n) {
   usize written = pao_natural_snprint(n, buffer, BUFF_LENGTH);
   if (written == 0) {
-    printf("nothing printed :(");
+    printf("nothing printed :(\n");
     abort();
   }
   printf("%.*s", (int)written, buffer);
@@ -37,10 +37,13 @@ bool test_natural_add_digit_1(void) {
   pao_natural_setVec(PAO_STDMALLOC, &a, A_DIGS, A_DIGS_LEN);
   
   u32 EXP_DIGS[A_DIGS_LEN+1] = {1, 0, 0};
-  pao_natural_setVec(PAO_STDMALLOC,&expected, EXP_DIGS, A_DIGS_LEN+1);
+  pao_natural_setVec(PAO_STDMALLOC, &expected, EXP_DIGS, A_DIGS_LEN+1);
 
   pao_status s = pao_natural_addDigit(PAO_STDMALLOC,a, 1, &out);
   check_status(s);
+  print_nat(a);
+  print_nat(out);
+  print_nat(expected);
 
   return pao_natural_equal(out, expected);
 }

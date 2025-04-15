@@ -84,11 +84,11 @@ pao_Natural pao_natural_empty(void) {
 }
 
 static
-bool i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digit) {
+pao_status i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digit) {
   if (out->cap == 0) {
     out->digits = i_pao_natural_natVecAlloc(mem, PAO_NATURAL_minNatVec, (char*)__func__);
     if (out->digits == NULL) {
-      return false;
+      return PAO_status_outOfMemory;
     }
     out->cap = PAO_NATURAL_minNatVec;
   }
@@ -96,7 +96,7 @@ bool i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digit) {
     u32 new_cap = 2 * out->cap;
     u32* new_vec = i_pao_natural_natVecAlloc(mem, new_cap, (char*)__func__);
     if (new_vec == NULL) {
-      return false;
+      return PAO_status_outOfMemory;
     }
     i_pao_natural_natVecCopy(new_vec, out->digits, out->len);
     i_pao_natural_natVecFree(mem, out->digits);
@@ -106,15 +106,15 @@ bool i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digit) {
   u32 index = out->len;
   out->len++;
   out->digits[index] = digit;
-  return true;
+  return PAO_status_ok;
 }
 
 pao_status pao_natural_setVec(pao_Allocator mem, pao_Natural* out, u32* digits, i32 len) {
   out->len = 0;
   int i = len-1;
   while (0 <= i) {
-    bool ok = i_pao_natural_pushDigit(mem, out, digits[i]);
-    if (!ok) {
+    pao_status ok = i_pao_natural_pushDigit(mem, out, digits[i]);
+    if (ok != PAO_status_ok) {
       return PAO_status_outOfMemory;
     }
     i--;
@@ -135,8 +135,7 @@ pao_status pao_natural_set(pao_Allocator mem, pao_Natural* out, u32 digit) {
     out->digits[0] = digit;
     return PAO_status_ok;
   }
-  i_pao_natural_pushDigit(mem, out, digit);
-  return PAO_status_ok;
+  return i_pao_natural_pushDigit(mem, out, digit);
 }
 
 bool pao_natural_isZero(const pao_Natural N) {
@@ -169,11 +168,13 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
     return PAO_status_invalidDigit;
   }
   if (pao_natural_isZero(A)) {
-    pao_natural_set(mem, out, B);
-    return PAO_status_ok;
+    return pao_natural_set(mem, out, B);
   }
   if (out->len == 0) {
-    i_pao_natural_pushDigit(mem, out, 0);
+    pao_status st = i_pao_natural_pushDigit(mem, out, 0);
+    if (st != PAO_status_ok) {
+      return st;
+    }
   }
 
   u32 i = 0;
@@ -181,37 +182,87 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
   i64 res = 0;
 
   do {
-    if (i == out->len) {
-      i_pao_natural_pushDigit(mem, out, 0);
-    }
-
     res = carry;
-    res += A.digits[i];
+    if (i < A.len) {
+      res += A.digits[i];
+    }
 
     if (PAO_NATURAL_base <= res) {
       carry = 1;
-      out->digits[i] = (u32)(res - PAO_NATURAL_base);
-      /* UNSAFE:
-         since our carry is set to the digit in the first iteration,
-         we need to prove the cast above is valid:
-
-         if (carry < BASE) and (digit < BASE)
-            and ((res = carry+digit) >= BASE)
-         then (res - BASE < BASE)
-         proof:
-           carry < BASE            implies
-           carry + BASE < 2*BASE   implies
-           carry + digit < 2*BASE  implies
-           res - BASE < BASE
-         as desired. \qed
-      */
+      res -= PAO_NATURAL_base;
     } else {
       carry = 0;
-      out->digits[i] = (u32)res;
+    }
+    /* UNSAFE:
+       since our carry is set to the digit in the first iteration,
+       we need to prove the cast above is valid:
+
+       if (carry < BASE) and (digit < BASE)
+          and ((res = carry+digit) >= BASE)
+       then (res - BASE < BASE)
+       proof:
+         carry < BASE            implies
+         carry + BASE < 2*BASE   implies
+         carry + digit < 2*BASE  implies
+         res - BASE < BASE
+       as desired. \qed
+    */
+    pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
+    if (st != PAO_status_ok) {
+      return st;
     }
     i++;
   } while (0 < carry || i < A.len);
 
+  return PAO_status_ok;
+}
+
+/*
+Computes |A - B|, in other words:
+  if B<A then A-B
+  else B-A
+*/
+pao_status pao_natural_distance(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
+  if (pao_natural_isZero(A)) {
+    return pao_natural_set(mem, out, B);
+  }
+
+  if (A.len == 1) {
+    u32 digit = A.digits[0];
+    u32 result = 0;
+    if (digit < B) {
+      result = B - digit;
+    } else {
+      result = digit - B;
+    }
+    return pao_natural_set(mem, out, result);
+  }
+
+  // B < A, assuming A has no leading zeroes.
+  i64 res = 0;
+  i64 carry = B;
+  u32 i = 0;
+  do {
+    /* UNSAFE: since |A-B| < A, we can safely use `i` here, we will never
+       have a situation where both `carry > 0` and `i >= A.len` are true.*/
+    res = A.digits[i] - carry;
+    if (res < 0) {
+      carry = 1;
+      res += PAO_NATURAL_base;
+    } else {
+      carry = 0;
+    }
+    /* UNSAFE: see that because `A.digit[i]` and `B` are both positive numbers
+       less than `PAO_natural_base`, then `res = A.digits[0] - B` is also less
+       than the base, which is less than U32_MAX.
+    */
+    pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
+    if (st != PAO_status_ok) {
+      return st;
+    }
+    i++;
+  } while (carry > 0 || i < A.len);
+  // TODO: i_pao_natural_removeLeadingZeroes(out);
   return PAO_status_ok;
 }
 
