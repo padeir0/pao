@@ -22,7 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /* TODO:
   natural_add,
-  natural_distanceDigit, natural_distance,
+  natural_distance,
   natural_multDigit,     natural_mult,
   natural_divDigit,      natural_div
 */
@@ -163,18 +163,26 @@ bool pao_natural_equal(const pao_Natural A, const pao_Natural B) {
   return true;
 }
 
+/* UNSAFE (1):
+   since our carry is set to the digit in the first iteration,
+   we need to prove the cast above is valid:
+
+   if (carry < BASE) and (digit < BASE)
+      and ((res = carry+digit) >= BASE)
+   then (res - BASE < BASE)
+   proof:
+     carry < BASE            implies
+     carry + BASE < 2*BASE   implies
+     carry + digit < 2*BASE  implies
+     res - BASE < BASE
+   as desired. \qed
+*/
 pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
   if (i_pao_natural_notDigit(B)) {
     return PAO_status_invalidDigit;
   }
   if (pao_natural_isZero(A)) {
     return pao_natural_set(mem, out, B);
-  }
-  if (out->len == 0) {
-    pao_status st = i_pao_natural_pushDigit(mem, out, 0);
-    if (st != PAO_status_ok) {
-      return st;
-    }
   }
 
   u32 i = 0;
@@ -193,20 +201,7 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
     } else {
       carry = 0;
     }
-    /* UNSAFE:
-       since our carry is set to the digit in the first iteration,
-       we need to prove the cast above is valid:
-
-       if (carry < BASE) and (digit < BASE)
-          and ((res = carry+digit) >= BASE)
-       then (res - BASE < BASE)
-       proof:
-         carry < BASE            implies
-         carry + BASE < 2*BASE   implies
-         carry + digit < 2*BASE  implies
-         res - BASE < BASE
-       as desired. \qed
-    */
+    // UNSAFE (1):
     pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
     if (st != PAO_status_ok) {
       return st;
@@ -217,12 +212,20 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
   return PAO_status_ok;
 }
 
+void i_pao_natural_removeLeadingZeroes(pao_Natural* out) {
+  i32 i = (i32)out->len - 1;
+  while (0 <= i && out->digits[i] == 0) {
+    i--;
+  }
+  out->len = (u32)(i)+1;
+}
+
 /*
 Computes |A - B|, in other words:
   if B<A then A-B
   else B-A
 */
-pao_status pao_natural_distance(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
+pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
   if (pao_natural_isZero(A)) {
     return pao_natural_set(mem, out, B);
   }
@@ -262,7 +265,7 @@ pao_status pao_natural_distance(pao_Allocator mem, const pao_Natural A, u32 B, p
     }
     i++;
   } while (carry > 0 || i < A.len);
-  // TODO: i_pao_natural_removeLeadingZeroes(out);
+  i_pao_natural_removeLeadingZeroes(out);
   return PAO_status_ok;
 }
 
@@ -320,7 +323,7 @@ size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize
     i_pao_natural_WriteU32(currDigit, block);
     block += PAO_NATURAL_digitsPerInt;
     i--;
-  } while (0 < i);
+  } while (0 <= i);
 
   usize size = (uptr)block - (uptr)buffer;
   if (!padRight) {
