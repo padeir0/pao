@@ -94,6 +94,11 @@ pao_status i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digi
   }
   if (out->len == out->cap) {
     u32 new_cap = 2 * out->cap;
+    if (new_cap > I32_MAX) {
+      // this limitation is acceptable, a ~16GB number is unrealistic.
+      return PAO_status_naturalNumberOverflow;
+    }
+
     u32* new_vec = i_pao_natural_natVecAlloc(mem, new_cap, (char*)__func__);
     if (new_vec == NULL) {
       return PAO_status_outOfMemory;
@@ -212,6 +217,11 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
   return PAO_status_ok;
 }
 
+/* UNSAFE: all this casting shenannigans fails if a number passes I32_MAX digits,
+   but I32_MAX * 8 bytes = 2GB * 8 = 16GB in a _single number_. Can you imagine
+   any degenerate case where a single number has 16GB???
+   We may enforce this inside pushDigit.
+*/
 void i_pao_natural_removeLeadingZeroes(pao_Natural* out) {
   i32 i = (i32)out->len - 1;
   while (0 <= i && out->digits[i] == 0) {
