@@ -21,14 +21,14 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef PAO_STDMALLOC_H
-#define PAO_STDMALLOC_H
+#ifndef PAO_stdAlloc_H
+#define PAO_stdAlloc_H
 
 #include "pao_allocator.h"
 #include <stdio.h>
 
 static
-void* _pao_stdmalloc_alloc(
+void* i_pao_stdAlloc_alloc(
   __attribute__((unused)) void* heap,
   usize size,
   __attribute__((unused)) char* func
@@ -37,22 +37,22 @@ void* _pao_stdmalloc_alloc(
 }
 
 static
-void  _pao_stdmalloc_free(__attribute__((unused)) void* heap, void* obj) {
+void i_pao_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
   free(obj);
 }
 
 static
-void  _pao_stdmalloc_free_all(__attribute__((unused)) void* heap) {
+void i_pao_stdAlloc_free_all(__attribute__((unused)) void* heap) {
   printf("error: standard malloc provides no free_all function.\n");
   abort();
 }
 
 const
-pao_Allocator PAO_STDMALLOC = {
+pao_Allocator PAO_stdAlloc = {
   .heap = NULL,
-  .alloc = _pao_stdmalloc_alloc,
-  .free = _pao_stdmalloc_free,
-  .freeAll = _pao_stdmalloc_free_all,
+  .alloc = i_pao_stdAlloc_alloc,
+  .free = i_pao_stdAlloc_free,
+  .freeAll = i_pao_stdAlloc_free_all,
 };
 
-#endif /* PAO_STDMALLOC_H */
+#endif

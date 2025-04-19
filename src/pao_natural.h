@@ -45,9 +45,9 @@ typedef struct {
 } pao_Natural;
 
 /* BEGIN: CONSTANTS */
-#define PAO_NATURAL_minNatVec 4
-#define PAO_NATURAL_digitsPerInt 9
-#define PAO_NATURAL_base 1000000000
+#define PAO_natural_minNatVec 4
+#define PAO_natural_digitsPerInt 9
+#define PAO_natural_base 1000000000
 /* END: CONSTANTS */
 
 /* BEGIN: NATVEC */
@@ -71,7 +71,7 @@ void i_pao_natural_natVecFree(pao_Allocator mem, u32* vec) {
 
 static inline
 bool i_pao_natural_notDigit(u32 digit) {
-  return PAO_NATURAL_base <= digit;
+  return PAO_natural_base <= digit;
 }
 
 /* END: UTIL */
@@ -86,16 +86,16 @@ pao_Natural pao_natural_empty(void) {
 static
 pao_status i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digit) {
   if (out->cap == 0) {
-    out->digits = i_pao_natural_natVecAlloc(mem, PAO_NATURAL_minNatVec, (char*)__func__);
+    out->digits = i_pao_natural_natVecAlloc(mem, PAO_natural_minNatVec, (char*)__func__);
     if (out->digits == NULL) {
       return PAO_status_outOfMemory;
     }
-    out->cap = PAO_NATURAL_minNatVec;
+    out->cap = PAO_natural_minNatVec;
   }
   if (out->len == out->cap) {
     u32 new_cap = 2 * out->cap;
-    if (new_cap > I32_MAX) {
-      // this limitation is acceptable, a ~16GB number is unrealistic.
+    if (new_cap > (u32)I32_MAX) {
+      // this limitation is acceptable, a ~8GB number is unrealistic.
       return PAO_status_naturalNumberOverflow;
     }
 
@@ -200,9 +200,9 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
       res += A.digits[i];
     }
 
-    if (PAO_NATURAL_base <= res) {
+    if (PAO_natural_base <= res) {
       carry = 1;
-      res -= PAO_NATURAL_base;
+      res -= PAO_natural_base;
     } else {
       carry = 0;
     }
@@ -218,9 +218,9 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
 }
 
 /* UNSAFE: all this casting shenannigans fails if a number passes I32_MAX digits,
-   but I32_MAX * 8 bytes = 2GB * 8 = 16GB in a _single number_. Can you imagine
-   any degenerate case where a single number has 16GB???
-   We may enforce this inside pushDigit.
+   but I32_MAX * 4 bytes = 2GB * 4 = 8GB in a _single number_. Can you imagine
+   any degenerate case where a single number has 8GB???
+   We enforce this limit inside pushDigit.
 */
 void i_pao_natural_removeLeadingZeroes(pao_Natural* out) {
   i32 i = (i32)out->len - 1;
@@ -261,7 +261,7 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32
     res = A.digits[i] - carry;
     if (res < 0) {
       carry = 1;
-      res += PAO_NATURAL_base;
+      res += PAO_natural_base;
     } else {
       carry = 0;
     }
@@ -291,7 +291,7 @@ char* i_pao_natural_firstNonzeroChar(char* buffer, usize buffSize) {
 static
 void i_pao_natural_WriteU32(u32 n, char* buffer) {
   int i = 0;
-  while (i < PAO_NATURAL_digitsPerInt) {
+  while (i < PAO_natural_digitsPerInt) {
     buffer[i] = '0';
     i++;
   }
@@ -299,7 +299,7 @@ void i_pao_natural_WriteU32(u32 n, char* buffer) {
     return;
   }
 
-  char* b = buffer + PAO_NATURAL_digitsPerInt -1;
+  char* b = buffer + PAO_natural_digitsPerInt -1;
   while (n > 0) {
     *b = (char)(n%10) + '0';
     b--;
@@ -316,7 +316,7 @@ size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize
   // which should be true for all arithmetic implemented here.
   // If for some reason some useless digits are present and
   // padd_left is false, then this will return 0.
-  usize neededBytes = (usize)(nat.len * PAO_NATURAL_digitsPerInt);
+  usize neededBytes = (usize)(nat.len * PAO_natural_digitsPerInt);
   if (buffSize == 0 || neededBytes >= buffSize) {
     return 0;
   }
@@ -331,7 +331,7 @@ size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize
   do {
     u32 currDigit = nat.digits[i];
     i_pao_natural_WriteU32(currDigit, block);
-    block += PAO_NATURAL_digitsPerInt;
+    block += PAO_natural_digitsPerInt;
     i--;
   } while (0 <= i);
 

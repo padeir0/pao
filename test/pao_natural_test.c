@@ -35,12 +35,12 @@ bool test_natural_addDigit_1(void) {
   u32 A_DIGS[] = {999999999, 999999999};
   #define A_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
 
-  pao_natural_setVec(PAO_STDMALLOC, &a, A_DIGS, A_DIGS_LEN);
+  pao_natural_setVec(PAO_stdAlloc, &a, A_DIGS, A_DIGS_LEN);
   
   u32 EXP_DIGS[A_DIGS_LEN+1] = {1, 0, 0};
-  pao_natural_setVec(PAO_STDMALLOC, &expected, EXP_DIGS, A_DIGS_LEN+1);
+  pao_natural_setVec(PAO_stdAlloc, &expected, EXP_DIGS, A_DIGS_LEN+1);
 
-  pao_status s = pao_natural_addDigit(PAO_STDMALLOC, a, 1, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 1, &out);
   checkStatus(s);
 
   return pao_natural_equal(out, expected);
@@ -52,10 +52,10 @@ bool test_natural_addDigit_2(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &a, 0);
-  pao_natural_set(PAO_STDMALLOC, &expected, 42);
+  pao_natural_set(PAO_stdAlloc, &a, 0);
+  pao_natural_set(PAO_stdAlloc, &expected, 42);
 
-  pao_status s = pao_natural_addDigit(PAO_STDMALLOC, a, 42, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 42, &out);
   checkStatus(s);
 
   return pao_natural_equal(out, expected);
@@ -67,10 +67,10 @@ bool test_natural_addDigit_3(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &a, 314159);
-  pao_natural_set(PAO_STDMALLOC, &expected, 314159);
+  pao_natural_set(PAO_stdAlloc, &a, 314159);
+  pao_natural_set(PAO_stdAlloc, &expected, 314159);
 
-  pao_status s = pao_natural_addDigit(PAO_STDMALLOC, a, 0, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 0, &out);
   checkStatus(s);
 
   return pao_natural_equal(out, expected);
@@ -82,10 +82,10 @@ bool test_natural_addDigit_4(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &a, 314159);
-  pao_natural_set(PAO_STDMALLOC, &expected, 314160);
+  pao_natural_set(PAO_stdAlloc, &a, 314159);
+  pao_natural_set(PAO_stdAlloc, &expected, 314160);
 
-  pao_status s = pao_natural_addDigit(PAO_STDMALLOC, a, 1, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 1, &out);
   checkStatus(s);
 
   return pao_natural_equalDigit(a, 314159);
@@ -103,7 +103,7 @@ bool test_natural_snprint_1(void) {
   };
   #define DILEN (sizeof(digits) / sizeof(digits[0]))
 
-  pao_natural_setVec(PAO_STDMALLOC, &A, digits, DILEN);
+  pao_natural_setVec(PAO_stdAlloc, &A, digits, DILEN);
 
   usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
   if (written == 0) {
@@ -119,7 +119,7 @@ bool test_natural_snprint_1(void) {
 bool test_natural_snprint_2(void) {
   pao_Natural A = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &A, 314159);
+  pao_natural_set(PAO_stdAlloc, &A, 314159);
 
   usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
   if (written == 0) {
@@ -135,7 +135,7 @@ bool test_natural_snprint_2(void) {
 bool test_natural_snprint_3(void) {
   pao_Natural A = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &A, 0);
+  pao_natural_set(PAO_stdAlloc, &A, 0);
 
   usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
   if (written == 0) {
@@ -158,12 +158,12 @@ bool test_natural_distanceDigit_1(void) {
 
   u32 A_DIGS[] = {1, 0, 0};
   #define A_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
-  pao_natural_setVec(PAO_STDMALLOC, &a, A_DIGS, A_DIGS_LEN);
+  pao_natural_setVec(PAO_stdAlloc, &a, A_DIGS, A_DIGS_LEN);
   
   u32 EXP_DIGS[A_DIGS_LEN-1] = {999999999, 999999999};
-  pao_natural_setVec(PAO_STDMALLOC, &expected, EXP_DIGS, A_DIGS_LEN-1);
+  pao_natural_setVec(PAO_stdAlloc, &expected, EXP_DIGS, A_DIGS_LEN-1);
 
-  pao_status s = pao_natural_distanceDigit(PAO_STDMALLOC, a, 1, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 1, &out);
   checkStatus(s);
 
   return pao_natural_equal(out, expected);
@@ -174,10 +174,10 @@ bool test_natural_distanceDigit_2(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &a, 1);
-  pao_natural_set(PAO_STDMALLOC, &expected, 0);
+  pao_natural_set(PAO_stdAlloc, &a, 1);
+  pao_natural_set(PAO_stdAlloc, &expected, 0);
 
-  pao_status s = pao_natural_distanceDigit(PAO_STDMALLOC, a, 1, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 1, &out);
   checkStatus(s);
 
   return pao_natural_equal(out, expected);
@@ -189,10 +189,10 @@ bool test_natural_distanceDigit_3(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &a, 42);
-  pao_natural_set(PAO_STDMALLOC, &expected, 42);
+  pao_natural_set(PAO_stdAlloc, &a, 42);
+  pao_natural_set(PAO_stdAlloc, &expected, 42);
 
-  pao_status s = pao_natural_distanceDigit(PAO_STDMALLOC, a, 0, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 0, &out);
   checkStatus(s);
 
   return pao_natural_equal(out, expected);
@@ -204,10 +204,10 @@ bool test_natural_distanceDigit_4(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &a, 0);
-  pao_natural_set(PAO_STDMALLOC, &expected, 42);
+  pao_natural_set(PAO_stdAlloc, &a, 0);
+  pao_natural_set(PAO_stdAlloc, &expected, 42);
 
-  pao_status s = pao_natural_distanceDigit(PAO_STDMALLOC, a, 42, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 42, &out);
   checkStatus(s);
 
   return pao_natural_equal(out, expected);
@@ -219,10 +219,10 @@ bool test_natural_distanceDigit_5(void) {
   pao_Natural out = pao_natural_empty();
   pao_Natural expected = pao_natural_empty();
 
-  pao_natural_set(PAO_STDMALLOC, &a, 314159);
-  pao_natural_set(PAO_STDMALLOC, &expected, 314158);
+  pao_natural_set(PAO_stdAlloc, &a, 314159);
+  pao_natural_set(PAO_stdAlloc, &expected, 314158);
 
-  pao_status s = pao_natural_distanceDigit(PAO_STDMALLOC, a, 1, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 1, &out);
   checkStatus(s);
 
   return pao_natural_equalDigit(a, 314159) && pao_natural_equalDigit(out, 314158);
