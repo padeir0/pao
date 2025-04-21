@@ -168,20 +168,6 @@ bool pao_natural_equal(const pao_Natural A, const pao_Natural B) {
   return true;
 }
 
-/* UNSAFE (1):
-   since our carry is set to the digit in the first iteration,
-   we need to prove the cast above is valid:
-
-   if (carry < BASE) and (digit < BASE)
-      and ((res = carry+digit) >= BASE)
-   then (res - BASE < BASE)
-   proof:
-     carry < BASE            implies
-     carry + BASE < 2*BASE   implies
-     carry + digit < 2*BASE  implies
-     res - BASE < BASE
-   as desired. \qed
-*/
 pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
   if (i_pao_natural_notDigit(B)) {
     return PAO_status_invalidDigit;
@@ -206,7 +192,7 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
     } else {
       carry = 0;
     }
-    // UNSAFE (1):
+    // SAFE(1):
     pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
     if (st != PAO_status_ok) {
       return st;
@@ -215,19 +201,34 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
   } while (0 < carry || i < A.len);
 
   return PAO_status_ok;
+  /* SAFE(1): since our carry is set to the digit in the first iteration,
+              we need to prove the cast above is valid:
+
+              if (carry < BASE) and (digit < BASE)
+                 and ((res = carry+digit) >= BASE)
+              then (res - BASE < BASE)
+              proof:
+                carry < BASE            implies
+                carry + BASE < 2*BASE   implies
+                carry + digit < 2*BASE  implies
+                res - BASE < BASE
+              as desired. \qed
+  */
 }
 
-/* UNSAFE: all this casting shenannigans fails if a number passes I32_MAX digits,
-   but I32_MAX * 4 bytes = 2GB * 4 = 8GB in a _single number_. Can you imagine
-   any degenerate case where a single number has 8GB???
-   We enforce this limit inside pushDigit.
-*/
 void i_pao_natural_removeLeadingZeroes(pao_Natural* out) {
+  // UNSAFE(1):
   i32 i = (i32)out->len - 1;
   while (0 <= i && out->digits[i] == 0) {
     i--;
   }
   out->len = (u32)(i)+1;
+  /* UNSAFE(1): all this casting shenannigans fails if a number passes I32_MAX digits,
+                but I32_MAX * 4 bytes = 2GB * 4 = 8GB in a _single number_. Can you imagine
+                any degenerate case where a single number has 8GB???
+                We enforce this limit inside pushDigit, so that the function is safe as long
+                as the user properly uses pao_Natural.
+  */
 }
 
 /*
@@ -256,8 +257,7 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32
   i64 carry = B;
   u32 i = 0;
   do {
-    /* UNSAFE: since |A-B| < A, we can safely use `i` here, we will never
-       have a situation where both `carry > 0` and `i >= A.len` are true.*/
+    // SAFE(1):
     res = A.digits[i] - carry;
     if (res < 0) {
       carry = 1;
@@ -265,10 +265,7 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32
     } else {
       carry = 0;
     }
-    /* UNSAFE: see that because `A.digit[i]` and `B` are both positive numbers
-       less than `PAO_natural_base`, then `res = A.digits[0] - B` is also less
-       than the base, which is less than U32_MAX.
-    */
+    // SAFE(2):
     pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
     if (st != PAO_status_ok) {
       return st;
@@ -277,6 +274,12 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32
   } while (carry > 0 || i < A.len);
   i_pao_natural_removeLeadingZeroes(out);
   return PAO_status_ok;
+  /* SAFE(1): since |A-B| < A, we can safely use `i` here, we will never
+              have a situation where both `carry > 0` and `i >= A.len` are true.
+     SAFE(2): see that because `A.digit[i]` and `B` are both positive numbers
+              less than `PAO_natural_base`, then `res = A.digits[0] - B` is also less
+              than the base, which is less than U32_MAX.
+  */
 }
 
 static
@@ -308,14 +311,11 @@ void i_pao_natural_WriteU32(u32 n, char* buffer) {
   return;
 }
 
+/* Only writes a number if the given buffer has sufficient size.
+*/
 static
 size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize, bool padLeft, bool padRight) {
-  // Checks if the buffer size is sufficient, we're generous here and
-  // don't care if padding is omitted. We also expect that no useless
-  // digits are present, ie: 000000000_000000001,
-  // which should be true for all arithmetic implemented here.
-  // If for some reason some useless digits are present and
-  // padd_left is false, then this will return 0.
+  // NOTE(1):
   usize neededBytes = (usize)(nat.len * PAO_natural_digitsPerInt);
   if (buffSize == 0 || neededBytes >= buffSize) {
     return 0;
@@ -330,6 +330,7 @@ size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize
 
   do {
     u32 currDigit = nat.digits[i];
+    // SAFE(1):
     i_pao_natural_WriteU32(currDigit, block);
     block += PAO_natural_digitsPerInt;
     i--;
@@ -342,8 +343,7 @@ size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize
     }
   }
 
-  // if there are zeros on the left and we don't want padding,
-  // then we shift everything to the left until we get rid of the zeros.
+  // NOTE(2)
   if (!padLeft) {
     char* firstNonZero = i_pao_natural_firstNonzeroChar(buffer, size);
     if (buffer < firstNonZero) {
@@ -359,8 +359,22 @@ size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize
   }
 
   return size;
+  /* NOTE(1): This checks if the buffer size is sufficient, we're generous here and
+              don't care if padding is omitted. We also expect that no useless
+              digits are present, ie: 000000000_000000001,
+              which should be true for all arithmetic implemented here.
+              If for some reason some useless digits are present and
+              padd_left is false, then this will return 0.
+     SAFE(1): We can proceed to write 9 bytes because we already know the buffer has enough space,
+              see note(1).
+     NOTE(2): If there are zeros on the left and we don't want padding,
+              then we shift everything to the left until we get rid of the zeros.
+  */
 }
 
+/* Only writes a number if the given buffer has sufficient size, ie,
+it either fully writes the number or returns 0.
+*/
 usize pao_natural_snprint(const pao_Natural nat, char* buffer, size_t buffSize) {
   return i_pao_natural_snprint(nat, buffer, buffSize, false, true);
 }
