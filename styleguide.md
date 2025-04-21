@@ -49,7 +49,7 @@ i've adopted a policy to keep comments as footnotes. In functions, these footnot
 are just before the closing `}`, while in the middle of the function you'd only have
 things like `// NOTE(1)`.
 
-There are, so far, 4 different kinds of notes:
+There are, so far, these kinds of notes:
  - `NOTE`: Is a brief explanation of rationale that is not tied to safety.
  - `SAFE`: Explains why some operations are indeed safe.
  - `UNSAFE`: Warns about unsafe situations that are assumed to never happen.
