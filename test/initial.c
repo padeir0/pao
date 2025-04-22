@@ -1,60 +1,39 @@
-#include "../src/pao_natural.h"
-#include "../src/pao_status.h"
-#include "../src/pao_stdAlloc.h"
-#include <stdio.h>
+#include "../src/pao_buffer.h"
 
-#define BUFF_LENGTH 2048
-char buffer[BUFF_LENGTH];
+#define I_PAO_memoryLength 2048
+byte g_pao_memory1[I_PAO_memoryLength];
+byte g_pao_memory2[I_PAO_memoryLength];
 
-void print_nat(pao_Natural n) {
-  usize written = pao_natural_snprint(n, buffer, BUFF_LENGTH);
+void writeOrBurst(pao_Buffer* buff, char* strLit) {
+  usize written = pao_buffer_writeLiteral(buff, strLit);
   if (written == 0) {
-    printf("nothing printed :(");
+    printf("wrote zero bytes (%s)\n", strLit);
     abort();
   }
-  printf("%.*s", (int)written, buffer);
-  printf(" (length: %d, cap: %d)\n", n.len, n.cap);
-}
-
-int pi(void) {
-  pao_Natural A = pao_natural_empty();
-  u32 B = 2;
-  pao_Natural OUT = pao_natural_empty();
-
-  u32 pidigits[] = {
-    314159265, 358979323, 846265338,
-    327950288, 419716000,
-  };
-  #define PILEN (sizeof(pidigits) / sizeof(pidigits[0]))
-
-  pao_natural_setVec(PAO_STDMALLOC, &A, pidigits, PILEN);
- 
-  pao_status s = pao_natural_addDigit(PAO_STDMALLOC, A, B, &OUT);
-  if (s != PAO_status_ok) {
-    printf("fail: %d\n", s);
-    abort();
-  }
-
-  print_nat(A);
-  print_nat(OUT);
-
-  return 0;
-}
-
-int beep(void) {
-  pao_Natural A = pao_natural_empty();
-
-  #define DILEN 5
-  u32 digits[DILEN] = {
-    1, 0, 0,
-  };
-
-  pao_natural_setVec(PAO_STDMALLOC, &A, digits, DILEN);
-  print_nat(A);
-  return 0;
 }
 
 int main(void) {
-  pi();
-  //beep();
+  pao_Buffer buff1 = pao_buffer_create(g_pao_memory1, I_PAO_memoryLength);
+  pao_Buffer buff2 = pao_buffer_create(g_pao_memory2, I_PAO_memoryLength);
+  writeOrBurst(&buff1, "Hello, World!\n");
+  writeOrBurst(&buff1, "I have many things to say,\n");
+  writeOrBurst(&buff1, "none of which you care.\n");
+  writeOrBurst(&buff1, "So... anyway... bye World!\n");
+  pao_buffer_printStr(&buff1);
+
+  pao_buffer_toHex(&buff1, &buff2);
+  writeOrBurst(&buff2, "\n");
+  pao_buffer_printStr(&buff2);
+
+  pao_buffer_reset(&buff1);
+  pao_buffer_reset(&buff2);
+
+  pao_buffer_writeString(&buff1, "Hello\n Only\n", 6);
+  pao_buffer_writeString(&buff2, "Hello\n Only\n", 6);
+
+  if (pao_buffer_equals(&buff1, &buff2)) {
+    printf("equals!\n");
+  }
+
+  printf("sizeof(pao_Buffer) ==  %ld\n", sizeof(pao_Buffer));
 }
