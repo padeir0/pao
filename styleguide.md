@@ -53,9 +53,9 @@ There are, so far, these kinds of notes:
  - `NOTE`: Is a brief explanation of rationale that is not tied to safety.
  - `SAFE`: Explains why some operations are indeed safe.
  - `UNSAFE`: Warns about unsafe situations that are assumed to never happen.
- - `TODO`: Things that i must do :).
  - `UNTESTED`: Marks functions that have no automated test routine.
  - `DRAGON`: Marks a piece of code that is hard to understand and that I can't do nothing about it.
+ - `TODO`: Things that i *need* to finish.
 
 I've been trying to justify safety in all situations where something may
 lead to undefined behaviour, memory corruption, integer overflow, integer underflow, etc.

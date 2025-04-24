@@ -4,19 +4,12 @@
 #include "../src/pao_stdAlloc.h"
 #include <stdio.h>
 #include <strings.h>
+#include "common.h"
 
-void checkStatus(pao_status ns) {
-  if (ns != PAO_status_ok) {
-    printf("fail: %d\n", ns);
-    abort();
-  }
-}
-
-#define BUFF_LENGTH 2048
-char buffer[BUFF_LENGTH];
+char buffer[DEFAULT_SIZE];
 
 void printNat(pao_Natural n) {
-  usize written = pao_natural_snprint(n, buffer, BUFF_LENGTH);
+  usize written = pao_natural_snprint(n, buffer, DEFAULT_SIZE);
   if (written == 0) {
     printf("nothing printed :(\n");
     abort();
@@ -93,7 +86,7 @@ bool test_natural_addDigit_4(void) {
 /* END: testing addDigit */
 
 /* BEGIN: testing snprint */
-char test_buffer[BUFF_LENGTH];
+char test_buffer[DEFAULT_SIZE];
 
 bool test_natural_snprint_1(void) {
   pao_Natural A = pao_natural_empty();
@@ -105,7 +98,7 @@ bool test_natural_snprint_1(void) {
 
   pao_natural_setVec(PAO_stdAlloc, &A, digits, DILEN);
 
-  usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
+  usize written = pao_natural_snprint(A, test_buffer, DEFAULT_SIZE);
   if (written == 0) {
     return false;
   }
@@ -121,7 +114,7 @@ bool test_natural_snprint_2(void) {
 
   pao_natural_set(PAO_stdAlloc, &A, 314159);
 
-  usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
+  usize written = pao_natural_snprint(A, test_buffer, DEFAULT_SIZE);
   if (written == 0) {
     return false;
   }
@@ -137,7 +130,7 @@ bool test_natural_snprint_3(void) {
 
   pao_natural_set(PAO_stdAlloc, &A, 0);
 
-  usize written = pao_natural_snprint(A, test_buffer, BUFF_LENGTH);
+  usize written = pao_natural_snprint(A, test_buffer, DEFAULT_SIZE);
   if (written == 0) {
     return false;
   }
@@ -230,24 +223,6 @@ bool test_natural_distanceDigit_5(void) {
 /* END: testing distanceDigit */
 
 /* BEGIN: DRIVER CODE */
-typedef struct {
-  char* name;
-  bool (*func)(void);
-} Tester;
-
-char print_buff[BUFF_LENGTH];
-void test(Tester t) {
-  bzero(print_buff, BUFF_LENGTH);
-  if (t.func()) {
-    strcat(print_buff, "OK: ");
-  } else {
-    strcat(print_buff, "FAIL: ");
-  }
-  strcat(print_buff, t.name);
-  strcat(print_buff, "\n");
-  printf("%s", print_buff);
-}
-
 Tester tests[] = {
   {"test_natural_snprint_1", test_natural_snprint_1},
   {"test_natural_snprint_2", test_natural_snprint_2},
@@ -264,13 +239,9 @@ Tester tests[] = {
   {"test_natural_distanceDigit_4", test_natural_distanceDigit_4},
   {"test_natural_distanceDigit_5", test_natural_distanceDigit_5},
 };
-#define TEST_LEN (u32)(sizeof(tests) / sizeof(tests[0]))
+#define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
 int main(void) {
-  u32 i = 0;
-  while (i < TEST_LEN) {
-    test(tests[i]);
-    i++;
-  }
+  run_tests(tests, TEST_LEN);
 }
 /* END: DRIVER CODE */

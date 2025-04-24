@@ -24,38 +24,12 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef PAO_buffer_H
 #define PAO_buffer_H
 
-// TODO: pao_buffer_copy(in, out)
-// TODO: pao_buffer_copySome(in, out, len)
-// TODO: pao_buffer_bzero(out)
-// TODO: pao_buffer_writeByte(out, u8) -> usize
-// TODO: pao_buffer_readByte(out, *u8) -> pao_Status
-
-// little-endian
-// TODO: pao_buffer_writeU16L(out, u16) -> usize
-// TODO: pao_buffer_writeU32L(out, u32) -> usize
-// TODO: pao_buffer_writeU64L(out, u64) -> usize
-// TODO: pao_buffer_writeF32L(out, f32) -> usize
-// TODO: pao_buffer_writeF64L(out, f64) -> usize
-// TODO: pao_buffer_readU16L(out, *u16) -> pao_Status
-// TODO: pao_buffer_readU32L(out, *u32) -> pao_Status
-// TODO: pao_buffer_readU64L(out, *u64) -> pao_Status
-// TODO: pao_buffer_readF32L(out, *f32) -> pao_Status
-// TODO: pao_buffer_readF64L(out, *f64) -> pao_Status
-
-// big-endian
-// TODO: pao_buffer_writeU16B(out, u16) -> usize
-// TODO: pao_buffer_writeU32B(out, u32) -> usize
-// TODO: pao_buffer_writeU64B(out, u64) -> usize
-// TODO: pao_buffer_writeF32B(out, f32) -> usize
-// TODO: pao_buffer_writeF64B(out, f64) -> usize
-// TODO: pao_buffer_readU16B(out, *u16) -> pao_Status
-// TODO: pao_buffer_readU32B(out, *u32) -> pao_Status
-// TODO: pao_buffer_readU64B(out, *u64) -> pao_Status
-// TODO: pao_buffer_readF32B(out, *f32) -> pao_Status
-// TODO: pao_buffer_readF64B(out, *f64) -> pao_Status
+// TODO: pao_buffer_copy(in, out) -> usize
+// TODO: pao_buffer_copySome(in, out, len) -> usize
 
 #include <limits.h>
 #include <stdio.h>
+#include <strings.h>
 #include "pao_basicTypes.h"
 
 /* This is a general purpose read/write buffer.
@@ -79,6 +53,15 @@ typedef struct {
   */
 } pao_Buffer;
 
+static inline
+usize i_pao_buffer_absLen(const pao_Buffer* buff) {
+  return buff->start+buff->len;
+}
+static inline
+usize i_pao_buffer_available(const pao_Buffer* buff) {
+  return buff->cap - i_pao_buffer_absLen(buff);
+}
+
 /* Prints n = min(buffer.len, INT_MAX) bytes as a string using printf. 
    UNTESTED: the output of this function is expected to be used for debugging purposes
    and does not posses an automated test routine. */
@@ -90,34 +73,46 @@ int pao_buffer_printStr(const pao_Buffer* buff) {
   return printf("%.*s", (int)bytesToPrint, buff->ptr+buff->start);
 }
 
-/* UNTESTED: (TODO:)*/
 pao_Buffer pao_buffer_create(byte* ptr, usize cap) {
   pao_Buffer out = {.ptr = ptr, .start = 0, .len = 0, .cap = cap};
   return out;
 }
 
-/* UNTESTED: (TODO:)*/
 void pao_buffer_reset(pao_Buffer* buff) {
   buff->len = 0;
   buff->start = 0;
 }
 
-static inline
-usize i_pao_buffer_absLen(const pao_Buffer* buff) {
-  return buff->start+buff->len;
-}
-static inline
-usize i_pao_buffer_available(const pao_Buffer* buff) {
-  return buff->cap - i_pao_buffer_absLen(buff);
+void pao_buffer_bzero(pao_Buffer* buff) {
+  bzero(buff->ptr+buff->start, buff->len);
 }
 
-/* UNTESTED: (TODO:)*/
 bool pao_buffer_hasSpace(const pao_Buffer* buff, usize size) {
-  return size < i_pao_buffer_available(buff);
+  return size <= i_pao_buffer_available(buff);
+}
+
+usize pao_buffer_writeByte(pao_Buffer* buff, byte b) {
+  usize absLen = i_pao_buffer_absLen(buff);
+  if (absLen < buff->cap) {
+    buff->ptr[absLen] = b;
+    buff->len += 1;
+    return 1;
+  }
+  return 0;
+}
+
+bool pao_buffer_readByte(pao_Buffer* buff, byte* out) {
+  if (buff->len > 0) {
+    byte b = buff->ptr[buff->start];
+    buff->start++;
+    buff->len--;
+    *out = b; 
+    return true;
+  }
+  return false;
 }
 
 /* Writes a *NULL-terminated* string to the buffer.
-   UNTESTED: (TODO:)
 */
 usize pao_buffer_writeLiteral(pao_Buffer* buff, char* s) {
   usize i = 0;
@@ -131,12 +126,11 @@ usize pao_buffer_writeLiteral(pao_Buffer* buff, char* s) {
 }
 
 /* Writes a string with given size to the buffer.
-   UNTESTED: (TODO:)
 */
-usize pao_buffer_writeString(pao_Buffer* buff, char* s, int size) {
+usize pao_buffer_writeString(pao_Buffer* buff, char* s, usize size) {
   usize i = 0;
   usize absLen = i_pao_buffer_absLen(buff);
-  while (i + absLen < buff->cap && i < (usize)size) {
+  while (i + absLen < buff->cap && i < size) {
     buff->ptr[i+absLen] = (byte)s[i];
     i++;
   }
@@ -145,6 +139,7 @@ usize pao_buffer_writeString(pao_Buffer* buff, char* s, int size) {
 }
 
 /* Converts a buffer into a hex string, separated by spaces.
+   Output buffer will have 3 times input buffer's length.
    UNTESTED: (TODO:)
 */
 usize pao_buffer_toHex(const pao_Buffer* in, pao_Buffer* out) {
@@ -179,7 +174,6 @@ usize pao_buffer_toHex(const pao_Buffer* in, pao_Buffer* out) {
 /* Returns true if two buffers have the same length and
    have the same characters in order. The capacity is not
    taken into account.
-   UNTESTED: (TODO:)
 */
 bool pao_buffer_equals(const pao_Buffer* A, const pao_Buffer* B) {
   if (A->len != B->len) {
@@ -201,5 +195,34 @@ bool pao_buffer_equals(const pao_Buffer* A, const pao_Buffer* B) {
               as long as boundary conditions are handled correctly.
   */
 }
+
+/*
+NOTE: Some serialization procedures are missing,
+but i will not implement them until i need it,
+here's some of them:
+ little-endian:
+   pao_buffer_writeU16L(out, u16) -> usize
+   pao_buffer_writeU32L(out, u32) -> usize
+   pao_buffer_writeU64L(out, u64) -> usize
+   pao_buffer_writeF32L(out, f32) -> usize
+   pao_buffer_writeF64L(out, f64) -> usize
+   pao_buffer_readU16L(out, *u16) -> bool
+   pao_buffer_readU32L(out, *u32) -> bool
+   pao_buffer_readU64L(out, *u64) -> bool
+   pao_buffer_readF32L(out, *f32) -> bool
+   pao_buffer_readF64L(out, *f64) -> bool
+
+ big-endian:
+   pao_buffer_writeU16B(out, u16) -> usize
+   pao_buffer_writeU32B(out, u32) -> usize
+   pao_buffer_writeU64B(out, u64) -> usize
+   pao_buffer_writeF32B(out, f32) -> usize
+   pao_buffer_writeF64B(out, f64) -> usize
+   pao_buffer_readU16B(out, *u16) -> bool
+   pao_buffer_readU32B(out, *u32) -> bool
+   pao_buffer_readU64B(out, *u64) -> bool
+   pao_buffer_readF32B(out, *f32) -> bool
+   pao_buffer_readF64B(out, *f64) -> bool
+*/
 
 #endif
