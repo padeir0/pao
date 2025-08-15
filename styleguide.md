@@ -6,16 +6,13 @@ int a=10000,b,c=2800,d,e,f[2801],g;main(){for(;b-c;)f[b++]=a/5;
 for(;d=0,g=c*2;c-=14,printf("%.4d",e+d/a),e=d%a)for(b=c;d+=f[b]*a,
 f[b]=d%--g,d/=g--,--b;d*=b);}
 ```
-By the way, I didn't write this code, I don't even understand it.
-All i know is that it is a spigot algorithm to compute 800 digits
-of Pi, written by someone who clearly likes code-golfing.
 
 ## Identifier Style
 
 All libs inside `src` must be a single `.h` file,
 named `pao_<namespaceName>.h`, ie,
 the namespace must be in camelCase.
-All files must start with the MIT LICENSE up top.
+All files must start license information up top.
 Header guards must be `#define PAO_<namespaceName>_H`.
 
 Underscores `_` are reserved, so that snake_case is not allowed.
@@ -101,7 +98,7 @@ worse if i had to deal with Windows or with AVR.
 ## Miscelaneous
 
 Other small things:
- - Macro usage is restricted to `#define` constants and header guards.
+ - Macro usage is restricted to constants and header guards.
  - Never use global variables inside library code (inside tests, this is fine).
  - Functions that need dynamic allocation should receive allocators as arguments.
  - Never use `goto`, `continue` or `for` loops.

@@ -33,10 +33,10 @@ bool test_natural_addDigit_1(void) {
   u32 EXP_DIGS[A_DIGS_LEN+1] = {1, 0, 0};
   pao_natural_setVec(PAO_stdAlloc, &expected, EXP_DIGS, A_DIGS_LEN+1);
 
-  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 1, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, &a, 1, &out);
   checkStatus(s);
 
-  return pao_natural_equal(out, expected);
+  return pao_natural_equal(&out, &expected);
 }
 
 // tests 0 as identity
@@ -48,10 +48,10 @@ bool test_natural_addDigit_2(void) {
   pao_natural_set(PAO_stdAlloc, &a, 0);
   pao_natural_set(PAO_stdAlloc, &expected, 42);
 
-  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 42, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, &a, 42, &out);
   checkStatus(s);
 
-  return pao_natural_equal(out, expected);
+  return pao_natural_equal(&out, &expected);
 }
 
 // tests 0 as identity
@@ -63,10 +63,10 @@ bool test_natural_addDigit_3(void) {
   pao_natural_set(PAO_stdAlloc, &a, 314159);
   pao_natural_set(PAO_stdAlloc, &expected, 314159);
 
-  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 0, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, &a, 0, &out);
   checkStatus(s);
 
-  return pao_natural_equal(out, expected);
+  return pao_natural_equal(&out, &expected);
 }
 
 // ensures operands are not modified
@@ -78,12 +78,221 @@ bool test_natural_addDigit_4(void) {
   pao_natural_set(PAO_stdAlloc, &a, 314159);
   pao_natural_set(PAO_stdAlloc, &expected, 314160);
 
-  pao_status s = pao_natural_addDigit(PAO_stdAlloc, a, 1, &out);
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, &a, 1, &out);
   checkStatus(s);
 
-  return pao_natural_equalDigit(a, 314159);
+  return pao_natural_equalDigit(&a, 314159);
 }
 /* END: testing addDigit */
+
+/* BEGIN: testing multDigit */
+
+// tests 0 as annihilator
+bool test_natural_multDigit_1(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_stdAlloc, &a, 314159);
+  pao_natural_set(PAO_stdAlloc, &expected, 0);
+
+  pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 0, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&out, &expected);
+}
+
+// tests 0 as annihilator
+bool test_natural_multDigit_2(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_stdAlloc, &a, 0);
+  pao_natural_set(PAO_stdAlloc, &expected, 0);
+
+  pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 314159, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&out, &expected);
+}
+
+// tests 1 as identity
+bool test_natural_multDigit_3(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_stdAlloc, &a, 314159);
+  pao_natural_set(PAO_stdAlloc, &expected, 314159);
+
+  pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 1, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&out, &expected);
+}
+
+// tests 1 as identity
+bool test_natural_multDigit_4(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_stdAlloc, &a, 1);
+  pao_natural_set(PAO_stdAlloc, &expected, 314159);
+
+  pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 314159, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&out, &expected);
+}
+
+// tests powers of 2
+bool test_natural_multDigit_5(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  {
+    pao_natural_set(PAO_stdAlloc, &a, 1);
+    pao_natural_set(PAO_stdAlloc, &expected, 2);
+
+    pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 2, &out);
+    checkStatus(s);
+    if (!pao_natural_equal(&out, &expected)) {
+      return false;
+    }
+  }
+
+  {
+    pao_natural_set(PAO_stdAlloc, &a, 2);
+    pao_natural_set(PAO_stdAlloc, &expected, 4);
+
+    pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 2, &out);
+    checkStatus(s);
+    if (!pao_natural_equal(&out, &expected)) {
+      return false;
+    }
+  }
+
+  {
+    pao_natural_set(PAO_stdAlloc, &a, 4);
+    pao_natural_set(PAO_stdAlloc, &expected, 8);
+
+    pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 2, &out);
+    checkStatus(s);
+    if (!pao_natural_equal(&out, &expected)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// tests some other multiplications
+bool test_natural_multDigit_6(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  {
+    pao_natural_set(PAO_stdAlloc, &a, 12);
+    pao_natural_set(PAO_stdAlloc, &expected, 144);
+
+    pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 12, &out);
+    checkStatus(s);
+    if (!pao_natural_equal(&out, &expected)) {
+      return false;
+    }
+  }
+
+  {
+    pao_natural_set(PAO_stdAlloc, &a, 1111);
+    pao_natural_set(PAO_stdAlloc, &expected, 3702963);
+
+    pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 3333, &out);
+    checkStatus(s);
+    if (!pao_natural_equal(&out, &expected)) {
+      return false;
+    }
+  }
+
+  {
+    u32 digits[] = {
+      999999998, 000000001
+    };
+    #define DILEN (sizeof(digits) / sizeof(digits[0]))
+
+    pao_natural_set(PAO_stdAlloc, &a, PAO_natural_base-1);
+    pao_natural_setVec(PAO_stdAlloc, &expected, digits, DILEN);
+
+    pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, PAO_natural_base-1, &out);
+    checkStatus(s);
+    if (!pao_natural_equal(&out, &expected)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// tests whether operands remain unchanged
+bool test_natural_multDigit_7(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  pao_natural_set(PAO_stdAlloc, &a, 4);
+  pao_natural_set(PAO_stdAlloc, &expected, 16);
+
+  pao_status s = pao_natural_multDigit(PAO_stdAlloc, &a, 4, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&out, &expected) && pao_natural_equalDigit(&a, 4);
+}
+
+/* END: testing multDigit */
+
+/* BEGIN: testing multBase*/
+bool test_natural_multBase_1(void) {
+  pao_status s;
+  pao_Natural a = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  u32 digits[] = {
+    000000001, 000000000
+  };
+  #define DILEN (sizeof(digits) / sizeof(digits[0]))
+  s = pao_natural_set(PAO_stdAlloc, &a, 1);
+  checkStatus(s);
+  s = pao_natural_setVec(PAO_stdAlloc, &expected, digits, DILEN);
+  checkStatus(s);
+  s = pao_natural_multBase(PAO_stdAlloc, &a);
+  checkStatus(s);
+
+  return pao_natural_equal(&a, &expected);
+}
+
+bool test_natural_multBase_2(void) {
+  pao_status s;
+  pao_Natural a = pao_natural_empty();
+  pao_Natural expected = pao_natural_empty();
+
+  u32 digits[] = {
+    900000000, 000000000, 000000000
+  };
+  #define DILEN (sizeof(digits) / sizeof(digits[0]))
+  s = pao_natural_set(PAO_stdAlloc, &a, 900000000);
+  checkStatus(s);
+  s = pao_natural_setVec(PAO_stdAlloc, &expected, digits, DILEN);
+  checkStatus(s);
+  s = pao_natural_multBase(PAO_stdAlloc, &a);
+  checkStatus(s);
+  s = pao_natural_multBase(PAO_stdAlloc, &a);
+  checkStatus(s);
+
+  return pao_natural_equal(&a, &expected);
+}
+
+/* END: testing multBase*/
 
 /* BEGIN: testing snprint */
 char test_buffer[DEFAULT_SIZE];
@@ -156,10 +365,10 @@ bool test_natural_distanceDigit_1(void) {
   u32 EXP_DIGS[A_DIGS_LEN-1] = {999999999, 999999999};
   pao_natural_setVec(PAO_stdAlloc, &expected, EXP_DIGS, A_DIGS_LEN-1);
 
-  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 1, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, &a, 1, &out);
   checkStatus(s);
 
-  return pao_natural_equal(out, expected);
+  return pao_natural_equal(&out, &expected);
 }
 
 bool test_natural_distanceDigit_2(void) {
@@ -170,10 +379,10 @@ bool test_natural_distanceDigit_2(void) {
   pao_natural_set(PAO_stdAlloc, &a, 1);
   pao_natural_set(PAO_stdAlloc, &expected, 0);
 
-  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 1, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, &a, 1, &out);
   checkStatus(s);
 
-  return pao_natural_equal(out, expected);
+  return pao_natural_equal(&out, &expected);
 }
 
 /* test 0 as identity */
@@ -185,10 +394,10 @@ bool test_natural_distanceDigit_3(void) {
   pao_natural_set(PAO_stdAlloc, &a, 42);
   pao_natural_set(PAO_stdAlloc, &expected, 42);
 
-  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 0, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, &a, 0, &out);
   checkStatus(s);
 
-  return pao_natural_equal(out, expected);
+  return pao_natural_equal(&out, &expected);
 }
 
 /* tests 0 as identity, but now we also test if it is comutative */
@@ -200,10 +409,10 @@ bool test_natural_distanceDigit_4(void) {
   pao_natural_set(PAO_stdAlloc, &a, 0);
   pao_natural_set(PAO_stdAlloc, &expected, 42);
 
-  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 42, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, &a, 42, &out);
   checkStatus(s);
 
-  return pao_natural_equal(out, expected);
+  return pao_natural_equal(&out, &expected);
 }
 
 // ensures operands are not modified
@@ -215,10 +424,10 @@ bool test_natural_distanceDigit_5(void) {
   pao_natural_set(PAO_stdAlloc, &a, 314159);
   pao_natural_set(PAO_stdAlloc, &expected, 314158);
 
-  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, a, 1, &out);
+  pao_status s = pao_natural_distanceDigit(PAO_stdAlloc, &a, 1, &out);
   checkStatus(s);
 
-  return pao_natural_equalDigit(a, 314159) && pao_natural_equalDigit(out, 314158);
+  return pao_natural_equalDigit(&a, 314159) && pao_natural_equalDigit(&out, 314158);
 }
 /* END: testing distanceDigit */
 
@@ -238,6 +447,17 @@ Tester tests[] = {
   {"test_natural_distanceDigit_3", test_natural_distanceDigit_3},
   {"test_natural_distanceDigit_4", test_natural_distanceDigit_4},
   {"test_natural_distanceDigit_5", test_natural_distanceDigit_5},
+
+  {"test_natural_multDigit_1", test_natural_multDigit_1},
+  {"test_natural_multDigit_2", test_natural_multDigit_2},
+  {"test_natural_multDigit_3", test_natural_multDigit_3},
+  {"test_natural_multDigit_4", test_natural_multDigit_4},
+  {"test_natural_multDigit_5", test_natural_multDigit_5},
+  {"test_natural_multDigit_6", test_natural_multDigit_6},
+  {"test_natural_multDigit_7", test_natural_multDigit_7},
+
+  {"test_natural_multBase_1", test_natural_multBase_1},
+  {"test_natural_multBase_2", test_natural_multBase_2}
 };
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 

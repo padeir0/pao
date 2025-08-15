@@ -1,30 +1,15 @@
 /*
+MIT License
 Copyright 2025 Artur Iure Vianna Fernandes
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the “Software”), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of the Software,
-and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included
-in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+See the LICENSE file for more information.
 */
+
+
 /* TODO:
   natural_add,
   natural_distance,
-  natural_multDigit,     natural_mult,
-  natural_divDigit,      natural_div
+  natural_mult,
+  natural_div
 */
 
 #ifndef PAO_natural_H
@@ -37,6 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "pao_basicTypes.h"
 #include "pao_status.h"
 #include "pao_allocator.h"
+#include "pao_util.h"
 
 typedef struct {
   u32* digits;
@@ -114,13 +100,27 @@ pao_status i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digi
   return PAO_status_ok;
 }
 
+pao_status pao_natural_multBase(pao_Allocator mem, pao_Natural* out) { 
+  pao_status st = i_pao_natural_pushDigit(mem, out, 0);
+  if (st != PAO_status_ok) {
+    return st;
+  }
+  i64 i = out->len - 1;
+  while (0 < i) {
+    out->digits[i] = out->digits[i-1];
+    i--;
+  }
+  out->digits[0] = 0;
+  return PAO_status_ok;
+}
+
 pao_status pao_natural_setVec(pao_Allocator mem, pao_Natural* out, u32* digits, i32 len) {
   out->len = 0;
   int i = len-1;
   while (0 <= i) {
-    pao_status ok = i_pao_natural_pushDigit(mem, out, digits[i]);
-    if (ok != PAO_status_ok) {
-      return PAO_status_outOfMemory;
+    pao_status st = i_pao_natural_pushDigit(mem, out, digits[i]);
+    if (st != PAO_status_ok) {
+      return st;
     }
     i--;
   }
@@ -143,24 +143,24 @@ pao_status pao_natural_set(pao_Allocator mem, pao_Natural* out, u32 digit) {
   return i_pao_natural_pushDigit(mem, out, digit);
 }
 
-bool pao_natural_isZero(const pao_Natural N) {
-  return N.len == 0;
+bool pao_natural_isZero(const pao_Natural* N) {
+  return N->len == 0;
 }
 
-bool pao_natural_equalDigit(const pao_Natural A, u32 digit) {
-  if (A.len == 0 && digit == 0) {
+bool pao_natural_equalDigit(const pao_Natural* A, u32 digit) {
+  if (A->len == 0 && digit == 0) {
     return true;
   }
-  return A.len == 1 && A.digits[0] == digit;
+  return A->len == 1 && A->digits[0] == digit;
 }
 
-bool pao_natural_equal(const pao_Natural A, const pao_Natural B) {
-  if (A.len != B.len) {
+bool pao_natural_equal(const pao_Natural* A, const pao_Natural* B) {
+  if (A->len != B->len) {
     return false;
   }
   u32 i = 0;
-  while (i < A.len) {
-    if (A.digits[i] != B.digits[i]) {
+  while (i < A->len) {
+    if (A->digits[i] != B->digits[i]) {
       return false;
     }
     i++;
@@ -168,7 +168,7 @@ bool pao_natural_equal(const pao_Natural A, const pao_Natural B) {
   return true;
 }
 
-pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
+pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* out) {
   if (i_pao_natural_notDigit(B)) {
     return PAO_status_invalidDigit;
   }
@@ -182,8 +182,8 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
 
   do {
     res = carry;
-    if (i < A.len) {
-      res += A.digits[i];
+    if (i < A->len) {
+      res += A->digits[i];
     }
 
     if (PAO_natural_base <= res) {
@@ -198,7 +198,7 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
       return st;
     }
     i++;
-  } while (0 < carry || i < A.len);
+  } while (0 < carry || i < A->len);
 
   return PAO_status_ok;
   /* SAFE(1): since our carry is set to the digit in the first iteration,
@@ -213,6 +213,61 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural A, u32 B, p
                 carry + digit < 2*BASE  implies
                 res - BASE < BASE
               as desired. \qed
+  */
+}
+
+pao_status pao_natural_multDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* out) {
+  if (i_pao_natural_notDigit(B)) {
+    return PAO_status_invalidDigit;
+  }
+  if (pao_natural_isZero(A) || B == 0) {
+    return pao_natural_set(mem, out, 0);
+  }
+  out->len = pao_util_minU32(out->len, A->len);
+
+  u32 i = 0;
+  u32 carry = 0;
+
+  while (i < A->len || carry > 0) {
+    if (i == out->len) {
+      pao_status st = i_pao_natural_pushDigit(mem, out, 0);
+      if (st != PAO_status_ok) {
+        return st;
+      }
+    }
+    i64 res = carry;
+    if (i < A->len) {
+      res += (i64)A->digits[i] * (i64)B;
+    }
+    out->digits[i] = (u32)(res % PAO_natural_base); // SAFE(1)
+    carry = (u32)(res / PAO_natural_base); // SAFE(2)
+
+    i++; // UNSAFE(3)
+  }
+  return PAO_status_ok;
+  /* SAFE(1): since `PAO_natural_base` is less than `U32_MAX` and `res`
+     is always positive, this cast is safe.
+     SAFE(2): `res` is always positive and PAO_natural_base is a large
+     number. Let us find an upper bound for `res`.
+     Suppose `A.digit[i]` and `B` are the largest they can be, ie,
+     `PAO_natural_base-1`, and `carry` starts at `0`. Then `res`
+     is `(PAO_natural_base-1)^2` so that:
+         (PAO_natural_base-1)^2 < (PAO_natural_base)^2
+     When we divide `res / PAO_natural_base`, we get that `carry`
+     is less than `PAO_natural_base`. On the next iteration,
+     if both `A.digit[i]` and `B` are the largest they can be again,
+     an upper bound for `res` is:
+         (PAO_natural_base-1)^2 + PAO_natural_base
+     So that:
+         (PAO_natural_base-1)^2 + PAO_natural_base                 < 
+         (PAO_natural_base)(PAO_natural_base-1) + PAO_natural_base = 
+         (PAO_natural_base)(1 + PAO_natural_base-1)                = 
+         (PAO_natural_base)^2.
+     Which means `carry` is still less than `PAO_natural_base`.
+     By induction, it can be proven that this is always the case,
+     hence, the cast is safe.
+     UNSAFE(3): If this overflows, our number has more than U32_MAX digits,
+     which is to say we have a 16GB number...
   */
 }
 
@@ -231,18 +286,74 @@ void i_pao_natural_removeLeadingZeroes(pao_Natural* out) {
   */
 }
 
+/* Finds `Q` and `R` such that `A = Q*B + R`.
+   `R` is guaranteed to be less than `B` by the Division Theorem,
+   hence, it's a u32.
+   UNTESTED: TODO:
+   DRAGONS:
+*/
+pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* Q, u32* R) {
+  if (B == 0) {
+    return PAO_status_divisionByZero;
+  }
+  pao_natural_set(mem, Q, 0);
+
+  i64 idd = 0; // NOTE(1):
+  i64 i = A->len - 1;
+  i64 q = 0;
+
+  while (0 <= i) {
+    idd *= PAO_natural_base;
+    idd += A->digits[i];
+    q = idd / B; // NOTE(3)
+    idd -= q*B;  // NOTE(2)
+
+    pao_status st = pao_natural_multBase(mem, Q);
+    if (st != PAO_status_ok) {
+      return st;
+    }
+
+    pao_natural_addDigit(mem, Q, (u32)q, Q); // SAFE(2):
+    i--;
+  }
+  i_pao_natural_removeLeadingZeroes(Q);
+  *R = (u32)idd; // SAFE(1):
+  return PAO_status_ok;
+  /*
+   NOTE(1): Since `B` is a digit, then `idd` is at most 2 digits.
+   This means we can use an `i64` as intermediate dividend.
+   NOTE(2): After this line, `idd` will be less than `B`. This follows
+   immediately from the Division Theorem: `idd` becomes the intermediate remainder.
+   SAFE(1): For the reasons stated above, `idd < B < PAO_natural_base`.
+   NOTE(3): At the end of the loop, `idd` is less than `B`, which means an
+   upper bound for `idd` at this point is
+       (B-1)*PAO_natural_base + PAO_natural_base-1 = 
+       B*PAO_natural_base - PAO_natural_base + PAO_natural_base - 1 = 
+       B*PAO_natural_base - 1.
+   Since `q = floor(idd/B)` then:
+       floor(idd/B) < 
+       floor((B*PAO_natural_base - 1) / B) = 
+       floor(PAO_natural_base - (1/B)).
+   Since `0 < 1/B <= 1` then
+       floor(PAO_natural_base - (1/B)) = PAO_natural_base - 1.
+   So that `q < PAO_natural_base - 1`.
+   SAFE(2): Because of the reasons stated above, the cast is safe and
+   `q` is a valid digit.
+  */
+}
+
 /*
 Computes |A - B|, in other words:
   if B<A then A-B
   else B-A
 */
-pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32 B, pao_Natural* out) {
+pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* out) {
   if (pao_natural_isZero(A)) {
     return pao_natural_set(mem, out, B);
   }
 
-  if (A.len == 1) {
-    u32 digit = A.digits[0];
+  if (A->len == 1) {
+    u32 digit = A->digits[0];
     u32 result = 0;
     if (digit < B) {
       result = B - digit;
@@ -258,7 +369,7 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32
   u32 i = 0;
   do {
     // SAFE(1):
-    res = A.digits[i] - carry;
+    res = A->digits[i] - carry;
     if (res < 0) {
       carry = 1;
       res += PAO_natural_base;
@@ -271,7 +382,7 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural A, u32
       return st;
     }
     i++;
-  } while (carry > 0 || i < A.len);
+  } while (carry > 0 || i < A->len);
   i_pao_natural_removeLeadingZeroes(out);
   return PAO_status_ok;
   /* SAFE(1): since |A-B| < A, we can safely use `i` here, we will never
