@@ -16,9 +16,6 @@ This document is a quick, informal and incomplete specification.
 
 ## The List <a name="list"></a>
 
-This syntax simply defines the structure of a list,
-here, we will use S-Expressions to show how this list is parsed.
-
 Consider the S-Expression `(f (a b) c d)`,
 the following IML expressions are equivalent:
 
@@ -56,14 +53,6 @@ f [a b] \
 
 ## Syntax <a name="syntax"></a>
 
-The syntax draws inspiration from
-[S-expressions](https://www-sop.inria.fr/indes/fp/Bigloo/doc/r5rs-10.html#Formal-syntax),
-[T-expressions](https://srfi.schemers.org/srfi-110/srfi-110.html),
-[I-expressions](https://srfi.schemers.org/srfi-49/srfi-49.html),
-[O-expressions](http://breuleux.net/blog/oexprs.html),
-[M-expressions](https://en.m.wikipedia.org/wiki/M-expression) and
-[Wisp](https://srfi.schemers.org/srfi-119/srfi-119.html).
-
 Notation here is [Wirth Syntax Notation](https://dl.acm.org/doi/10.1145/359863.359883)
 with extensions from the article
 [Indentation-Sensitive Parsing for Parsec](https://osa1.net/papers/indentation-sensitive-parsec.pdf)
@@ -83,21 +72,26 @@ Comment = '#' {not_newline_char} '\n'.
 Program = Block.
 Block = {:I_Expr NL} [';'].
 
-I_Expr = Terms {Line_Continue} [End | NL >Block].
+I_Expr = Terms {Line_Continue} [NL >Block].
 Line_Continue = '\\' NL Terms.
 Terms = Term {Term}.
-End = '.' Term.
-Term = [Name] (Atom | S_Expr).
-S_Expr = '[' Terms [End] ']'.
-Name = id ':'.
+Term = {Prefix} Factor {Suffix}.
+Prefix = PrefixOp Factor.
+PrefixOp = '@'.
+Suffix = SuffixOp Factor.
+SuffixOp = ':' | '.'.
+
+Factor = Atom | S_Expr.
+
+S_Expr = '[' Terms ']'.
+Atom = id | num | str.
 
 NL = '\n' {'\n'}.
-Atom = id | num | str.
 
 str = /"[\u0000-\uFFFF]*"/.
 
 id = ident_begin {ident_continue}.
-ident_begin = /[a-zA-Z_\$]/.
+ident_begin = /[a-zA-Z_]/.
 ident_special = /[\?\-\!]/
 ident_continue = ident_begin | ident_special | digit.
 
@@ -118,14 +112,23 @@ digit = /[0-9]/.
 digit_ = digit | '_'.
 ```
 
-## Semantics <a name="semantics"></a>
+## Name Resolution
+
+Names are statically resolved top down, except in case of `letrec`s,
+which are resolved out-of-order.
+Both `let` and `letrec` define names in the enclosing scope.
+Only functions and modules may create new scopes.
+
+Modules are resolved before the main symbols are resolved.
+Imports work with `export`, `import` and `from ... import`,
+similar to python. `export`s are deferred to be evaluated
+at the end of the program.
 
 ## Special Forms and Modules
 
-Special forms and modules are not first class objects,
+Special forms are not first class objects,
 you can't pass them to functions or assign them to variables.
-Similarly, special forms cannot be shadowed by other
-variables. Some examples of special forms are:
+Some examples of special forms are:
 
 ```
 if cond function let
@@ -137,7 +140,9 @@ They are essentially "intrinsic macros".
 
 ### Types
 
-IML is dynamically typed, with only a few types visible to the user,
+IML is dinamically typed, but a global type inference
+algorithm may be used to find bugs.
+There are only a few types visible to the user,
 these types are defined by the following predicates:
 
 ```

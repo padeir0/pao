@@ -24,6 +24,8 @@ See the LICENSE file for more information.
 #include "pao_allocator.h"
 #include "pao_util.h"
 
+#include "pao_debug.h"
+
 typedef struct {
   u32* digits;
   u32  cap;
@@ -143,6 +145,7 @@ pao_status pao_natural_set(pao_Allocator mem, pao_Natural* out, u32 digit) {
   return i_pao_natural_pushDigit(mem, out, digit);
 }
 
+static inline
 bool pao_natural_isZero(const pao_Natural* N) {
   return N->len == 0;
 }
@@ -168,6 +171,7 @@ bool pao_natural_equal(const pao_Natural* A, const pao_Natural* B) {
   return true;
 }
 
+// A must be different from OUT
 pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* out) {
   if (i_pao_natural_notDigit(B)) {
     return PAO_status_invalidDigit;
@@ -179,10 +183,11 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
   u32 i = 0;
   u32 carry = B;
   i64 res = 0;
+  i64 startingLen = A->len; // NOTE(1)
 
   do {
     res = carry;
-    if (i < A->len) {
+    if (i < startingLen) {
       res += A->digits[i];
     }
 
@@ -192,13 +197,14 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
     } else {
       carry = 0;
     }
+
     // SAFE(1):
     pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
     if (st != PAO_status_ok) {
       return st;
     }
     i++;
-  } while (0 < carry || i < A->len);
+  } while (0 < carry || i < startingLen);
 
   return PAO_status_ok;
   /* SAFE(1): since our carry is set to the digit in the first iteration,
@@ -213,6 +219,8 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
                 carry + digit < 2*BASE  implies
                 res - BASE < BASE
               as desired. \qed
+     NOTE(1): We need this line since `A` might be equals `out`,
+     then `pushDigit` will alter `A->len` and the loop will be infinite.
   */
 }
 
@@ -296,10 +304,14 @@ pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
   if (B == 0) {
     return PAO_status_divisionByZero;
   }
-  pao_natural_set(mem, Q, 0);
+  if (pao_natural_isZero(A)) {
+    *R = 0;
+    pao_natural_set(mem, Q, 0);
+    return PAO_status_ok;
+  }
 
-  i64 idd = 0; // NOTE(1):
-  i64 i = A->len - 1;
+  i64 idd = 0; // NOTE(1)
+  i64 i = A->len - 1; // SAFE(3)
   i64 q = 0;
 
   while (0 <= i) {
@@ -308,12 +320,11 @@ pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
     q = idd / B; // NOTE(3)
     idd -= q*B;  // NOTE(2)
 
-    pao_status st = pao_natural_multBase(mem, Q);
+    pao_status st = i_pao_natural_pushDigit(mem, Q, (u32)q); // SAFE(2):
     if (st != PAO_status_ok) {
       return st;
     }
 
-    pao_natural_addDigit(mem, Q, (u32)q, Q); // SAFE(2):
     i--;
   }
   i_pao_natural_removeLeadingZeroes(Q);
@@ -339,6 +350,8 @@ pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
    So that `q < PAO_natural_base - 1`.
    SAFE(2): Because of the reasons stated above, the cast is safe and
    `q` is a valid digit.
+   SAFE(3): This subtraction is OK since we checked earlier that
+   `A.len` is strictly bigger than zero (pao_natural_isZero)
   */
 }
 
@@ -485,6 +498,8 @@ size_t i_pao_natural_snprint(const pao_Natural nat, char* buffer, usize buffSize
 
 /* Only writes a number if the given buffer has sufficient size, ie,
 it either fully writes the number or returns 0.
+*/
+/* TODO: refactor this to use pao_buffer
 */
 usize pao_natural_snprint(const pao_Natural nat, char* buffer, size_t buffSize) {
   return i_pao_natural_snprint(nat, buffer, buffSize, false, true);

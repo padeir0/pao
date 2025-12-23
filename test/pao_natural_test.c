@@ -19,6 +19,7 @@ void printNat(pao_Natural n) {
 }
 
 /* BEGIN: testing addDigit*/
+// TODO: write test for when `a` == `out`
 // tests carry
 bool test_natural_addDigit_1(void) {
   pao_Natural a = pao_natural_empty();
@@ -297,6 +298,21 @@ bool test_natural_multBase_2(void) {
 /* BEGIN: testing snprint */
 char test_buffer[DEFAULT_SIZE];
 
+bool test_natural_snprint_0(void) {
+  pao_Natural A = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &A, 1);
+
+  usize written = pao_natural_snprint(A, test_buffer, DEFAULT_SIZE);
+  if (written == 0) {
+    return false;
+  }
+
+  if (strncmp("1", test_buffer, written) != 0) {
+    return false;
+  }
+  return true;
+}
+
 bool test_natural_snprint_1(void) {
   pao_Natural A = pao_natural_empty();
 
@@ -431,8 +447,69 @@ bool test_natural_distanceDigit_5(void) {
 }
 /* END: testing distanceDigit */
 
+/**/
+
+/* BEGIN: testing divDigit */
+bool test_natural_divDigit_1(void) {
+  pao_Natural A = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &A, 5);
+  u32 B = 3;
+  pao_Natural Q = pao_natural_empty();
+  u32 R;
+
+  pao_Natural exp_Q = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &exp_Q, 1);
+  u32 exp_R = 2;
+
+  pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
+  checkStatus(s);
+
+  return R != exp_R || pao_natural_equal(&Q, &exp_Q);
+}
+
+bool test_natural_divDigit_2(void) {
+  pao_Natural A = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &A, 0);
+  u32 B = 11;
+  pao_Natural Q = pao_natural_empty();
+  u32 R;
+
+  pao_Natural exp_Q = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &exp_Q, 0);
+  u32 exp_R = 0;
+
+  pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
+  checkStatus(s);
+
+  return R != exp_R || pao_natural_equal(&Q, &exp_Q);
+}
+
+bool test_natural_divDigit_3(void) {
+  pao_Natural A = pao_natural_empty();
+  u32 A_DIGS[] = {999999999, 999999999};
+  #define A_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
+  pao_natural_setVec(PAO_stdAlloc, &A, A_DIGS, A_DIGS_LEN);
+
+  u32 B = 9;
+  pao_Natural Q = pao_natural_empty();
+  u32 R;
+
+  pao_Natural exp_Q = pao_natural_empty();
+  u32 exp_Q_DIGS[] = {111111111, 111111111};
+  #define exp_Q_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
+  pao_natural_setVec(PAO_stdAlloc, &exp_Q, exp_Q_DIGS, exp_Q_DIGS_LEN);
+  u32 exp_R = 0;
+
+  pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
+  checkStatus(s);
+
+  return R != exp_R || pao_natural_equal(&Q, &exp_Q);
+}
+/* END: testing divDigit */
+
 /* BEGIN: DRIVER CODE */
 Tester tests[] = {
+  {"test_natural_snprint_0", test_natural_snprint_0},
   {"test_natural_snprint_1", test_natural_snprint_1},
   {"test_natural_snprint_2", test_natural_snprint_2},
   {"test_natural_snprint_3", test_natural_snprint_3},
@@ -457,7 +534,11 @@ Tester tests[] = {
   {"test_natural_multDigit_7", test_natural_multDigit_7},
 
   {"test_natural_multBase_1", test_natural_multBase_1},
-  {"test_natural_multBase_2", test_natural_multBase_2}
+  {"test_natural_multBase_2", test_natural_multBase_2},
+
+  {"test_natural_divDigit_1", test_natural_divDigit_1},
+  {"test_natural_divDigit_2", test_natural_divDigit_2},
+  {"test_natural_divDigit_3", test_natural_divDigit_3}
 };
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 

@@ -1,39 +1,34 @@
-#include "../src/pao_buffer.h"
+#include "../src/pao_natural.h"
+#include "../src/pao_stdAlloc.h"
 
 #define I_PAO_memoryLength 2048
-byte g_pao_memory1[I_PAO_memoryLength];
-byte g_pao_memory2[I_PAO_memoryLength];
-
-void writeOrBurst(pao_Buffer* buff, char* strLit) {
-  usize written = pao_buffer_writeLiteral(buff, strLit);
-  if (written == 0) {
-    printf("wrote zero bytes (%s)\n", strLit);
-    abort();
-  }
-}
+char g_pao_memory[I_PAO_memoryLength];
 
 int main(void) {
-  pao_Buffer buff1 = pao_buffer_create(g_pao_memory1, I_PAO_memoryLength);
-  pao_Buffer buff2 = pao_buffer_create(g_pao_memory2, I_PAO_memoryLength);
-  writeOrBurst(&buff1, "Hello, World!\n");
-  writeOrBurst(&buff1, "I have many things to say,\n");
-  writeOrBurst(&buff1, "none of which you care.\n");
-  writeOrBurst(&buff1, "So... anyway... bye World!\n");
-  pao_buffer_printStr(&buff1);
+  pao_Natural A = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &A, 5);
+  u32 B = 3;
+  pao_Natural Q = pao_natural_empty();
+  u32 R;
 
-  pao_buffer_toHex(&buff1, &buff2);
-  writeOrBurst(&buff2, "\n");
-  pao_buffer_printStr(&buff2);
+  pao_Natural exp_Q = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &exp_Q, 1);
+  u32 exp_R = 2;
 
-  pao_buffer_reset(&buff1);
-  pao_buffer_reset(&buff2);
+  pao_status st = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
 
-  pao_buffer_writeString(&buff1, "Hello\n Only\n", 6);
-  pao_buffer_writeString(&buff2, "Hello\n Only\n", 6);
-
-  if (pao_buffer_equals(&buff1, &buff2)) {
-    printf("equals!\n");
+  if (st != PAO_status_ok) {
+    printf("status: %d\n", st);
+    return 1;
   }
 
-  printf("sizeof(pao_Buffer) ==  %ld\n", sizeof(pao_Buffer));
+  usize written = pao_natural_snprint(Q, g_pao_memory, I_PAO_memoryLength);
+  printf("5 = %.*s * 3 + %u\n", (int)written, g_pao_memory, R);
+
+  if (R != exp_R || pao_natural_equal(&Q, &exp_Q)) {
+    printf("SUCCESS\n");
+    return 0;
+  }
+  printf("FAIL\n");
+  return 1;
 }
