@@ -4,27 +4,16 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-
-/* TODO:
-  natural_add,
-  natural_distance,
-  natural_mult,
-  natural_div
-*/
-
 #ifndef PAO_natural_H
 #define PAO_natural_H
 
-// remove when finished debugging.
-#include <stdio.h>
+// remove when reimplemented memcpy
 #include <string.h>
 
 #include "pao_basicTypes.h"
 #include "pao_status.h"
 #include "pao_allocator.h"
 #include "pao_util.h"
-
-#include "pao_debug.h"
 
 typedef struct {
   u32* digits;
@@ -44,6 +33,7 @@ u32* i_pao_natural_natVecAlloc(pao_Allocator mem, usize size, char* func) {
   return (u32*)mem.alloc(mem.heap, size*sizeof(u32), func);
 }
 
+// TODO: refactor everything so that `dest` parameters and `out` parameters are the last ones
 static inline
 void i_pao_natural_natVecCopy(u32* dest, u32* source, usize len) {
   memcpy(dest, source, len*sizeof(u32));
@@ -150,6 +140,27 @@ bool pao_natural_isZero(const pao_Natural* N) {
   return N->len == 0;
 }
 
+/* Copies the contents of `A` to `out`,
+if `out` has enough space, no allocations are performed.
+*/
+pao_status pao_natural_copy(pao_Allocator mem, const pao_Natural* A, pao_Natural* out) {
+  if (pao_natural_isZero(A)) {
+    return pao_natural_set(mem, out, 0);
+  }
+  if (out->cap < A->len) {
+    u32* outVec = i_pao_natural_natVecAlloc(mem, A->cap, (char*)__func__);
+    if (outVec == NULL) {
+      return PAO_status_outOfMemory;
+    }
+    i_pao_natural_natVecFree(mem, out->digits);
+    out->digits = outVec;
+    out->cap = A->cap;
+  }
+  i_pao_natural_natVecCopy(out->digits, A->digits, A->len);
+  out->len = A->len;
+  return PAO_status_ok;
+}
+
 bool pao_natural_equalDigit(const pao_Natural* A, u32 digit) {
   if (A->len == 0 && digit == 0) {
     return true;
@@ -171,7 +182,14 @@ bool pao_natural_equal(const pao_Natural* A, const pao_Natural* B) {
   return true;
 }
 
-// A must be different from OUT
+// TODO: pao_natural_add
+pao_status pao_natural_add(pao_Allocator mem, const pao_Natural* A, const pao_Natural* B, pao_Natural* out) {
+  if (pao_natural_isZero(A)) {
+    return pao_natural_copy(mem, B, out);
+  }
+  return PAO_status_ok;
+}
+
 pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* out) {
   if (i_pao_natural_notDigit(B)) {
     return PAO_status_invalidDigit;
@@ -223,6 +241,9 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
      then `pushDigit` will alter `A->len` and the loop will be infinite.
   */
 }
+
+// TODO: pao_natural_mult
+// pao_status pao_natural_mult(pao_Allocator mem, const pao_Natural* A, const pao_Natural* B, pao_Natural* out) {}
 
 pao_status pao_natural_multDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* out) {
   if (i_pao_natural_notDigit(B)) {
@@ -294,10 +315,13 @@ void i_pao_natural_removeLeadingZeroes(pao_Natural* out) {
   */
 }
 
+// TODO: pao_natural_div
+// NOTE: this may need one additional parameter as scratch space, figure this out
+// pao_status pao_natural_div(pao_Allocator mem, const pao_Natural* A, const pao_Natural* B, pao_Natural* Q, pao_Natural* R) {}
+
 /* Finds `Q` and `R` such that `A = Q*B + R`.
    `R` is guaranteed to be less than `B` by the Division Theorem,
    hence, it's a u32.
-   UNTESTED: TODO:
    DRAGONS:
 */
 pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* Q, u32* R) {
@@ -355,6 +379,8 @@ pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
   */
 }
 
+// TODO: pao_natural_distance
+// pao_status pao_natural_distance(pao_Allocator mem, const pao_Natural* A, const pao_Natural* B, pao_Natural* out) {}
 /*
 Computes |A - B|, in other words:
   if B<A then A-B

@@ -15,14 +15,8 @@
   - [ ] Pool allocator.
   - [ ] Free-list allocator.
   - [ ] Debug allocator (generic free-list allocator that tracks where things were allocated).
-- [ ] Generic multi-block allocator
 (keeps track of block ranges, creates new fixed-sized-blocks when memory is full, uses a single type of static-heap allocator internally).
 - [ ] Associative arrays
   - [ ] `str -> void*` linear hashmap (only insert, lookup and clear, can use a simple arena allocator) 
   - [ ] `str -> void*` hashmap (insert, lookup, clear, remove and update, must use freelist or similar)
-- [ ] IML interpreter
-- [ ] Compiler Infrastructure (?)
-  - [ ] WASM parser
-  - [ ] WASM generator
-  - [ ] WASM -> AMD64 compiler backend
-  - [ ] WASM -> ARM64 compiler backend
+- [ ] Pão interpreter

@@ -1,7 +1,9 @@
-# Iure's Minimal Language
+# Pão
 
-Iure's Minimal Language (IML) is a simple scripting language for my C library.
-This document is a quick, informal and incomplete specification.
+Pão will be a functional programming language meant to be an interface
+to C code, nothing more. My intention is to slowly introduce more static
+checks into the language, even if this extra information gets discarded
+at runtime.
 
 <details>
 
@@ -17,7 +19,7 @@ This document is a quick, informal and incomplete specification.
 ## The List <a name="list"></a>
 
 Consider the S-Expression `(f (a b) c d)`,
-the following IML expressions are equivalent:
+the following Pão expressions are equivalent:
 
 ```
 [f [a b] c d]
@@ -136,12 +138,11 @@ if cond function let
 
 They do not behave like functions, parameters to special forms
 are only evaluated according to the semantics of that specific special form.
-They are essentially "intrinsic macros".
+They are essentially "intrinsic macros" or "intrinsic FEXPR".
 
 ### Types
 
-IML is dinamically typed, but a global type inference
-algorithm may be used to find bugs.
+IML is dinamically typed.
 There are only a few types visible to the user,
 these types are defined by the following predicates:
 
@@ -183,54 +184,3 @@ bool->number number->bool
 Mutation is not allowed, there's no way to perform
 assignment in the language, however,
 there are still side-effects.
-
-## TO DO LIST
-
- - [ ] Number
-  - [ ] Natural
-   - [x] `natural_snprint`
-   - [x] `natural_equalDigit`
-   - [x] `natural_equal`
-   - [x] `natural_addDigit`
-   - [x] `natural_subDigit`
-   - [x] `natural_multDigit`
-   - [ ] `natural_divDigit`
-   - [ ] `natural_add`
-   - [ ] `natural_distance`
-   - [ ] `natural_mult`
-   - [ ] `natural_div`
-   - [ ] `natural_compare`
-  - [ ] Integer
-   - [ ] `integer_snprint`
-   - [ ] `integer_equalDigit`
-   - [ ] `integer_equal`
-   - [ ] `integer_neg`
-   - [ ] `integer_abs`
-   - [ ] `integer_addDigit`
-   - [ ] `integer_subDigit`
-   - [ ] `integer_multDigit`
-   - [ ] `integer_divDigit`
-   - [ ] `integer_add`
-   - [ ] `integer_sub`
-   - [ ] `integer_mult`
-   - [ ] `integer_div`
-   - [ ] `integer_compare`
-  - [ ] Rational
-   - [ ] `rational_snprint`
-   - [ ] `rational_equalDigit`
-   - [ ] `rational_equal`
-   - [ ] `rational_neg`
-   - [ ] `rational_abs`
-   - [ ] `_rational_gcd`
-   - [ ] `rational_addDigit`
-   - [ ] `rational_subDigit`
-   - [ ] `rational_multDigit`
-   - [ ] `rational_divDigit`
-   - [ ] `rational_add`
-   - [ ] `rational_sub`
-   - [ ] `rational_mult`
-   - [ ] `rational_div`
-   - [ ] `rational_compare`
- - [ ] String
-  - [ ] `string_concat`
-  - [ ] `string_copy`

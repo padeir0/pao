@@ -11,15 +11,32 @@ char buffer[DEFAULT_SIZE];
 void printNat(pao_Natural n) {
   usize written = pao_natural_snprint(n, buffer, DEFAULT_SIZE);
   if (written == 0) {
-    printf("nothing printed :(\n");
-    abort();
+    printf("written 0 bytes.\n");
   }
   printf("%.*s", (int)written, buffer);
   printf(" (length: %d, cap: %d)\n", n.len, n.cap);
 }
 
 /* BEGIN: testing addDigit*/
-// TODO: write test for when `a` == `out`
+bool test_natural_addDigit_0(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = a;
+  pao_Natural expected = pao_natural_empty();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  #define A_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
+
+  pao_natural_setVec(PAO_stdAlloc, &a, A_DIGS, A_DIGS_LEN);
+  
+  u32 EXP_DIGS[A_DIGS_LEN+1] = {1, 0, 0};
+  pao_natural_setVec(PAO_stdAlloc, &expected, EXP_DIGS, A_DIGS_LEN+1);
+
+  pao_status s = pao_natural_addDigit(PAO_stdAlloc, &a, 1, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&out, &expected);
+}
+
 // tests carry
 bool test_natural_addDigit_1(void) {
   pao_Natural a = pao_natural_empty();
@@ -447,8 +464,6 @@ bool test_natural_distanceDigit_5(void) {
 }
 /* END: testing distanceDigit */
 
-/**/
-
 /* BEGIN: testing divDigit */
 bool test_natural_divDigit_1(void) {
   pao_Natural A = pao_natural_empty();
@@ -464,7 +479,7 @@ bool test_natural_divDigit_1(void) {
   pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
   checkStatus(s);
 
-  return R != exp_R || pao_natural_equal(&Q, &exp_Q);
+  return R == exp_R && pao_natural_equal(&Q, &exp_Q);
 }
 
 bool test_natural_divDigit_2(void) {
@@ -481,7 +496,7 @@ bool test_natural_divDigit_2(void) {
   pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
   checkStatus(s);
 
-  return R != exp_R || pao_natural_equal(&Q, &exp_Q);
+  return R == exp_R && pao_natural_equal(&Q, &exp_Q);
 }
 
 bool test_natural_divDigit_3(void) {
@@ -503,9 +518,93 @@ bool test_natural_divDigit_3(void) {
   pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
   checkStatus(s);
 
-  return R != exp_R || pao_natural_equal(&Q, &exp_Q);
+  return R == exp_R && pao_natural_equal(&Q, &exp_Q);
+}
+
+// basically tests if divDigit respects the division theorem
+bool test_natural_divDigit_4(void) {
+  pao_Natural A = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &A, 36);
+
+  u32 B = 1;
+  pao_Natural Q = pao_natural_empty();
+  u32 R;
+
+  while (B < 36) {
+    pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
+    checkStatus(s);
+
+    if (B <= R) {
+      return false;
+    }
+    B++;
+  }
+  return true;
+}
+
+// same thing as the previous test, but with more digits
+bool test_natural_divDigit_5(void) {
+  pao_Natural A = pao_natural_empty();
+  u32 A_DIGS[] = {999999999, 999999999};
+  #define A_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
+  pao_natural_setVec(PAO_stdAlloc, &A, A_DIGS, A_DIGS_LEN);
+
+  u32 B = 1;
+  pao_Natural Q = pao_natural_empty();
+  u32 R;
+
+  while (B < 36) {
+    pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
+    checkStatus(s);
+
+    if (B <= R) {
+      return false;
+    }
+    B++;
+  }
+  return true;
+}
+
+bool test_natural_divDigit_6(void) {
+  pao_Natural A = pao_natural_empty();
+  pao_natural_set(PAO_stdAlloc, &A, 5);
+  u32 B = 0;
+  pao_Natural Q = pao_natural_empty();
+  u32 R;
+  pao_status s = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
+  return s == PAO_status_divisionByZero;
 }
 /* END: testing divDigit */
+
+/* BEGIN: testing copy */
+bool test_natural_copy_1(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+  pao_status s;
+
+  s = pao_natural_set(PAO_stdAlloc, &a, 2222);
+  checkStatus(s);
+  
+  s = pao_natural_copy(PAO_stdAlloc, &a, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&out, &a);
+}
+
+bool test_natural_copy_2(void) {
+  pao_Natural a = pao_natural_empty();
+  pao_Natural out = pao_natural_empty();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  #define A_DIGS_LEN (sizeof(A_DIGS) / sizeof(A_DIGS[0]))
+  pao_natural_setVec(PAO_stdAlloc, &a, A_DIGS, A_DIGS_LEN);
+  
+  pao_status s = pao_natural_copy(PAO_stdAlloc, &a, &out);
+  checkStatus(s);
+
+  return pao_natural_equal(&a, &out);
+}
+/* END: testing copy*/
 
 /* BEGIN: DRIVER CODE */
 Tester tests[] = {
@@ -514,6 +613,7 @@ Tester tests[] = {
   {"test_natural_snprint_2", test_natural_snprint_2},
   {"test_natural_snprint_3", test_natural_snprint_3},
 
+  {"test_natural_addDigit_0", test_natural_addDigit_0},
   {"test_natural_addDigit_1", test_natural_addDigit_1},
   {"test_natural_addDigit_2", test_natural_addDigit_2},
   {"test_natural_addDigit_3", test_natural_addDigit_3},
@@ -538,7 +638,13 @@ Tester tests[] = {
 
   {"test_natural_divDigit_1", test_natural_divDigit_1},
   {"test_natural_divDigit_2", test_natural_divDigit_2},
-  {"test_natural_divDigit_3", test_natural_divDigit_3}
+  {"test_natural_divDigit_3", test_natural_divDigit_3},
+  {"test_natural_divDigit_4", test_natural_divDigit_4},
+  {"test_natural_divDigit_5", test_natural_divDigit_5},
+  {"test_natural_divDigit_6", test_natural_divDigit_6},
+
+  {"test_natural_copy_1", test_natural_copy_1},
+  {"test_natural_copy_2", test_natural_copy_2},
 };
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
