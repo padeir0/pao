@@ -33,9 +33,8 @@ u32* i_pao_natural_natVecAlloc(pao_Allocator mem, usize size, char* func) {
   return (u32*)mem.alloc(mem.heap, size*sizeof(u32), func);
 }
 
-// TODO: refactor everything so that `dest` parameters and `out` parameters are the last ones
 static inline
-void i_pao_natural_natVecCopy(u32* dest, u32* source, usize len) {
+void i_pao_natural_natVecCopy(u32* source, usize len, u32* dest) {
   memcpy(dest, source, len*sizeof(u32));
 }
 
@@ -62,7 +61,7 @@ pao_Natural pao_natural_empty(void) {
 }
 
 static
-pao_status i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digit) {
+pao_status i_pao_natural_pushDigit(pao_Allocator mem, u32 digit, pao_Natural* out) {
   if (out->cap == 0) {
     out->digits = i_pao_natural_natVecAlloc(mem, PAO_natural_minNatVec, (char*)__func__);
     if (out->digits == NULL) {
@@ -81,7 +80,7 @@ pao_status i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digi
     if (new_vec == NULL) {
       return PAO_status_outOfMemory;
     }
-    i_pao_natural_natVecCopy(new_vec, out->digits, out->len);
+    i_pao_natural_natVecCopy(out->digits, out->len, new_vec);
     i_pao_natural_natVecFree(mem, out->digits);
     out->digits = new_vec;
     out->cap = new_cap;
@@ -93,7 +92,7 @@ pao_status i_pao_natural_pushDigit(pao_Allocator mem, pao_Natural* out, u32 digi
 }
 
 pao_status pao_natural_multBase(pao_Allocator mem, pao_Natural* out) { 
-  pao_status st = i_pao_natural_pushDigit(mem, out, 0);
+  pao_status st = i_pao_natural_pushDigit(mem, 0, out);
   if (st != PAO_status_ok) {
     return st;
   }
@@ -106,11 +105,11 @@ pao_status pao_natural_multBase(pao_Allocator mem, pao_Natural* out) {
   return PAO_status_ok;
 }
 
-pao_status pao_natural_setVec(pao_Allocator mem, pao_Natural* out, u32* digits, i32 len) {
+pao_status pao_natural_setVec(pao_Allocator mem, u32* digits, i32 len, pao_Natural* out) {
   out->len = 0;
   int i = len-1;
   while (0 <= i) {
-    pao_status st = i_pao_natural_pushDigit(mem, out, digits[i]);
+    pao_status st = i_pao_natural_pushDigit(mem, digits[i], out);
     if (st != PAO_status_ok) {
       return st;
     }
@@ -119,7 +118,7 @@ pao_status pao_natural_setVec(pao_Allocator mem, pao_Natural* out, u32* digits, 
   return PAO_status_ok;
 }
 
-pao_status pao_natural_set(pao_Allocator mem, pao_Natural* out, u32 digit) {
+pao_status pao_natural_set(pao_Allocator mem, u32 digit, pao_Natural* out) {
   if (i_pao_natural_notDigit(digit)){
     return PAO_status_invalidDigit;
   }
@@ -132,7 +131,7 @@ pao_status pao_natural_set(pao_Allocator mem, pao_Natural* out, u32 digit) {
     out->digits[0] = digit;
     return PAO_status_ok;
   }
-  return i_pao_natural_pushDigit(mem, out, digit);
+  return i_pao_natural_pushDigit(mem, digit, out);
 }
 
 static inline
@@ -145,7 +144,7 @@ if `out` has enough space, no allocations are performed.
 */
 pao_status pao_natural_copy(pao_Allocator mem, const pao_Natural* A, pao_Natural* out) {
   if (pao_natural_isZero(A)) {
-    return pao_natural_set(mem, out, 0);
+    return pao_natural_set(mem, 0, out);
   }
   if (out->cap < A->len) {
     u32* outVec = i_pao_natural_natVecAlloc(mem, A->cap, (char*)__func__);
@@ -156,7 +155,7 @@ pao_status pao_natural_copy(pao_Allocator mem, const pao_Natural* A, pao_Natural
     out->digits = outVec;
     out->cap = A->cap;
   }
-  i_pao_natural_natVecCopy(out->digits, A->digits, A->len);
+  i_pao_natural_natVecCopy(A->digits, A->len, out->digits);
   out->len = A->len;
   return PAO_status_ok;
 }
@@ -195,7 +194,7 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
     return PAO_status_invalidDigit;
   }
   if (pao_natural_isZero(A)) {
-    return pao_natural_set(mem, out, B);
+    return pao_natural_set(mem, B, out);
   }
 
   u32 i = 0;
@@ -217,7 +216,7 @@ pao_status pao_natural_addDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
     }
 
     // SAFE(1):
-    pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
+    pao_status st = i_pao_natural_pushDigit(mem, (u32)res, out);
     if (st != PAO_status_ok) {
       return st;
     }
@@ -250,7 +249,7 @@ pao_status pao_natural_multDigit(pao_Allocator mem, const pao_Natural* A, u32 B,
     return PAO_status_invalidDigit;
   }
   if (pao_natural_isZero(A) || B == 0) {
-    return pao_natural_set(mem, out, 0);
+    return pao_natural_set(mem, 0, out);
   }
   out->len = pao_util_minU32(out->len, A->len);
 
@@ -259,7 +258,7 @@ pao_status pao_natural_multDigit(pao_Allocator mem, const pao_Natural* A, u32 B,
 
   while (i < A->len || carry > 0) {
     if (i == out->len) {
-      pao_status st = i_pao_natural_pushDigit(mem, out, 0);
+      pao_status st = i_pao_natural_pushDigit(mem, 0, out);
       if (st != PAO_status_ok) {
         return st;
       }
@@ -330,7 +329,7 @@ pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
   }
   if (pao_natural_isZero(A)) {
     *R = 0;
-    pao_natural_set(mem, Q, 0);
+    pao_natural_set(mem, 0, Q);
     return PAO_status_ok;
   }
 
@@ -344,7 +343,7 @@ pao_status pao_natural_divDigit(pao_Allocator mem, const pao_Natural* A, u32 B, 
     q = idd / B; // NOTE(3)
     idd -= q*B;  // NOTE(2)
 
-    pao_status st = i_pao_natural_pushDigit(mem, Q, (u32)q); // SAFE(2):
+    pao_status st = i_pao_natural_pushDigit(mem, (u32)q, Q); // SAFE(2):
     if (st != PAO_status_ok) {
       return st;
     }
@@ -388,7 +387,7 @@ Computes |A - B|, in other words:
 */
 pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural* A, u32 B, pao_Natural* out) {
   if (pao_natural_isZero(A)) {
-    return pao_natural_set(mem, out, B);
+    return pao_natural_set(mem, B, out);
   }
 
   if (A->len == 1) {
@@ -399,7 +398,7 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural* A, u3
     } else {
       result = digit - B;
     }
-    return pao_natural_set(mem, out, result);
+    return pao_natural_set(mem, result, out);
   }
 
   // B < A, assuming A has no leading zeroes.
@@ -416,7 +415,7 @@ pao_status pao_natural_distanceDigit(pao_Allocator mem, const pao_Natural* A, u3
       carry = 0;
     }
     // SAFE(2):
-    pao_status st = i_pao_natural_pushDigit(mem, out, (u32)res);
+    pao_status st = i_pao_natural_pushDigit(mem, (u32)res, out);
     if (st != PAO_status_ok) {
       return st;
     }

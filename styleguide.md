@@ -95,6 +95,13 @@ if i try to be too portable, then the code will be too messy. It is already
 hard to be careful with bugs in these two targets, it would be exponentially
 worse if i had to deal with Windows or with AVR.
 
+## Function declaration
+
+Functions with no arguments should receive an explicit `void` argument instead.
+Out-parameters must be the last parameters of a function.
+Normal parameters that are passed by pointer and not modified within the function
+must be marked `const`.
+
 ## Miscelaneous
 
 Other small things:
