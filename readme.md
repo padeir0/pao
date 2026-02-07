@@ -1,7 +1,8 @@
-# Padeir0's C99 Library (pao)
+# Marabaixo
 
-[Rationale](https://www.youtube.com/watch?v=Fm5Ust7vEhk).
+Marabaixo é uma linguagem de programação experimental.
+Ainda não terminei o interpretador nem o design.
 
-See the [style-guide](./styleguide.md).
+O nome vem do meu sabor preferido de sorvete.
 
-I'm still working on this and I make no guarantees of API stability.
+[Style-guide](./styleguide.md).

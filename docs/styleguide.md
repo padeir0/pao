@@ -10,34 +10,34 @@ f[b]=d%--g,d/=g--,--b;d*=b);}
 ## Identifier Style
 
 All libs inside `src` must be a single `.h` file,
-named `pao_<namespaceName>.h`, ie,
+named `mb_<namespaceName>.h`, ie,
 the namespace must be in camelCase.
 All files must start license information up top.
-Header guards must be `#define PAO_<namespaceName>_H`.
+Header guards must be `#define MB_<namespaceName>_H`.
 
 Underscores `_` are reserved, so that snake_case is not allowed.
 Instead we use camelCase for compound names,
 and use underscores `_` to separate namespace names and internal
 names. Identifier rules are the following:
- - Public names start with `pao_`, while internal (private) names
- start with `i_pao_`.
+ - Public names start with `mb_`, while internal (private) names
+ start with `i_mb_`.
  - All public function names must be of the form
-`pao_<namespaceName>_<nameCamelCase>`, while private functions
-must be of the form `i_pao_<namespaceName>_<nameCamelCase>`.
- - All public macros, constants and enums must be of the form `PAO_<namespaceName>_<nameCamelCase>`,
-while private macros, constants and enums must be of the form `I_PAO_<namespaceName>_<nameCamelCase>`.
+`mb_<namespaceName>_<nameCamelCase>`, while private functions
+must be of the form `i_mb_<namespaceName>_<nameCamelCase>`.
+ - All public macros, constants and enums must be of the form `MB_<namespaceName>_<nameCamelCase>`,
+while private macros, constants and enums must be of the form `I_MB_<namespaceName>_<nameCamelCase>`.
  - All public types must be typedef'd, with names
-of the form `pao_<NameUpperCamelCase>`, private types must be
-of the form `i_pao_<NameUpperCamelCase>`.
+of the form `mb_<NameUpperCamelCase>`, private types must be
+of the form `i_mb_<NameUpperCamelCase>`.
  - All local variables, arguments, struct fields and union fields must be camelCase,
- no need to prefix them with `i_pao_` or `pao_`.
- - All global variables must be prefixed with `g_pao_` and must only exist inside tests.
+ no need to prefix them with `i_mb_` or `mb_`.
+ - All global variables must be prefixed with `g_mb_` and must only exist inside tests.
 
 Types often define the namespaces of functions, for example
-`pao_Natural` will define the namespace for the functions
-`pao_natural_add`, `pao_natural_addDigit`, etc.
+`mb_Natural` will define the namespace for the functions
+`mb_natural_add`, `mb_natural_addDigit`, etc.
 
-Exceptions to this naming rule are the types inside `pao_basicTypes.h`.
+Exceptions to this naming rule are the types inside `mb_basicTypes.h`.
 
 ## Comment Style
 
@@ -78,7 +78,7 @@ Rationale for this is:
  - The code must behave well _even if_ the compiler abuses undefined behaviours for optimization.
  - The code must *not* use any deprecated features of new C standards.
 
-Tests should not test internal `i_pao` functions, only public ones.
+Tests should not test internal `i_mb` functions, only public ones.
 It is fine for functions that write to `STDOUT` to be untested,
 these should be marked as `UNTESTED`.
 
@@ -117,4 +117,4 @@ Other small things:
  - Provide no compile-time library configuration options.
  - Provide no compatibility with C++.
  - Bad usage and internal errors should crash the program.
- - Recoverable errors should return a `pao_status` code (or should document the return values).
+ - Recoverable errors should return a `mb_status` code (or should document the return values).

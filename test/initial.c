@@ -1,31 +1,31 @@
-#include "../src/pao_natural.h"
-#include "../src/pao_stdAlloc.h"
+#include "../src/mb_natural.h"
+#include "../src/mb_stdAlloc.h"
 
-#define I_PAO_memoryLength 2048
-char g_pao_memory[I_PAO_memoryLength];
+#define I_MB_memoryLength 2048
+char g_mb_memory[I_MB_memoryLength];
 
 int main(void) {
-  pao_Natural A = pao_natural_empty();
-  pao_natural_set(PAO_stdAlloc, &A, 5);
+  mb_Natural A = mb_natural_empty();
+  mb_natural_set(MB_stdAlloc, 5, &A);
   u32 B = 3;
-  pao_Natural Q = pao_natural_empty();
+  mb_Natural Q = mb_natural_empty();
   u32 R;
 
-  pao_Natural exp_Q = pao_natural_empty();
-  pao_natural_set(PAO_stdAlloc, &exp_Q, 1);
+  mb_Natural exp_Q = mb_natural_empty();
+  mb_natural_set(MB_stdAlloc, 1, &exp_Q);
   u32 exp_R = 2;
 
-  pao_status st = pao_natural_divDigit(PAO_stdAlloc, &A, B, &Q, &R);
+  mb_status st = mb_natural_divDigit(MB_stdAlloc, &A, B, &Q, &R);
 
-  if (st != PAO_status_ok) {
+  if (st != MB_status_ok) {
     printf("status: %d\n", st);
     return 1;
   }
 
-  usize written = pao_natural_snprint(Q, g_pao_memory, I_PAO_memoryLength);
-  printf("5 = %.*s * 3 + %u\n", (int)written, g_pao_memory, R);
+  usize written = mb_natural_snprint(Q, g_mb_memory, I_MB_memoryLength);
+  printf("5 = %.*s * 3 + %u\n", (int)written, g_mb_memory, R);
 
-  if (R != exp_R || pao_natural_equal(&Q, &exp_Q)) {
+  if (R != exp_R || mb_natural_equal(&Q, &exp_Q)) {
     printf("SUCCESS\n");
     return 0;
   }

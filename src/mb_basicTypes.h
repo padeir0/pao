@@ -4,8 +4,8 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef PAO_basicTypes_H
-#define PAO_basicTypes_H
+#ifndef MB_basicTypes_H
+#define MB_basicTypes_H
 
 #include <stdint.h>
 #include <stdlib.h>

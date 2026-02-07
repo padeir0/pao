@@ -4,14 +4,14 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef PAO_stdAlloc_H
-#define PAO_stdAlloc_H
+#ifndef MB_stdAlloc_H
+#define MB_stdAlloc_H
 
-#include "pao_allocator.h"
+#include "mb_allocator.h"
 #include <stdio.h>
 
 static
-void* i_pao_stdAlloc_alloc(
+void* i_mb_stdAlloc_alloc(
   __attribute__((unused)) void* heap,
   usize size,
   __attribute__((unused)) char* func
@@ -20,22 +20,22 @@ void* i_pao_stdAlloc_alloc(
 }
 
 static
-void i_pao_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
+void i_mb_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
   free(obj);
 }
 
 static
-void i_pao_stdAlloc_free_all(__attribute__((unused)) void* heap) {
+void i_mb_stdAlloc_free_all(__attribute__((unused)) void* heap) {
   printf("error: standard malloc provides no free_all function.\n");
   abort();
 }
 
 const
-pao_Allocator PAO_stdAlloc = {
+mb_Allocator MB_stdAlloc = {
   .heap = NULL,
-  .alloc = i_pao_stdAlloc_alloc,
-  .free = i_pao_stdAlloc_free,
-  .freeAll = i_pao_stdAlloc_free_all,
+  .alloc = i_mb_stdAlloc_alloc,
+  .free = i_mb_stdAlloc_free,
+  .freeAll = i_mb_stdAlloc_free_all,
 };
 
 #endif

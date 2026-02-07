@@ -1,59 +1,99 @@
-# Pão
+# Marabaixo
 
-Pão will be a functional programming language meant to be an interface
-to C code, nothing more. My intention is to slowly introduce more static
-checks into the language, even if this extra information gets discarded
-at runtime.
+Marabaixo will be, at first, a dynamically typed functional programming language,
+it may be that later I add a type system on top of it.
 
 <details>
 
 <summary>Contents</summary>
 
-- [The List](#list)
-- [Forms](#forms)
-- [Syntax](#syntax)
-- [Semantics](#semantics)
-
 </details>
 
-## The List <a name="list"></a>
-
-Consider the S-Expression `(f (a b) c d)`,
-the following Pão expressions are equivalent:
+## Example
 
 ```
-[f [a b] c d]
+let sq
+  function [x] [mul x x]
 
-f [a b] c d
+let point [struct x y z]
 
-f [a b] c
-  d
+let distance
+  function [a, b]
+    sqrt
+      sum [sq a.x - b.x]
+          [sq a.y - b.y]
+          [sq a.z - b.z]
 
-f [a b]
-  c
-  d
+let origin [point 0 0 0]
+let magnitude
+  function [a]
+    distance a origin
+    
+let some-point
+  point x = 3.14
+        y = 22/7
+        z = 157/50
 
-f
-  [a b]
-  c
-  d
-
-f
-  a b
-  c
-  d
-
-f
-  a
-    b
-  c
-  d
-
-f [a b] \
-  c d
+print-ln "magnitude: "
+         [magnitude some-point]
 ```
 
-## Syntax <a name="syntax"></a>
+The whole language revolves around the call syntax.
+Like the function `sq` above, it's possible to call it with
+the argument `2` like `[sq 2]` or in a few other ways.
+Almost everything looks like a function, including special constructs
+like `if` and `let`. This is intentional and is meant to make the
+syntax simpler and more homogenous. The syntax is indentation
+sensitive and the overall structure is derived from S-Expressions.
+
+When calling functions, or anything that resemble functions,
+you can use the named-parameter syntax with `=`,
+just like in the declaration of `some-point` above.
+
+## The call syntax
+
+Consider the `point` struct used earlier: 
+
+```
+let point
+  [struct x y z]
+```
+
+Then the value of all the following expressions have the same value:
+
+```
+[point [sq 2] 3 4]
+
+point [sq 2] 3 4
+
+point [sq 2] 3
+  4
+
+point [sq 2]
+  3
+  4
+
+point
+  [sq 2]
+  3
+  4
+
+point
+  sq 2
+  3
+  4
+
+point
+  sq
+    2
+  3
+  4
+
+point [sq 2] \
+  3 4
+```
+
+## Syntax
 
 Notation here is [Wirth Syntax Notation](https://dl.acm.org/doi/10.1145/359863.359883)
 with extensions from the article
@@ -76,12 +116,10 @@ Block = {:I_Expr NL} [';'].
 
 I_Expr = Terms {Line_Continue} [NL >Block].
 Line_Continue = '\\' NL Terms.
-Terms = Term {Term}.
-Term = {Prefix} Factor {Suffix}.
-Prefix = PrefixOp Factor.
-PrefixOp = '@'.
+Terms = Term {[','] Term} [','].
+Term = Factor {Suffix}.
 Suffix = SuffixOp Factor.
-SuffixOp = ':' | '.'.
+SuffixOp = ':' | '.' | '='.
 
 Factor = Atom | S_Expr.
 
@@ -114,73 +152,78 @@ digit = /[0-9]/.
 digit_ = digit | '_'.
 ```
 
-## Name Resolution
+## Function arguments
 
-Names are statically resolved top down, except in case of `letrec`s,
-which are resolved out-of-order.
-Both `let` and `letrec` define names in the enclosing scope.
-Only functions and modules may create new scopes.
+If the last argument of a function is named `args`
+then this argument is treated as variadic.
 
-Modules are resolved before the main symbols are resolved.
-Imports work with `export`, `import` and `from ... import`,
-similar to python. `export`s are deferred to be evaluated
-at the end of the program.
-
-## Special Forms and Modules
-
-Special forms are not first class objects,
-you can't pass them to functions or assign them to variables.
-Some examples of special forms are:
+When declaring a function, it's possible to declare
+the last couple arguments as optionals. Here's how:
 
 ```
-if cond function let
+let ball-volume
+  function [radius, dimension = 2]
+    case
+      [equal? dimension 2]
+        mul pi [sq radius]
+      [equal? dimension 3]
+        mul 3/4 pi [cube radius]
+
+print "unit-ball in 2D"
+  ball-volume 1;
+print "unit-ball in 3D"
+  ball-volume 1, dimension = 3;
 ```
 
-They do not behave like functions, parameters to special forms
-are only evaluated according to the semantics of that specific special form.
-They are essentially "intrinsic macros" or "intrinsic FEXPR".
+## List of built-in names
 
-### Types
-
-IML is dinamically typed.
-There are only a few types visible to the user,
-these types are defined by the following predicates:
+Counted 78 names (`[\w\-\?]+\s`).
 
 ```
-list? number? nil? bool? string? function?
+values:
+  nil true false
+
+special forms:
+  let help function
+  if  case begin
+  import   export
+
+logical:
+  not and or
+
+comparison:
+  equal? not-equal?
+  less?  greater?
+  less-or-equals? greater-or-equals?
+
+predicates:
+    string? number?   list? atom?
+    symbol? function? form? nil?
+    exact?  inexact?  proper? improper?
+
+math:
+    add sub mul div
+    rem even? odd?
+    abs round ceil
+    floor pow
+
+conversions:
+    to-string to-symbol
+    to-number to-list
+
+numerical:
+    to-exact  to-inexact max-precision
+    numerator denominator
+
+list:
+  pair   head tail   last list length
+  append map  filter fold for  reverse
+  range  sort unique
+
+string:
+  join  concat format slice
+  split str-len
+
+other:
+  print abort
 ```
-
-There are subtypes of numbers, which are also visible:
-
-```
-integer? rational? decimal? exact? inexact?
-```
-
-But be aware that `(exact? x)` is the same as
-`(or (integer? x) (rational? x))`, while `(inexact? x)`
-is the same as `(not (exact? x))`.
-
-Some well behaved lists also have predicates, but
-do not correspond to runtime types:
-
-```
-proper-list? improper-list? proper-pair? improper-pair?
-```
-
-Conversion between types uses conversion functions:
-```
-number->string list->string
-symbol->string bool->string
-
-string->number string->list
-
-exact->inexact inexact->exact
-
-bool->number number->bool
-```
-
-### Pure vs Impure
-
-Mutation is not allowed, there's no way to perform
-assignment in the language, however,
-there are still side-effects.
