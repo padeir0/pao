@@ -7,7 +7,7 @@ See the LICENSE file for more information.
 #ifndef MB_order_H
 #define MB_order_H
 
-typedef enum __attribute__((__packed__)) {
+typedef enum {
   MB_order_less,
   MB_order_equal,
   MB_order_greater,

@@ -2,7 +2,7 @@
 
 for filename in ./*_test.c; do
   if gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "out123"; then
-    ./out123
+    ./out123;
     rm out123
   else
     echo "Compilation failed for $filename with gcc (c99), skipping execution."

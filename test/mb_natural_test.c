@@ -8,6 +8,26 @@
 
 char buffer[DEFAULT_SIZE];
 
+// TODO: write tests for when the allocator fails
+// TODO: write grow/shrink tests with addDigit and distanceDigit
+// TODO: write grow/shrink tests with add and distance
+// TODO: write grow/shrink tests with multDigit and divDigit
+// TODO: write tests for snprint when buffer is too small
+// TODO: write tests for snprint when buffer is exact fit
+// TODO: write tests for snprint when buffer size is 1
+// TODO: remove the usage of macros (DIGS_LEN) in inner scopes
+// TODO: write a checker to verify if all numbers abides to the invariantes:
+//           len == 0 represents zero
+//           or len > 0 and:
+//              digits[len - 1] != 0
+//              all digits are < MB_natural_base
+// TODO: write tests where both operands are 0
+// TODO: write tests to assert failure when aliasing rules are violated
+// TODO: write tests for divDigit: a/a = 1
+// TODO: write tests for divDigit: a/1 = a
+// TODO: improve tests by using an allocator that allows you to
+//       check for number of allocations performed and leaks
+
 void printNat(mb_Natural n) {
   usize written = mb_natural_snprint(n, buffer, DEFAULT_SIZE);
   if (written == 0) {
@@ -215,6 +235,8 @@ bool test_natural_compare_7(void) {
 /* END: testing compare */
 
 /* BEGIN: testing add */
+
+// tests 0 as identity
 bool test_natural_add_0a(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();
@@ -231,6 +253,7 @@ bool test_natural_add_0a(void) {
   return mb_natural_equal(&out, &expected);
 }
 
+// tests 0 as identity, but places garbage in the out parameter
 bool test_natural_add_0b(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();
@@ -250,6 +273,7 @@ bool test_natural_add_0b(void) {
   return mb_natural_equal(&out, &expected);
 }
 
+// tests addition of big numbers 
 bool test_natural_add_1a(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();
@@ -268,6 +292,7 @@ bool test_natural_add_1a(void) {
   return mb_natural_equal(&out, &expected);
 }
 
+// tests addition of big numbers, but places garbage at the outparam
 bool test_natural_add_1b(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();
@@ -289,20 +314,25 @@ bool test_natural_add_1b(void) {
   return mb_natural_equal(&out, &expected);
 }
 
+// tests commutativity
 bool test_natural_add_2(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();
-  mb_Natural out = mb_natural_empty();
+  mb_Natural out1 = mb_natural_empty();
+  mb_Natural out2 = mb_natural_empty();
   mb_Natural expected = mb_natural_empty();
 
   mb_natural_set(MB_stdAlloc, 42, &a);
   mb_natural_set(MB_stdAlloc, 17, &b);
   mb_natural_set(MB_stdAlloc, 59, &expected);
 
-  mb_Status s = mb_natural_add(MB_stdAlloc, &a, &b, &out);
+  mb_Status s = mb_natural_add(MB_stdAlloc, &a, &b, &out1);
+  checkStatus(s);
+  s = mb_natural_add(MB_stdAlloc, &b, &a, &out2);
   checkStatus(s);
 
-  return mb_natural_equal(&out, &expected);
+  return mb_natural_equal(&out1, &expected) &&
+         mb_natural_equal(&out2, &expected);
 }
 /* END: testing add */
 
@@ -668,6 +698,8 @@ bool test_natural_distanceDigit_5(void) {
 /* END: testing distanceDigit */
 
 /* BEGIN: testing distance */
+
+// tests 0 as identity
 bool test_natural_distance_0(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();
@@ -693,6 +725,7 @@ bool test_natural_distance_0(void) {
          mb_natural_equal(&out2, &expected);
 }
 
+// tests if |a - a| = 0
 bool test_natural_distance_1(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural out = mb_natural_empty();
@@ -710,6 +743,7 @@ bool test_natural_distance_1(void) {
   return mb_natural_equal(&out, &expected);
 }
 
+// tests commutativity
 bool test_natural_distance_2(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();
@@ -730,6 +764,7 @@ bool test_natural_distance_2(void) {
          mb_natural_equal(&out2, &expected);
 }
 
+// tests big numbers
 bool test_natural_distance_3(void) {
   mb_Natural a = mb_natural_empty();
   mb_Natural b = mb_natural_empty();

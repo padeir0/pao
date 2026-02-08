@@ -7,7 +7,7 @@ See the LICENSE file for more information.
 #ifndef MB_status_H
 #define MB_status_H
 
-typedef enum __attribute__((__packed__)) {
+typedef enum {
   MB_status_ok,
   MB_status_divisionByZero,
   MB_status_outOfMemory,
