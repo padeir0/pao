@@ -181,14 +181,54 @@ bool mb_natural_equal(const mb_Natural* A, const mb_Natural* B) {
   return true;
 }
 
-// TODO: mb_natural_add
+// `A` and `B` might be aliased together,
+// but neither may be aliased with `out`.
 mb_status mb_natural_add(mb_Allocator mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
-  if (mb_natural_isZero(A)) {
-    return mb_natural_copy(mem, B, out);
+  u32 max_length = mb_util_maxU32(A->len, B->len);
+
+  u32 i = 0;
+  i32 carry = 0;
+
+  while (i < max_length || carry > 0) {
+    if (i == out->len) {
+      mb_status st = i_mb_natural_pushDigit(mem, 0, out);
+      if (st != MB_status_ok) {
+        return st;
+      }
+    }
+    i64 res = carry;
+    if (i < A->len) {
+      res += A->digits[i];
+    }
+    if (i < B->len) {
+      res += B->digits[i];
+    }
+    if (MB_natural_base <= res) {
+      carry = 1; // NOTE(1)
+      out->digits[i] = (u32)(res - MB_natural_base); // SAFE(1)
+    } else {
+      carry = 0;
+      out->digits[i] = (u32)res; // SAFE(2)
+    }
+    i++;
   }
+
   return MB_status_ok;
+  /* SAFE(1): `res` is at most equal to (BASE-1 + BASE-1) = (2*BASE - 2)
+               this means that:
+                 (res - BASE) <= (2*BASE - 2) - BASE
+                               = BASE - 2
+               ie, it fits both as a digit and as a u32.
+     SAFE(2): in this branch, `res` is strictly less than BASE.
+     NOTE(1): again, res <= 2*BASE - 2, so:
+                 res / BASE <= (2* BASE - 2)/BASE
+                             = 2 - 2/BASE
+                             < 2.
+              so the carry is at most an integer less than 2, ie, 1.
+  */
 }
 
+// `A` and `out` must be different objects
 mb_status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   if (i_mb_natural_notDigit(B)) {
     return MB_status_invalidDigit;
@@ -200,11 +240,10 @@ mb_status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_N
   u32 i = 0;
   u32 carry = B;
   i64 res = 0;
-  i64 startingLen = A->len; // NOTE(1)
 
   do {
     res = carry;
-    if (i < startingLen) {
+    if (i < A->len) {
       res += A->digits[i];
     }
 
@@ -221,7 +260,7 @@ mb_status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_N
       return st;
     }
     i++;
-  } while (0 < carry || i < startingLen);
+  } while (0 < carry || i < A->len);
 
   return MB_status_ok;
   /* SAFE(1): since our carry is set to the digit in the first iteration,
@@ -236,8 +275,6 @@ mb_status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_N
                 carry + digit < 2*BASE  implies
                 res - BASE < BASE
               as desired. \qed
-     NOTE(1): We need this line since `A` might be equals `out`,
-     then `pushDigit` will alter `A->len` and the loop will be infinite.
   */
 }
 

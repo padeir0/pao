@@ -20,7 +20,7 @@ void printNat(mb_Natural n) {
 /* BEGIN: testing addDigit*/
 bool test_natural_addDigit_0(void) {
   mb_Natural a = mb_natural_empty();
-  mb_Natural out = a;
+  mb_Natural out = mb_natural_empty();
   mb_Natural expected = mb_natural_empty();
 
   u32 A_DIGS[] = {999999999, 999999999};
@@ -102,6 +102,98 @@ bool test_natural_addDigit_4(void) {
   return mb_natural_equalDigit(&a, 314159);
 }
 /* END: testing addDigit */
+
+/* BEGIN: testing add */
+bool test_natural_add_0a(void) {
+  mb_Natural a = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  mb_natural_set(MB_stdAlloc, 42, &a);
+  mb_natural_set(MB_stdAlloc, 0, &b);
+  mb_natural_set(MB_stdAlloc, 42, &expected);
+  
+  mb_status s = mb_natural_add(MB_stdAlloc, &a, &b, &out);
+  checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_add_0b(void) {
+  mb_Natural a = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  const u32 GARBAGE = 0xCAFE;
+  mb_natural_set(MB_stdAlloc, GARBAGE, &out);
+
+  mb_natural_set(MB_stdAlloc, 42, &a);
+  mb_natural_set(MB_stdAlloc, 0, &b);
+  mb_natural_set(MB_stdAlloc, 42, &expected);
+  
+  mb_status s = mb_natural_add(MB_stdAlloc, &a, &b, &out);
+  checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_add_1a(void) {
+  mb_Natural a = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  mb_natural_set(MB_stdAlloc, MB_natural_base - 1, &a);
+  mb_natural_set(MB_stdAlloc, MB_natural_base - 1, &b);
+  
+  u32 EXP_DIGS[2] = {1, 999999998};
+  mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 2, &expected);
+
+  mb_status s = mb_natural_add(MB_stdAlloc, &a, &b, &out);
+  checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_add_1b(void) {
+  mb_Natural a = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  const u32 GARBAGE = 0xCAFE;
+  mb_natural_set(MB_stdAlloc, GARBAGE, &out);
+  
+  mb_natural_set(MB_stdAlloc, MB_natural_base - 1, &a);
+  mb_natural_set(MB_stdAlloc, MB_natural_base - 1, &b);
+  
+  u32 EXP_DIGS[2] = {1, 999999998};
+  mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 2, &expected);
+
+  mb_status s = mb_natural_add(MB_stdAlloc, &a, &b, &out);
+  checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_add_2(void) {
+  mb_Natural a = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  mb_natural_set(MB_stdAlloc, 42, &a);
+  mb_natural_set(MB_stdAlloc, 17, &b);
+  mb_natural_set(MB_stdAlloc, 59, &expected);
+
+  mb_status s = mb_natural_add(MB_stdAlloc, &a, &b, &out);
+  checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+/* END: testing add */
 
 /* BEGIN: testing multDigit */
 
@@ -645,6 +737,12 @@ Tester tests[] = {
 
   {"test_natural_copy_1", test_natural_copy_1},
   {"test_natural_copy_2", test_natural_copy_2},
+
+  {"test_natural_add_0a", test_natural_add_0a},
+  {"test_natural_add_0b", test_natural_add_0b},
+  {"test_natural_add_1a", test_natural_add_1a},
+  {"test_natural_add_1b", test_natural_add_1b},
+  {"test_natural_add_2", test_natural_add_2},
 };
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
