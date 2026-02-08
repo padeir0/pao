@@ -14,6 +14,7 @@ See the LICENSE file for more information.
 #include "mb_status.h"
 #include "mb_allocator.h"
 #include "mb_util.h"
+#include "mb_order.h"
 
 typedef struct {
   u32* digits;
@@ -61,7 +62,7 @@ mb_Natural mb_natural_empty(void) {
 }
 
 static
-mb_status i_mb_natural_pushDigit(mb_Allocator mem, u32 digit, mb_Natural* out) {
+mb_Status i_mb_natural_pushDigit(mb_Allocator mem, u32 digit, mb_Natural* out) {
   if (out->cap == 0) {
     out->digits = i_mb_natural_natVecAlloc(mem, MB_natural_minNatVec, (char*)__func__);
     if (out->digits == NULL) {
@@ -91,8 +92,8 @@ mb_status i_mb_natural_pushDigit(mb_Allocator mem, u32 digit, mb_Natural* out) {
   return MB_status_ok;
 }
 
-mb_status mb_natural_multBase(mb_Allocator mem, mb_Natural* out) { 
-  mb_status st = i_mb_natural_pushDigit(mem, 0, out);
+mb_Status mb_natural_multBase(mb_Allocator mem, mb_Natural* out) { 
+  mb_Status st = i_mb_natural_pushDigit(mem, 0, out);
   if (st != MB_status_ok) {
     return st;
   }
@@ -105,11 +106,15 @@ mb_status mb_natural_multBase(mb_Allocator mem, mb_Natural* out) {
   return MB_status_ok;
 }
 
-mb_status mb_natural_setVec(mb_Allocator mem, u32* digits, i32 len, mb_Natural* out) {
+/* Expects an array with the most significant digit first,
+ie, MSD -> LSD. This is why the code goes backwards to fill
+the number.
+*/
+mb_Status mb_natural_setVec(mb_Allocator mem, u32* digits, i32 len, mb_Natural* out) {
   out->len = 0;
   int i = len-1;
   while (0 <= i) {
-    mb_status st = i_mb_natural_pushDigit(mem, digits[i], out);
+    mb_Status st = i_mb_natural_pushDigit(mem, digits[i], out);
     if (st != MB_status_ok) {
       return st;
     }
@@ -118,7 +123,7 @@ mb_status mb_natural_setVec(mb_Allocator mem, u32* digits, i32 len, mb_Natural* 
   return MB_status_ok;
 }
 
-mb_status mb_natural_set(mb_Allocator mem, u32 digit, mb_Natural* out) {
+mb_Status mb_natural_set(mb_Allocator mem, u32 digit, mb_Natural* out) {
   if (i_mb_natural_notDigit(digit)){
     return MB_status_invalidDigit;
   }
@@ -142,7 +147,7 @@ bool mb_natural_isZero(const mb_Natural* N) {
 /* Copies the contents of `A` to `out`,
 if `out` has enough space, no allocations are performed.
 */
-mb_status mb_natural_copy(mb_Allocator mem, const mb_Natural* A, mb_Natural* out) {
+mb_Status mb_natural_copy(mb_Allocator mem, const mb_Natural* A, mb_Natural* out) {
   if (mb_natural_isZero(A)) {
     return mb_natural_set(mem, 0, out);
   }
@@ -183,7 +188,7 @@ bool mb_natural_equal(const mb_Natural* A, const mb_Natural* B) {
 
 // `A` and `B` might be aliased together,
 // but neither may be aliased with `out`.
-mb_status mb_natural_add(mb_Allocator mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
+mb_Status mb_natural_add(mb_Allocator mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
   u32 max_length = mb_util_maxU32(A->len, B->len);
 
   u32 i = 0;
@@ -191,7 +196,7 @@ mb_status mb_natural_add(mb_Allocator mem, const mb_Natural* A, const mb_Natural
 
   while (i < max_length || carry > 0) {
     if (i == out->len) {
-      mb_status st = i_mb_natural_pushDigit(mem, 0, out);
+      mb_Status st = i_mb_natural_pushDigit(mem, 0, out);
       if (st != MB_status_ok) {
         return st;
       }
@@ -229,7 +234,7 @@ mb_status mb_natural_add(mb_Allocator mem, const mb_Natural* A, const mb_Natural
 }
 
 // `A` and `out` must be different objects
-mb_status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* out) {
+mb_Status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   if (i_mb_natural_notDigit(B)) {
     return MB_status_invalidDigit;
   }
@@ -255,7 +260,7 @@ mb_status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_N
     }
 
     // SAFE(1):
-    mb_status st = i_mb_natural_pushDigit(mem, (u32)res, out);
+    mb_Status st = i_mb_natural_pushDigit(mem, (u32)res, out);
     if (st != MB_status_ok) {
       return st;
     }
@@ -281,7 +286,7 @@ mb_status mb_natural_addDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_N
 // TODO: mb_natural_mult
 // mb_status mb_natural_mult(mb_Allocator mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {}
 
-mb_status mb_natural_multDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* out) {
+mb_Status mb_natural_multDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   if (i_mb_natural_notDigit(B)) {
     return MB_status_invalidDigit;
   }
@@ -295,7 +300,7 @@ mb_status mb_natural_multDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_
 
   while (i < A->len || carry > 0) {
     if (i == out->len) {
-      mb_status st = i_mb_natural_pushDigit(mem, 0, out);
+      mb_Status st = i_mb_natural_pushDigit(mem, 0, out);
       if (st != MB_status_ok) {
         return st;
       }
@@ -360,7 +365,7 @@ void i_mb_natural_removeLeadingZeroes(mb_Natural* out) {
    hence, it's a u32.
    DRAGONS:
 */
-mb_status mb_natural_divDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* Q, u32* R) {
+mb_Status mb_natural_divDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* Q, u32* R) {
   if (B == 0) {
     return MB_status_divisionByZero;
   }
@@ -380,7 +385,7 @@ mb_status mb_natural_divDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_N
     q = idd / B; // NOTE(3)
     idd -= q*B;  // NOTE(2)
 
-    mb_status st = i_mb_natural_pushDigit(mem, (u32)q, Q); // SAFE(2):
+    mb_Status st = i_mb_natural_pushDigit(mem, (u32)q, Q); // SAFE(2):
     if (st != MB_status_ok) {
       return st;
     }
@@ -415,14 +420,93 @@ mb_status mb_natural_divDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_N
   */
 }
 
-// TODO: mb_natural_distance
-// mb_status mb_natural_distance(mb_Allocator mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {}
+
+mb_Order mb_natural_compare(const mb_Natural* A, const mb_Natural* B) {
+  if (A->len < B->len) {
+    return MB_order_less;
+  } else if (B->len < A->len) {
+    return MB_order_greater;
+  }
+  // NOTE(1)
+  if (A->len == 0) {
+    return MB_order_equal;
+  }
+
+  i64 i = A->len-1;
+  while (0 <= i) {
+    u32 a = A->digits[i];
+    u32 b = B->digits[i];
+    if (a < b) {
+      return MB_order_less;
+    } else if (b < a) {
+      return MB_order_greater;
+    }
+    i--;
+  }
+
+  return MB_order_equal;
+}
+
+mb_Status mb_natural_distance(mb_Allocator mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
+  mb_Order res = mb_natural_compare(A, B);
+  if (res == MB_order_equal) {
+    return mb_natural_set(mem, 0, out);
+  } else if (res == MB_order_less) {
+    const mb_Natural* temp = B;
+    B = A;
+    A = temp;
+  }
+  if (mb_natural_isZero(B)) {
+    return mb_natural_copy(mem, A, out);
+  }
+
+  i64 carry = 0;
+  u32 i = 0;
+  while (i < A->len || carry > 0) {
+    if (i == out->len) {
+      mb_Status res = i_mb_natural_pushDigit(mem, 0, out);
+      if (res != MB_status_ok) {
+        return res;
+      }
+    }
+
+    // NOTE(1)
+    i64 res = -carry;
+    if (i < A->len) {
+      res += (i64)A->digits[i];
+    }
+    if (i < B->len) {
+      res -= B->digits[i];
+    }
+
+    if (res < 0) {
+      carry = 1;
+      out->digits[i] = (u32)(MB_natural_base + res); // SAFE(1)
+    } else {
+      carry = 0;
+      out->digits[i] = (u32)res; // SAFE(2)
+    }
+
+    i++;
+  }
+
+  i_mb_natural_removeLeadingZeroes(out);
+  return MB_status_ok;
+  /* NOTE(1): `res` is not an i32 because `A->digits[i]` may be `u32_max`
+              if BASE ever changes.
+     SAFE(1): here `res < 0` and the largest negative number `res`
+              can be is -BASE, the result is then 0.
+     SAFE(2): `res` is at most BASE-1, when carry = 0, B->digits[i] = 0
+              and A->digits[i] = BASE-1
+  */
+}
+
 /*
 Computes |A - B|, in other words:
   if B<A then A-B
   else B-A
 */
-mb_status mb_natural_distanceDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* out) {
+mb_Status mb_natural_distanceDigit(mb_Allocator mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   if (mb_natural_isZero(A)) {
     return mb_natural_set(mem, B, out);
   }
@@ -452,7 +536,7 @@ mb_status mb_natural_distanceDigit(mb_Allocator mem, const mb_Natural* A, u32 B,
       carry = 0;
     }
     // SAFE(2):
-    mb_status st = i_mb_natural_pushDigit(mem, (u32)res, out);
+    mb_Status st = i_mb_natural_pushDigit(mem, (u32)res, out);
     if (st != MB_status_ok) {
       return st;
     }

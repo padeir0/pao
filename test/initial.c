@@ -15,7 +15,7 @@ int main(void) {
   mb_natural_set(MB_stdAlloc, 1, &exp_Q);
   u32 exp_R = 2;
 
-  mb_status st = mb_natural_divDigit(MB_stdAlloc, &A, B, &Q, &R);
+  mb_Status st = mb_natural_divDigit(MB_stdAlloc, &A, B, &Q, &R);
 
   if (st != MB_status_ok) {
     printf("status: %d\n", st);

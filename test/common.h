@@ -7,7 +7,7 @@
 
 #define DEFAULT_SIZE 2048
 
-void checkStatus(mb_status ns) {
+void checkStatus(mb_Status ns) {
   if (ns != MB_status_ok) {
     printf("fail: %d\n", ns);
     abort();

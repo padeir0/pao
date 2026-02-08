@@ -13,6 +13,6 @@ typedef enum __attribute__((__packed__)) {
   MB_status_outOfMemory,
   MB_status_invalidDigit,
   MB_status_naturalNumberOverflow,
-} mb_status;
+} mb_Status;
 
 #endif
