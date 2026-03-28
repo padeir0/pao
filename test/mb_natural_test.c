@@ -8,24 +8,22 @@
 
 char buffer[DEFAULT_SIZE];
 
-// TODO: write tests for when the allocator fails
-// TODO: write grow/shrink tests with addDigit and distanceDigit
-// TODO: write grow/shrink tests with add and distance
-// TODO: write grow/shrink tests with multDigit and divDigit
-// TODO: write tests for snprint when buffer is too small
-// TODO: write tests for snprint when buffer is exact fit
-// TODO: write tests for snprint when buffer size is 1
-// TODO: remove the usage of macros (DIGS_LEN) in inner scopes
 // TODO: write a checker to verify if all numbers abides to the invariants:
 //           len == 0 represents zero
 //           or len > 0 and:
 //              digits[len - 1] != 0
 //              all digits are < MB_natural_base
-// TODO: write tests where both operands are 0
-// TODO: write tests to assert failure when aliasing rules are violated
+// TODO: check if numbers are valid after each operation (using the function above)
+// TODO: remove the usage of macros (DIGS_LEN) in inner scopes
+// TODO: properly free all numbers at the end of each test
 // TODO: improve tests by using an allocator that allows you to
 //       check for number of allocations performed and leaks
+// TODO: write tests for when the allocator fails
 // TODO: write tests for when the out-param has garbage (distance, distanceDigit, multDigit, copy)
+// TODO: write tests for snprint when buffer is too small
+// TODO: write tests for snprint when buffer is exact fit
+// TODO: write tests for snprint when buffer size is 1
+// TODO: write tests where both operands are 0
 
 void printNat(mb_Natural* n) {
   usize written = mb_natural_snprint(n, buffer, DEFAULT_SIZE);

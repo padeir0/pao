@@ -93,6 +93,7 @@ mb_Status i_mb_natural_pushDigit(mb_Allocator* mem, u32 digit, mb_Natural* out) 
 }
 
 mb_Status mb_natural_multBase(mb_Allocator* mem, mb_Natural* out) { 
+  // TODO: OPT: if pushDigit has to allocate, then we can shift everything while copying. Saves O(n) operations.
   mb_Status st = i_mb_natural_pushDigit(mem, 0, out); MB_status_check;
 
   i64 i = out->len - 1;
@@ -176,6 +177,7 @@ mb_Status mb_natural_copy(mb_Allocator* mem, const mb_Natural* A, mb_Natural* ou
   if (mb_natural_isZero(A)) {
     return mb_natural_set(mem, 0, out);
   }
+  // TODO: OPT: this should only allocate A->len+pad to next power of two, not A->cap, potentially wastes memory.
   if (out->cap < A->len) {
     u32* outVec = i_mb_natural_natVecAlloc(mem, A->cap, (char*)__func__);
     if (outVec == NULL) {
@@ -451,7 +453,7 @@ mb_Status mb_natural_incByDigit(mb_Allocator* mem, u32 B, mb_Natural* out) {
 
   do {
     res = carry;
-    if (i < length) {
+    if (i < out->len) {
       res += out->digits[i];
     } else {
       st = i_mb_natural_pushDigit(mem, 0, out); MB_status_check
@@ -566,230 +568,50 @@ void i_mb_natural_removeLeadingZeroes(mb_Natural* out) {
                 as the user properly uses mb_Natural.
   */
 }
-
-// sets `out` to `MB_order_equal` if `guess*B == idd` or if `(guess+1)*B > idd`
-mb_Status i_mb_natural_testGuess(mb_Allocator* mem, const mb_Natural* idd, const mb_Natural* B, u32 guess, mb_Natural* scratch, mb_Order* out) {
-  mb_Status st;
-  st = mb_natural_multDigit(mem, B, guess, scratch); MB_status_check;
-  mb_Order res = mb_natural_compare(scratch, idd);
-  if (res == MB_order_equal || res == MB_order_greater) {
-    *out = res;
-  } else {
-    // NOTE(1)
-    st = mb_natural_incBy(mem, B, scratch); MB_status_check;
-    res = mb_natural_compare(scratch, idd);
-    if (res == MB_order_greater) {
-      *out = MB_order_equal; // NOTE(2)
-    }
-    *out = MB_order_less;
-  }
-  return MB_status_ok;
-  /*  NOTE(1): Here we know `res == MB_order_less`, so that `guess*B < idd`.
-      NOTE(2): (guess+1)*B > IDD.
-  */
-}
-
-#define I_MB_natural_divMaxNumGuesses 32
-
-/* Finds `Q` and `R` such that `A = Q*B + R`.
-   TODO: UNTESTED:
-   DRAGONS:
-*/
-mb_Status mb_natural_div(mb_Allocator* mem,
-                         const mb_Natural* A, const mb_Natural* B,
-                         mb_Natural* Q, mb_Natural* R) {
-  #if MB_config_debug
-    if (mem == NULL || A == NULL || B == NULL || Q == NULL || R == NULL) {
-      MB_debug_fatalFmt("Some pointer parameter is null. mem = %p, A = %p, B = %p, Q = %p, R = %p.", (void*)mem, (void*)A, (void*)B, (void*)Q, (void*)R);
-    }
-
-    if (A == Q || A == R || B == Q || B == R) {
-      MB_debug_fatalFmt("Aliasing requirements not met. A = %p, B = %p, Q = %p, R = %p.", (void*)A, (void*)B, (void*)Q, (void*)R);
-    }
-  #endif
-  mb_Status st;
-
-  if (mb_natural_isZero(B)) {
-    return MB_status_divisionByZero;
-  }
-  if (mb_natural_isZero(A)) {
-    st = mb_natural_set(mem, 0, R); MB_status_check;
-    return mb_natural_set(mem, 0, Q);
-  }
-  mb_Natural scratch = mb_natural_empty(); // NOTE(1)
-
-  // NOTE(2)
-  i64 i = (i64)A->len - 1;
-  while (0 <= i) {
-    st = mb_natural_multBase(mem, R);                 MB_status_check;
-    st = mb_natural_incByDigit(mem, A->digits[i], R); MB_status_check;
-
-    mb_Order ord = mb_natural_compare(R, B);
-
-    if (ord == MB_order_less) {         // R < B
-      if (mb_natural_isZero(Q) == false) {
-        st = mb_natural_multBase(mem, Q); MB_status_check;
-      }
-    } else if (ord == MB_order_equal) { // R == B
-      st = mb_natural_set(mem, 0, R);        MB_status_check;
-      st = mb_natural_multBase(mem, Q);      MB_status_check;
-      st = mb_natural_incByDigit(mem, 1, Q); MB_status_check;
-    } else {                            // R > B
-      u32 low = 1; // NOTE(3)
-      u32 high = MB_natural_base - 1;
-      u32 guess = (low + high)/2;
-      i32 j = 0;
-
-      mb_Order res;
-      st = i_mb_natural_testGuess(mem, R, B, guess, &scratch, &res); MB_status_check;
-
-      // NOTE(4)
-      while (res != MB_order_equal && j < I_MB_natural_divMaxNumGuesses) {
-        if (res == MB_order_less) {
-          low = guess;
-        } else if (res == MB_order_greater) {
-          high = guess;
-        }
-        guess = (low + high)/2;
-        st = i_mb_natural_testGuess(mem, R, B, guess, &scratch, &res); MB_status_check;
-        j++;
-      }
-    }
-    
-    i--;
-  }
-
-  i_mb_natural_natVecFree(mem, scratch.digits);
-  return MB_status_ok;
-  /* NOTE(1): This allocation is fine for now. In the future, I will implement
-              a pool of natural numbers as scratch space that will be passed as
-              an argument together with the allocator.
-     NOTE(2): We implement naïve long division, following the article at:
-                  https://en.wikipedia.org/wiki/Long_division#Algorithm_for_arbitrary_base
-     NOTE(3): Since R > B, then `guess` is at least 1.
-     NOTE(4): This digit we're searching for is unique and lives in an ordered space (the natural numbers up to BASE),
-              so that we can use binary search. There are a few ways to reduce the size
-              of this space, namely by finding closer upper and lower bounds. Also, the complexity is log(BASE),
-              so the maximum number of iterations is 30. Since the base may change, we set it up to 32, ie,
-              log(U32_MAX).
-  */
-}
-
-/* Finds `Q` and `R` such that `A = Q*B + R`.
-   `R` is guaranteed to be less than `B` by the Division Theorem,
-   hence, it's a u32.
-   DRAGONS:
-*/
-mb_Status mb_natural_divDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_Natural* Q, u32* R) {
-  #if MB_config_debug
-    if (mem == NULL || A == NULL || Q == NULL || R == NULL) {
-      MB_debug_fatalFmt("Some pointer parameter is null. mem = %p, A = %p, Q = %p, R = %p.", (void*)mem, (void*)A, (void*)Q, (void*)R);
-    }
-
-    if (A == Q) {
-      MB_debug_fatalFmt("Aliasing requirements not met. A = %p, out = %p.", (void*)A, (void*)Q);
-    }
-
-    if (MB_natural_base <= B) {
-      MB_debug_fatalFmt("B is not a valid digit. B = %d.", B);
-    }
-  #endif
-
-  if (B == 0) {
-    return MB_status_divisionByZero;
-  }
-  if (mb_natural_isZero(A)) {
-    *R = 0;
-    mb_natural_set(mem, 0, Q);
-    return MB_status_ok;
-  }
-
-  mb_Status st = mb_natural_set(mem, 0, Q); MB_status_check;
-  *R = 0;
-  i64 i = A->len - 1; // SAFE(3)
-  i64 q = 0;
-  i64 carry = 0;
-
-  while (0 <= i) {
-    i64 idd = (i64)A->digits[i] + carry * MB_natural_base; // NOTE(1)
-    q     = idd/B; // NOTE(3)
-    carry = idd%B;  // NOTE(2)
-
-    // TODO: this probably should be pushDigit + reverse
-    st = mb_natural_multBase(mem, Q);
-    st = mb_natural_incByDigit(mem, (u32)q, Q); // SAFE(2)
-    MB_status_check;
-
-    i--;
-  }
-  i_mb_natural_removeLeadingZeroes(Q);
-  *R = (u32)carry; // SAFE(1)
-  return MB_status_ok;
-  /*
-   NOTE(1): Since `B` is a digit, then `idd` is at most 2 digits.
-   This means we can use an `i64` as intermediate dividend.
-   NOTE(2): After this line, `carry` will be less than `B`. This follows
-   immediately from the Division Theorem: `carry` becomes the intermediate remainder.
-   SAFE(1): For the reasons stated above, `carry < B < MB_natural_base`.
-   NOTE(3): At the end of the loop, `carry` is less than `B`, which means an
-   upper bound for `idd` at this point is
-       (B-1)*MB_natural_base + MB_natural_base-1 = 
-       B*MB_natural_base - MB_natural_base + MB_natural_base - 1 = 
-       B*MB_natural_base - 1.
-   Since `q = floor(idd/B)` then:
-       floor(idd/B) <= 
-       floor((B*MB_natural_base - 1) / B) = 
-       floor(MB_natural_base - (1/B)).
-   Since `0 < 1/B <= 1` then
-       floor(MB_natural_base - (1/B)) = MB_natural_base - 1.
-   So that `q <= MB_natural_base - 1`.
-   SAFE(2): Because of the reasons stated above, the cast is safe and
-   `q` is a valid digit.
-   SAFE(3): This subtraction is OK since we checked earlier that
-   `A.len` is strictly bigger than zero (mb_natural_isZero)
-  */
-}
-
 mb_Status mb_natural_distance(mb_Allocator* mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || B == NULL || out == NULL) {
       MB_debug_fatalFmt("Some pointer parameter is null. mem = %p, A = %p, B == %p, out = %p.", (void*)mem, (void*)A, (void*)B, (void*)out);
     }
 
-    if (A == out || B == out) {
+    if (B == out || A == out) {
       MB_debug_fatalFmt("Aliasing requirements not met. A = %p, B = %p, out = %p.", (void*)A, (void*)B, (void*)out);
     }
   #endif
   mb_Status st;
 
+  const mb_Natural* larger;
+  const mb_Natural* smaller;
   mb_Order res = mb_natural_compare(A, B);
   if (res == MB_order_equal) {
     return mb_natural_set(mem, 0, out);
   } else if (res == MB_order_less) {
-    const mb_Natural* temp = B;
-    B = A;
-    A = temp;
+    larger = B;
+    smaller = A;
+  } else {
+    larger = A;
+    smaller = B;
   }
-  if (mb_natural_isZero(B)) {
-    return mb_natural_copy(mem, A, out);
+  if (mb_natural_isZero(smaller)) {
+    return mb_natural_copy(mem, larger, out);
   }
 
   i64 carry = 0;
   u32 i = 0;
   st = mb_natural_set(mem, 0, out); MB_status_check;
 
-  while (i < A->len || carry > 0) {
+  while (i < larger->len || carry > 0) {
     if (i == out->len) {
       st = i_mb_natural_pushDigit(mem, 0, out); MB_status_check;
     }
 
     // NOTE(1)
     i64 res = -carry;
-    if (i < A->len) {
-      res += (i64)A->digits[i];
+    if (i < larger->len) {
+      res += (i64)larger->digits[i];
     }
-    if (i < B->len) {
-      res -= B->digits[i];
+    if (i < smaller->len) {
+      res -= smaller->digits[i];
     }
 
     if (res < 0) {
@@ -958,7 +780,7 @@ mb_Status mb_natural_decrByDigit(mb_Allocator* mem, u32 B, mb_Natural* out) {
     }
   #endif
 
-  if (mb_natural_isZero(out)) { // NOTE(1)
+  if (B == 0) {
     return MB_status_ok;
   }
 
@@ -991,6 +813,195 @@ mb_Status mb_natural_decrByDigit(mb_Allocator* mem, u32 B, mb_Natural* out) {
      SAFE(2): see that because `A.digit[i]` and `B` are both positive numbers
               less than `MB_natural_base`, then `res = A.digits[0] - B` is also less
               than the base, which is less than U32_MAX.
+  */
+}
+
+
+// sets `out` to `MB_order_equal` if `guess*B == idd` or if `(guess+1)*B > idd`
+mb_Status i_mb_natural_testGuess(mb_Allocator* mem, const mb_Natural* idd, const mb_Natural* B, u32 guess, mb_Natural* scratch, mb_Order* out) {
+  mb_Status st;
+  st = mb_natural_multDigit(mem, B, guess, scratch); MB_status_check;
+  mb_Order res = mb_natural_compare(scratch, idd);
+  if (res == MB_order_equal || res == MB_order_greater) {
+    *out = res;
+  } else {
+    // NOTE(1)
+    st = mb_natural_incBy(mem, B, scratch); MB_status_check;
+    res = mb_natural_compare(scratch, idd);
+    if (res == MB_order_greater) {
+      *out = MB_order_equal; // NOTE(2)
+    } else {
+      *out = MB_order_less;
+    }
+  }
+  return MB_status_ok;
+  /*  NOTE(1): Here we know `res == MB_order_less`, so that `guess*B < idd`.
+      NOTE(2): (guess+1)*B > IDD.
+  */
+}
+
+#define I_MB_natural_divMaxNumGuesses 32
+
+/* Finds `Q` and `R` such that `A = Q*B + R`.
+   TODO: UNTESTED:
+   DRAGONS:
+*/
+mb_Status mb_natural_div(mb_Allocator* mem,
+                         const mb_Natural* A, const mb_Natural* B,
+                         mb_Natural* Q, mb_Natural* R) {
+  #if MB_config_debug
+    if (mem == NULL || A == NULL || B == NULL || Q == NULL || R == NULL) {
+      MB_debug_fatalFmt("Some pointer parameter is null. mem = %p, A = %p, B = %p, Q = %p, R = %p.", (void*)mem, (void*)A, (void*)B, (void*)Q, (void*)R);
+    }
+
+    if (A == Q || A == R || B == Q || B == R) {
+      MB_debug_fatalFmt("Aliasing requirements not met. A = %p, B = %p, Q = %p, R = %p.", (void*)A, (void*)B, (void*)Q, (void*)R);
+    }
+  #endif
+  mb_Status st;
+
+  if (mb_natural_isZero(B)) {
+    return MB_status_divisionByZero;
+  }
+  if (mb_natural_isZero(A)) {
+    st = mb_natural_set(mem, 0, R); MB_status_check;
+    return mb_natural_set(mem, 0, Q);
+  }
+  mb_Natural scratch = mb_natural_empty(); // NOTE(1)
+
+  // NOTE(2)
+  i64 i = (i64)A->len - 1;
+  while (0 <= i) {
+    st = mb_natural_multBase(mem, R);                 MB_status_check;
+    st = mb_natural_incByDigit(mem, A->digits[i], R); MB_status_check;
+
+    mb_Order ord = mb_natural_compare(R, B);
+
+    if (ord == MB_order_less) {         // R < B
+      if (mb_natural_isZero(Q) == false) {
+        st = mb_natural_multBase(mem, Q); MB_status_check;
+      }
+    } else if (ord == MB_order_equal) { // R == B
+      st = mb_natural_set(mem, 0, R);        MB_status_check;
+      st = mb_natural_multBase(mem, Q);      MB_status_check;
+      st = mb_natural_incByDigit(mem, 1, Q); MB_status_check;
+    } else {                            // R > B
+      u32 low = 1; // NOTE(3)
+      u32 high = MB_natural_base - 1;
+      u32 guess = (low + high)/2;
+      i32 j = 0;
+
+      mb_Order res;
+      st = i_mb_natural_testGuess(mem, R, B, guess, &scratch, &res); MB_status_check;
+
+      // NOTE(4)
+      while (res != MB_order_equal && j < I_MB_natural_divMaxNumGuesses) {
+        if (res == MB_order_less) {
+          low = guess;
+        } else if (res == MB_order_greater) {
+          high = guess;
+        }
+        guess = (low + high)/2;
+        st = i_mb_natural_testGuess(mem, R, B, guess, &scratch, &res); MB_status_check;
+        j++;
+      }
+
+      st = mb_natural_multDigit(mem, B, guess, &scratch); MB_status_check;
+      st = mb_natural_decrBy(mem, R, &scratch); MB_status_check;
+      st = mb_natural_multBase(mem, Q); MB_status_check;
+      st = mb_natural_incByDigit(mem, guess, Q); MB_status_check;
+    }
+    
+    i--;
+  }
+
+  i_mb_natural_natVecFree(mem, scratch.digits);
+  return MB_status_ok;
+  /* NOTE(1): This allocation is fine for now. In the future, I will implement
+              a pool of natural numbers as scratch space that will be passed as
+              an argument together with the allocator.
+     NOTE(2): We implement naïve long division, following the article at:
+                  https://en.wikipedia.org/wiki/Long_division#Algorithm_for_arbitrary_base
+     NOTE(3): Since R > B, then `guess` is at least 1.
+     NOTE(4): This digit we're searching for is unique and lives in an ordered space (the natural numbers up to BASE),
+              so that we can use binary search. There are a few ways to reduce the size
+              of this space, namely by finding closer upper and lower bounds. Also, the complexity is log(BASE),
+              so the maximum number of iterations is 30. Since the base may change, we set it up to 32, ie,
+              log(U32_MAX).
+  */
+}
+
+/* Finds `Q` and `R` such that `A = Q*B + R`.
+   `R` is guaranteed to be less than `B` by the Division Theorem,
+   hence, it's a u32.
+   DRAGONS:
+*/
+mb_Status mb_natural_divDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_Natural* Q, u32* R) {
+  #if MB_config_debug
+    if (mem == NULL || A == NULL || Q == NULL || R == NULL) {
+      MB_debug_fatalFmt("Some pointer parameter is null. mem = %p, A = %p, Q = %p, R = %p.", (void*)mem, (void*)A, (void*)Q, (void*)R);
+    }
+
+    if (A == Q) {
+      MB_debug_fatalFmt("Aliasing requirements not met. A = %p, out = %p.", (void*)A, (void*)Q);
+    }
+
+    if (MB_natural_base <= B) {
+      MB_debug_fatalFmt("B is not a valid digit. B = %d.", B);
+    }
+  #endif
+
+  if (B == 0) {
+    return MB_status_divisionByZero;
+  }
+  if (mb_natural_isZero(A)) {
+    *R = 0;
+    mb_natural_set(mem, 0, Q);
+    return MB_status_ok;
+  }
+
+  mb_Status st = mb_natural_set(mem, 0, Q); MB_status_check;
+  *R = 0;
+  i64 i = A->len - 1; // SAFE(3)
+  i64 q = 0;
+  i64 carry = 0;
+
+  while (0 <= i) {
+    i64 idd = (i64)A->digits[i] + carry * MB_natural_base; // NOTE(1)
+    q     = idd/B; // NOTE(3)
+    carry = idd%B;  // NOTE(2)
+
+    // TODO: this probably should be pushDigit + reverse
+    st = mb_natural_multBase(mem, Q); MB_status_check;
+    st = mb_natural_incByDigit(mem, (u32)q, Q); MB_status_check; // SAFE(2)
+
+    i--;
+  }
+  i_mb_natural_removeLeadingZeroes(Q);
+  *R = (u32)carry; // SAFE(1)
+  return MB_status_ok;
+  /*
+   NOTE(1): Since `B` is a digit, then `idd` is at most 2 digits.
+   This means we can use an `i64` as intermediate dividend.
+   NOTE(2): After this line, `carry` will be less than `B`. This follows
+   immediately from the Division Theorem: `carry` becomes the intermediate remainder.
+   SAFE(1): For the reasons stated above, `carry < B < MB_natural_base`.
+   NOTE(3): At the end of the loop, `carry` is less than `B`, which means an
+   upper bound for `idd` at this point is
+       (B-1)*MB_natural_base + MB_natural_base-1 = 
+       B*MB_natural_base - MB_natural_base + MB_natural_base - 1 = 
+       B*MB_natural_base - 1.
+   Since `q = floor(idd/B)` then:
+       floor(idd/B) <= 
+       floor((B*MB_natural_base - 1) / B) = 
+       floor(MB_natural_base - (1/B)).
+   Since `0 < 1/B <= 1` then
+       floor(MB_natural_base - (1/B)) = MB_natural_base - 1.
+   So that `q <= MB_natural_base - 1`.
+   SAFE(2): Because of the reasons stated above, the cast is safe and
+   `q` is a valid digit.
+   SAFE(3): This subtraction is OK since we checked earlier that
+   `A.len` is strictly bigger than zero (mb_natural_isZero)
   */
 }
 

@@ -20,9 +20,9 @@ let point [struct x y z]
 let distance
   function [a, b]
     sqrt
-      sum [sq a.x - b.x]
-          [sq a.y - b.y]
-          [sq a.z - b.z]
+      sum [sq [sub a.x b.x]]
+          [sq [sub a.y b.y]]
+          [sq [sub a.z b.z]]
 
 let origin [point 0 0 0]
 let magnitude
