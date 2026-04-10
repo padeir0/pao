@@ -375,7 +375,6 @@ mb_Status mb_natural_addDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_
 }
 
 // same as `mb_natural_add` but `A` is aliased with `out`
-// TODO: UNTESTED:
 mb_Status mb_natural_incBy(mb_Allocator* mem, const mb_Natural* B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || B == NULL || out == NULL) {
@@ -429,7 +428,6 @@ mb_Status mb_natural_incBy(mb_Allocator* mem, const mb_Natural* B, mb_Natural* o
 
 /*
 Same as `mb_natural_addDigit` but here `A` is aliased with `out`.
-TODO: UNTESTED:
 */
 mb_Status mb_natural_incByDigit(mb_Allocator* mem, u32 B, mb_Natural* out) {
   #if MB_config_debug
@@ -639,7 +637,6 @@ mb_Status mb_natural_distance(mb_Allocator* mem, const mb_Natural* A, const mb_N
 /*
 Similar to `mb_natural_distance` but `A` is aliased with `out`.
 */
-// TODO: UNTESTED:
 mb_Status mb_natural_decrBy(__attribute__((unused)) mb_Allocator* mem, const mb_Natural* B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || B == NULL || out == NULL) {
@@ -764,7 +761,6 @@ mb_Status mb_natural_distanceDigit(mb_Allocator* mem, const mb_Natural* A, u32 B
 }
 
 /* Decrements `out` by `B` */
-// TODO: UNTESTED:
 mb_Status mb_natural_decrByDigit(mb_Allocator* mem, u32 B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || out == NULL) {
@@ -843,7 +839,6 @@ mb_Status i_mb_natural_testGuess(mb_Allocator* mem, const mb_Natural* idd, const
 #define I_MB_natural_divMaxNumGuesses 32
 
 /* Finds `Q` and `R` such that `A = Q*B + R`.
-   TODO: UNTESTED:
    DRAGONS:
 */
 mb_Status mb_natural_div(mb_Allocator* mem,
@@ -887,7 +882,7 @@ mb_Status mb_natural_div(mb_Allocator* mem,
       st = mb_natural_incByDigit(mem, 1, Q); MB_status_check;
     } else {                            // R > B
       u32 low = 1; // NOTE(3)
-      u32 high = MB_natural_base - 1;
+      u32 high = MB_natural_base;
       u32 guess = (low + high)/2;
       i32 j = 0;
 
@@ -907,7 +902,7 @@ mb_Status mb_natural_div(mb_Allocator* mem,
       }
 
       st = mb_natural_multDigit(mem, B, guess, &scratch); MB_status_check;
-      st = mb_natural_decrBy(mem, R, &scratch); MB_status_check;
+      st = mb_natural_decrBy(mem, &scratch, R); MB_status_check;
       st = mb_natural_multBase(mem, Q); MB_status_check;
       st = mb_natural_incByDigit(mem, guess, Q); MB_status_check;
     }

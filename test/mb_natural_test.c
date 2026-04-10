@@ -1037,6 +1037,168 @@ bool test_natural_divDigit_8(void) {
 
 /* END: testing divDigit */
 
+/* BEGIN: testing div */
+bool test_natural_div_1(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+  mb_Natural exp_Q = mb_natural_empty();
+  mb_Natural exp_R = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 5, &A);     checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 1, &exp_Q); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 3, &B);     checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 2, &exp_R); checkStatus(s);
+
+  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+
+  return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
+}
+
+bool test_natural_div_2(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+  mb_Natural exp_Q = mb_natural_empty();
+  mb_Natural exp_R = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 0,  &A);    checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 11, &B);    checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &exp_Q); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &exp_R); checkStatus(s);
+
+  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+
+  return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
+}
+
+bool test_natural_div_3(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+  mb_Natural exp_Q = mb_natural_empty();
+  mb_Natural exp_R = mb_natural_empty();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  s = mb_natural_setVec(MB_stdAlloc, A_DIGS, 2, &A); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 9, &B); checkStatus(s);
+  u32 exp_Q_DIGS[] = {111111111, 111111111};
+  mb_natural_setVec(MB_stdAlloc, exp_Q_DIGS, 2, &exp_Q);
+
+  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+
+  return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
+}
+
+// basically tests if divDigit respects the division theorem
+bool test_natural_div_4(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 36, &A); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 1, &B); checkStatus(s);
+
+  while (mb_natural_compareDigit(&B, 36) == MB_order_less) {
+    s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R);
+    checkStatus(s);
+
+    if (!(mb_natural_compare(&R, &B) == MB_order_less)) {
+      return false;
+    }
+    s = mb_natural_incByDigit(MB_stdAlloc, 1, &B); checkStatus(s);
+  }
+  return true;
+}
+
+// same thing as the previous test, but with more digits
+bool test_natural_div_5(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  s = mb_natural_setVec(MB_stdAlloc, A_DIGS, 2, &A); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 1, &B); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &R); checkStatus(s);
+
+  while (mb_natural_compareDigit(&B, MB_natural_base) == MB_order_less) {
+    mb_Status s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R);
+    checkStatus(s);
+
+    if (!(mb_natural_compare(&R, &B) == MB_order_less)) {
+      return false;
+    }
+    s = mb_natural_incByDigit(MB_stdAlloc, MB_natural_base/10, &B); checkStatus(s);
+  }
+  return true;
+}
+
+bool test_natural_div_6(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 5, &A); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &B); checkStatus(s);
+
+  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R);
+  return s == MB_status_divisionByZero;
+}
+
+// tests 1 as identity
+bool test_natural_div_7(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+  mb_Natural exp_Q = mb_natural_empty();
+  mb_Natural exp_R = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &A);     checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 1, &B);      checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &exp_Q); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &exp_R); checkStatus(s);
+
+  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+
+  return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
+}
+
+// tests a/a = 1*a + 0
+bool test_natural_div_8(void) {
+  mb_Status s;
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural Q = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+  mb_Natural exp_Q = mb_natural_empty();
+  mb_Natural exp_R = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &A);    checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &B);    checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 1, &exp_Q); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &exp_R); checkStatus(s);
+
+  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+
+  return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
+}
+/* END: testing div */
+
 /* BEGIN: testing copy */
 bool test_natural_copy_1(void) {
   mb_Natural a = mb_natural_empty();
@@ -1168,7 +1330,304 @@ bool test_natural_growShrink_3(void) {
   return mb_natural_equalDigit(&A, 1);
 }
 
+// incByDigit/decrByDigit
+bool test_natural_growShrink_4(void) {
+  u32 B = MB_natural_base-1;
+  mb_Natural C = mb_natural_empty();
+
+  mb_Status st;
+  st = mb_natural_set(MB_stdAlloc, 0, &C); checkStatus(st);
+
+  int i = 0;
+  while (i < 100) {
+    st = mb_natural_incByDigit(MB_stdAlloc, B, &C); checkStatus(st);
+    i++;
+  }
+
+  while (0 < i) {
+    st = mb_natural_decrByDigit(MB_stdAlloc, B, &C); checkStatus(st);
+    i--;
+  }
+
+  return mb_natural_isZero(&C);
+}
+
+// incBy/decrBy
+bool test_natural_growShrink_5(void) {
+  mb_Natural B = mb_natural_empty();
+  mb_Natural C = mb_natural_empty();
+
+  mb_Status st;
+  st = mb_natural_set(MB_stdAlloc, MB_natural_base-1, &B); checkStatus(st);
+  st = mb_natural_set(MB_stdAlloc, 0, &C); checkStatus(st);
+
+  int i = 0;
+  while (i < 100) {
+    st = mb_natural_incBy(MB_stdAlloc, &B, &C); checkStatus(st);
+    i++;
+  }
+
+  while (0 < i) {
+    st = mb_natural_decrBy(MB_stdAlloc, &B, &C); checkStatus(st);
+    i--;
+  }
+
+  return mb_natural_isZero(&C);
+}
+
 /* END: grow/shrink tests */
+
+/* BEGIN: incByDigit tests*/
+
+// tests 0 as identity
+bool test_natural_incByDigit_0(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &expected); checkStatus(s);
+  s = mb_natural_incByDigit(MB_stdAlloc, 0, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_incByDigit_1(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 84, &expected); checkStatus(s);
+  s = mb_natural_incByDigit(MB_stdAlloc, 42, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_incByDigit_2(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  u32 A_DIGS[2] = {999999999, 999999999};
+  s = mb_natural_setVec(MB_stdAlloc, A_DIGS, 2, &out); checkStatus(s);
+  
+  u32 EXP_DIGS[3] = {1, 0, 0};
+  s = mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 3, &expected); checkStatus(s);
+
+  s = mb_natural_incByDigit(MB_stdAlloc, 1, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests 0 as identity (in out)
+bool test_natural_incByDigit_3(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 0, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &expected); checkStatus(s);
+  s = mb_natural_incByDigit(MB_stdAlloc, 42, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+/* END: incByDigit tests*/
+
+/* BEGIN: incBy tests*/
+
+// tests 0 as identity
+bool test_natural_incBy_0(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0,  &b); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &expected); checkStatus(s);
+
+  s = mb_natural_incBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_incBy_1(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &b); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 84, &expected); checkStatus(s);
+
+  s = mb_natural_incBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_incBy_2(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural b = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  u32 A_DIGS[2] = {999999999, 999999999};
+  s = mb_natural_setVec(MB_stdAlloc, A_DIGS, 2, &out); checkStatus(s);
+
+  u32 B_DIGS[2] = {999999999, 999999999};
+  s = mb_natural_setVec(MB_stdAlloc, B_DIGS, 2, &b); checkStatus(s);
+
+  u32 EXP_DIGS[3] = {1, 999999999, 999999998};
+  s = mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 3, &expected); checkStatus(s);
+
+  s = mb_natural_incBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests 0 as identity (in out)
+bool test_natural_incBy_3(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 0, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &b); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &expected); checkStatus(s);
+  s = mb_natural_incBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+/* END: incBy tests*/
+
+/* BEGIN: decrByDigit tests*/
+// tests carry
+bool test_natural_decrByDigit_1(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  u32 OUT_DIGS[] = {1, 0, 0};
+  s = mb_natural_setVec(MB_stdAlloc, OUT_DIGS, 3, &out); checkStatus(s);
+  
+  u32 EXP_DIGS[2] = {999999999, 999999999};
+  s = mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 2, &expected); checkStatus(s);
+
+  s = mb_natural_decrByDigit(MB_stdAlloc, 1, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_decrByDigit_2(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 1, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &expected); checkStatus(s);
+
+  s = mb_natural_decrByDigit(MB_stdAlloc, 1, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+/* test 0 as identity */
+bool test_natural_decrByDigit_3(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &expected); checkStatus(s);
+  s = mb_natural_decrByDigit(MB_stdAlloc, 0, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+/* test 0 - 0 = 0 */
+bool test_natural_decrByDigit_4(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 0, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &expected); checkStatus(s);
+  s = mb_natural_decrByDigit(MB_stdAlloc, 0, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+/* END: decrByDigit tests*/
+
+/* BEGIN: decrBy tests*/
+// tests carry
+bool test_natural_decrBy_1(void) {
+  mb_Status s;
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  u32 OUT_DIGS[] = {1, 0, 0};
+  s = mb_natural_setVec(MB_stdAlloc, OUT_DIGS, 3, &out); checkStatus(s);
+  
+  u32 EXP_DIGS[2] = {999999999, 999999999};
+  s = mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 2, &expected); checkStatus(s);
+
+  s = mb_natural_set(MB_stdAlloc, 1, &b); checkStatus(s);
+
+  s = mb_natural_decrBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+bool test_natural_decrBy_2(void) {
+  mb_Status s;
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 1, &b); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 1, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &expected); checkStatus(s);
+
+  s = mb_natural_decrBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+/* test 0 as identity */
+bool test_natural_decrBy_3(void) {
+  mb_Status s;
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 42, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 42, &expected); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0,  &b); checkStatus(s);
+
+  s = mb_natural_decrBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+/* test 0 - 0 = 0 */
+bool test_natural_decrBy_4(void) {
+  mb_Status s;
+  mb_Natural b = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 0, &out); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &b); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0, &expected); checkStatus(s);
+  s = mb_natural_decrBy(MB_stdAlloc, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+/* END: decrBy tests*/
 
 /* BEGIN: DRIVER CODE */
 Tester tests[] = {
@@ -1210,6 +1669,15 @@ Tester tests[] = {
   {"test_natural_divDigit_7", test_natural_divDigit_7},
   {"test_natural_divDigit_8", test_natural_divDigit_8},
 
+  {"test_natural_div_1", test_natural_div_1},
+  {"test_natural_div_2", test_natural_div_2},
+  {"test_natural_div_3", test_natural_div_3},
+  {"test_natural_div_4", test_natural_div_4},
+  {"test_natural_div_5", test_natural_div_5},
+  {"test_natural_div_6", test_natural_div_6},
+  {"test_natural_div_7", test_natural_div_7},
+  {"test_natural_div_8", test_natural_div_8},
+
   {"test_natural_copy_1", test_natural_copy_1},
   {"test_natural_copy_2", test_natural_copy_2},
   {"test_natural_copy_3", test_natural_copy_3},
@@ -1244,6 +1712,28 @@ Tester tests[] = {
   {"test_natural_growShrink_1", test_natural_growShrink_1},
   {"test_natural_growShrink_2", test_natural_growShrink_2},
   {"test_natural_growShrink_3", test_natural_growShrink_3},
+  {"test_natural_growShrink_4", test_natural_growShrink_4},
+  {"test_natural_growShrink_5", test_natural_growShrink_5},
+
+  {"test_natural_incByDigit_0", test_natural_incByDigit_0},
+  {"test_natural_incByDigit_1", test_natural_incByDigit_1},
+  {"test_natural_incByDigit_2", test_natural_incByDigit_2},
+  {"test_natural_incByDigit_3", test_natural_incByDigit_3},
+
+  {"test_natural_incBy_0", test_natural_incBy_0},
+  {"test_natural_incBy_1", test_natural_incBy_1},
+  {"test_natural_incBy_2", test_natural_incBy_2},
+  {"test_natural_incBy_3", test_natural_incBy_3},
+
+  {"test_natural_decrByDigit_1", test_natural_decrByDigit_1},
+  {"test_natural_decrByDigit_2", test_natural_decrByDigit_2},
+  {"test_natural_decrByDigit_3", test_natural_decrByDigit_3},
+  {"test_natural_decrByDigit_4", test_natural_decrByDigit_4},
+
+  {"test_natural_decrBy_1", test_natural_decrBy_1},
+  {"test_natural_decrBy_2", test_natural_decrBy_2},
+  {"test_natural_decrBy_3", test_natural_decrBy_3},
+  {"test_natural_decrBy_4", test_natural_decrBy_4},
 };
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
