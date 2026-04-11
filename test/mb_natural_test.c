@@ -598,6 +598,188 @@ bool test_natural_multDigit_7(void) {
 
 /* END: testing multDigit */
 
+/* BEGIN: mult tests */
+
+// tests 0 as annihilator (A = 0)
+bool test_natural_mult_1(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 0,      &a);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 314159, &b);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0,      &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests 0 as annihilator (B = 0)
+bool test_natural_mult_2(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 314159, &a);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0,      &b);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 0,      &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests 1 as identity (A = 1)
+bool test_natural_mult_3(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 1,      &a);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 314159, &b);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 314159, &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests 1 as identity (B = 1)
+bool test_natural_mult_4(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 314159, &a);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 1,      &b);        checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 314159, &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests commutativity
+bool test_natural_mult_5(void) {
+  mb_Status s;
+  mb_Natural a    = mb_natural_empty();
+  mb_Natural b    = mb_natural_empty();
+  mb_Natural out1 = mb_natural_empty();
+  mb_Natural out2 = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 12345, &a); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 67890, &b); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out1); checkStatus(s);
+  s = mb_natural_mult(MB_stdAlloc, &b, &a, &out2); checkStatus(s);
+
+  return mb_natural_equal(&out1, &out2);
+}
+
+// tests a carry that produces a new limb: (BASE-1) * (BASE-1)
+bool test_natural_mult_6(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, MB_natural_base - 1, &a); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, MB_natural_base - 1, &b); checkStatus(s);
+
+  u32 EXP_DIGS[] = {999999998, 000000001};
+  s = mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 2, &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests multi-limb * single-limb: [1, 0] * 2 = [2, 0], ie, BASE * 2 = 2*BASE
+bool test_natural_mult_7(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  u32 A_DIGS[] = {1, 0};
+  s = mb_natural_setVec(MB_stdAlloc, A_DIGS, 2, &a); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 2, &b);             checkStatus(s);
+
+  u32 EXP_DIGS[] = {2, 0};
+  s = mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 2, &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests multi-limb * multi-limb with carry propagation across limbs
+// [1, 0] * [1, 0] = [1, 0, 0], ie BASE * BASE = BASE^2
+bool test_natural_mult_8(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  u32 AB_DIGS[] = {1, 0};
+  s = mb_natural_setVec(MB_stdAlloc, AB_DIGS, 2, &a); checkStatus(s);
+  s = mb_natural_setVec(MB_stdAlloc, AB_DIGS, 2, &b); checkStatus(s);
+
+  u32 EXP_DIGS[] = {1, 0, 0};
+  s = mb_natural_setVec(MB_stdAlloc, EXP_DIGS, 3, &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+
+// tests that operands are not modified
+bool test_natural_mult_9(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+
+  s = mb_natural_set(MB_stdAlloc, 6, &a); checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 7, &b); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equalDigit(&a, 6) && mb_natural_equalDigit(&b, 7);
+}
+
+// tests that garbage in the out-param does not affect the result
+bool test_natural_mult_10(void) {
+  mb_Status s;
+  mb_Natural a   = mb_natural_empty();
+  mb_Natural b   = mb_natural_empty();
+  mb_Natural out = mb_natural_empty();
+  mb_Natural expected = mb_natural_empty();
+
+  const u32 GARBAGE = 0xCAFEBABE % MB_natural_base;
+  s = mb_natural_set(MB_stdAlloc, GARBAGE, &out);    checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 111,     &a);      checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 111,     &b);      checkStatus(s);
+  s = mb_natural_set(MB_stdAlloc, 12321,   &expected); checkStatus(s);
+
+  s = mb_natural_mult(MB_stdAlloc, &a, &b, &out); checkStatus(s);
+
+  return mb_natural_equal(&out, &expected);
+}
+/* END: mult tests */
+
 /* BEGIN: testing multBase*/
 bool test_natural_multBase_1(void) {
   mb_Status s;
@@ -1044,6 +1226,7 @@ bool test_natural_div_1(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
   mb_Natural exp_Q = mb_natural_empty();
   mb_Natural exp_R = mb_natural_empty();
 
@@ -1052,7 +1235,7 @@ bool test_natural_div_1(void) {
   s = mb_natural_set(MB_stdAlloc, 3, &B);     checkStatus(s);
   s = mb_natural_set(MB_stdAlloc, 2, &exp_R); checkStatus(s);
 
-  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+  s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
 
   return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
 }
@@ -1063,6 +1246,7 @@ bool test_natural_div_2(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
   mb_Natural exp_Q = mb_natural_empty();
   mb_Natural exp_R = mb_natural_empty();
 
@@ -1071,7 +1255,7 @@ bool test_natural_div_2(void) {
   s = mb_natural_set(MB_stdAlloc, 0, &exp_Q); checkStatus(s);
   s = mb_natural_set(MB_stdAlloc, 0, &exp_R); checkStatus(s);
 
-  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+  s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
 
   return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
 }
@@ -1082,6 +1266,7 @@ bool test_natural_div_3(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
   mb_Natural exp_Q = mb_natural_empty();
   mb_Natural exp_R = mb_natural_empty();
 
@@ -1091,7 +1276,7 @@ bool test_natural_div_3(void) {
   u32 exp_Q_DIGS[] = {111111111, 111111111};
   mb_natural_setVec(MB_stdAlloc, exp_Q_DIGS, 2, &exp_Q);
 
-  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+  s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
 
   return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
 }
@@ -1103,12 +1288,13 @@ bool test_natural_div_4(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
 
   s = mb_natural_set(MB_stdAlloc, 36, &A); checkStatus(s);
   s = mb_natural_set(MB_stdAlloc, 1, &B); checkStatus(s);
 
   while (mb_natural_compareDigit(&B, 36) == MB_order_less) {
-    s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R);
+    s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R);
     checkStatus(s);
 
     if (!(mb_natural_compare(&R, &B) == MB_order_less)) {
@@ -1126,6 +1312,7 @@ bool test_natural_div_5(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
 
   u32 A_DIGS[] = {999999999, 999999999};
   s = mb_natural_setVec(MB_stdAlloc, A_DIGS, 2, &A); checkStatus(s);
@@ -1133,7 +1320,7 @@ bool test_natural_div_5(void) {
   s = mb_natural_set(MB_stdAlloc, 0, &R); checkStatus(s);
 
   while (mb_natural_compareDigit(&B, MB_natural_base) == MB_order_less) {
-    mb_Status s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R);
+    mb_Status s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R);
     checkStatus(s);
 
     if (!(mb_natural_compare(&R, &B) == MB_order_less)) {
@@ -1150,11 +1337,12 @@ bool test_natural_div_6(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
 
   s = mb_natural_set(MB_stdAlloc, 5, &A); checkStatus(s);
   s = mb_natural_set(MB_stdAlloc, 0, &B); checkStatus(s);
 
-  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R);
+  s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R);
   return s == MB_status_divisionByZero;
 }
 
@@ -1165,6 +1353,7 @@ bool test_natural_div_7(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
   mb_Natural exp_Q = mb_natural_empty();
   mb_Natural exp_R = mb_natural_empty();
 
@@ -1173,7 +1362,7 @@ bool test_natural_div_7(void) {
   s = mb_natural_set(MB_stdAlloc, 42, &exp_Q); checkStatus(s);
   s = mb_natural_set(MB_stdAlloc, 0, &exp_R); checkStatus(s);
 
-  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+  s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
 
   return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
 }
@@ -1185,6 +1374,7 @@ bool test_natural_div_8(void) {
   mb_Natural B = mb_natural_empty();
   mb_Natural Q = mb_natural_empty();
   mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
   mb_Natural exp_Q = mb_natural_empty();
   mb_Natural exp_R = mb_natural_empty();
 
@@ -1193,7 +1383,7 @@ bool test_natural_div_8(void) {
   s = mb_natural_set(MB_stdAlloc, 1, &exp_Q); checkStatus(s);
   s = mb_natural_set(MB_stdAlloc, 0, &exp_R); checkStatus(s);
 
-  s = mb_natural_div(MB_stdAlloc, &A, &B, &Q, &R); checkStatus(s);
+  s = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
 
   return mb_natural_equal(&R, &exp_R) && mb_natural_equal(&Q, &exp_Q);
 }
@@ -1375,6 +1565,39 @@ bool test_natural_growShrink_5(void) {
   return mb_natural_isZero(&C);
 }
 
+// multDigit/divDigit
+bool test_natural_growShrink_6(void) {
+  mb_Natural A = mb_natural_empty();
+  mb_Natural B = mb_natural_empty();
+  mb_Natural C = mb_natural_empty();
+  mb_Natural R = mb_natural_empty();
+  mb_Natural scratch = mb_natural_empty();
+  const int maxIter = 16;
+
+  mb_Status st;
+  st = mb_natural_set(MB_stdAlloc, 1, &A); checkStatus(st);
+  st = mb_natural_set(MB_stdAlloc, 8, &B); checkStatus(st);
+  st = mb_natural_set(MB_stdAlloc, 1, &C); checkStatus(st);;
+  st = mb_natural_set(MB_stdAlloc, 0, &R); checkStatus(st);;
+
+  int i = 0;
+  while (i < maxIter) {
+    st = mb_natural_mult(MB_stdAlloc, &A, &B, &C); checkStatus(st);
+    st = mb_natural_copy(MB_stdAlloc, &C, &A); checkStatus(st);
+    i++;
+  }
+
+  while (0 < i) {
+    st = mb_natural_div(MB_stdAlloc, &scratch, &A, &B, &C, &R); checkStatus(st);
+    st = mb_natural_copy(MB_stdAlloc, &C, &A); checkStatus(st);
+    if (!mb_natural_isZero(&R)) {
+      return false;
+    }
+    i--;
+  }
+
+  return mb_natural_equalDigit(&A, 1);
+}
 /* END: grow/shrink tests */
 
 /* BEGIN: incByDigit tests*/
@@ -1657,6 +1880,17 @@ Tester tests[] = {
   {"test_natural_multDigit_6", test_natural_multDigit_6},
   {"test_natural_multDigit_7", test_natural_multDigit_7},
 
+  {"test_natural_mult_1",  test_natural_mult_1},
+  {"test_natural_mult_2",  test_natural_mult_2},
+  {"test_natural_mult_3",  test_natural_mult_3},
+  {"test_natural_mult_4",  test_natural_mult_4},
+  {"test_natural_mult_5",  test_natural_mult_5},
+  {"test_natural_mult_6",  test_natural_mult_6},
+  {"test_natural_mult_7",  test_natural_mult_7},
+  {"test_natural_mult_8",  test_natural_mult_8},
+  {"test_natural_mult_9",  test_natural_mult_9},
+  {"test_natural_mult_10", test_natural_mult_10},
+
   {"test_natural_multBase_1", test_natural_multBase_1},
   {"test_natural_multBase_2", test_natural_multBase_2},
 
@@ -1714,6 +1948,7 @@ Tester tests[] = {
   {"test_natural_growShrink_3", test_natural_growShrink_3},
   {"test_natural_growShrink_4", test_natural_growShrink_4},
   {"test_natural_growShrink_5", test_natural_growShrink_5},
+  {"test_natural_growShrink_6", test_natural_growShrink_6},
 
   {"test_natural_incByDigit_0", test_natural_incByDigit_0},
   {"test_natural_incByDigit_1", test_natural_incByDigit_1},

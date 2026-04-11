@@ -485,9 +485,6 @@ mb_Status mb_natural_incByDigit(mb_Allocator* mem, u32 B, mb_Natural* out) {
   */
 }
 
-// TODO: mb_natural_mult
-// mb_status mb_natural_mult(mb_Allocator mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {}
-
 mb_Status mb_natural_multDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || out == NULL) {
@@ -528,22 +525,12 @@ mb_Status mb_natural_multDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb
   return MB_status_ok;
   /* SAFE(1): since `MB_natural_base` is less than `U32_MAX` and `res`
      is always positive, this cast is safe.
-     SAFE(2): `res` is always positive and MB_natural_base is a large
-     number. Let us find an upper bound for `res`.
-     Suppose `A.digit[i]` and `B` are the largest they can be, ie,
-     `MB_natural_base-1`, and `carry` starts at `0`. Then `res`
-     is `(MB_natural_base-1)^2` so that:
-         (MB_natural_base-1)^2 < (MB_natural_base)^2
-     When we divide `res / MB_natural_base`, we get that `carry`
-     is less than `MB_natural_base`. On the next iteration,
-     if both `A.digit[i]` and `B` are the largest they can be again,
-     an upper bound for `res` is:
-         (MB_natural_base-1)^2 + MB_natural_base
-     So that:
-         (MB_natural_base-1)^2 + MB_natural_base                 < 
-         (MB_natural_base)(MB_natural_base-1) + MB_natural_base = 
-         (MB_natural_base)(1 + MB_natural_base-1)                = 
-         (MB_natural_base)^2.
+     SAFE(2): Let us prove that `carry` is less than `MB_natural_base` in
+     any iteration. Let `MB_natural_base` be called `K` for shorts.
+     First, suppose that in the last iteration `carry < K`, then:
+       res <= K-1 + (K-1)*(K-1) = K-1 + K^2 -2K + 1 = K^2-K
+     When we divide both sides by `K` we get:
+       carry = res/K <= K-1
      Which means `carry` is still less than `MB_natural_base`.
      By induction, it can be proven that this is always the case,
      hence, the cast is safe.
@@ -566,6 +553,60 @@ void i_mb_natural_removeLeadingZeroes(mb_Natural* out) {
                 as the user properly uses mb_Natural.
   */
 }
+
+mb_Status mb_natural_mult(mb_Allocator* mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
+  #if MB_config_debug
+    if (mem == NULL || A == NULL || B == NULL || out == NULL) {
+      MB_debug_fatalFmt("Some pointer parameter is null. mem = %p, A = %p, B = %p, out = %p.", (void*)mem, (void*)A, (void*)B, (void*)out);
+    }
+    if (A == out || B == out) {
+      MB_debug_fatalFmt("Aliasing requirements not met. A = %p, B = %p, out = %p.", (void*)A, (void*)B, (void*)out);
+    }
+  #endif
+  mb_Status st;
+
+  if (mb_natural_isZero(A) || mb_natural_isZero(B)) {
+    return mb_natural_set(mem, 0, out);
+  }
+
+  st = mb_natural_set(mem, 0, out); MB_status_check;
+
+  u32 i = 0;
+  while (i < A->len) {
+    u32 carry = 0;
+    u32 j = 0;
+    while (j < B->len || carry > 0) {
+      if (i+j == out->len) {
+        st = i_mb_natural_pushDigit(mem, 0, out); MB_status_check;
+      }
+      i64 res = (i64)out->digits[i+j] + (i64)carry;
+      if (j < B->len) {
+        res += (i64)A->digits[i] * (i64)B->digits[j];
+      }
+      out->digits[i+j] = (u32)(res % MB_natural_base); // SAFE(1)
+      carry = (u32)(res / MB_natural_base);             // SAFE(2)
+      j++;
+    }
+    i++;
+  }
+
+  i_mb_natural_removeLeadingZeroes(out);
+  return MB_status_ok;
+  /* SAFE(1): `res` is always non-negative, and `res % MB_natural_base`
+              is strictly less than MB_natural_base, so the cast to u32 is safe.
+     SAFE(2): We need to show `carry` stays below MB_natural_base across iterations.
+              Suppose that the value of `carry` in the previous iteration did not exceed MB_natural_base.
+              Lets refer to `MB_natural_base` as `B` for shorts.
+              Then the largest `res` can be is:
+                  (B-1) + (B-1) + (B-1)*(B-1)
+                  = 2*B - 2 + B^2 - 2*B + 1
+                  = B^2 - 1.
+              Which means `res/B` is at most:
+                  floor(B - 1/B) = B - 1.
+              By induction this bound holds at every iteration.
+  */
+}
+
 mb_Status mb_natural_distance(mb_Allocator* mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || B == NULL || out == NULL) {
@@ -836,12 +877,12 @@ mb_Status i_mb_natural_testGuess(mb_Allocator* mem, const mb_Natural* idd, const
   */
 }
 
-#define I_MB_natural_divMaxNumGuesses 32
+#define I_MB_natural_divMaxNumGuesses 30
 
 /* Finds `Q` and `R` such that `A = Q*B + R`.
    DRAGONS:
 */
-mb_Status mb_natural_div(mb_Allocator* mem,
+mb_Status mb_natural_div(mb_Allocator* mem, mb_Natural* scratch,
                          const mb_Natural* A, const mb_Natural* B,
                          mb_Natural* Q, mb_Natural* R) {
   #if MB_config_debug
@@ -851,6 +892,11 @@ mb_Status mb_natural_div(mb_Allocator* mem,
 
     if (A == Q || A == R || B == Q || B == R) {
       MB_debug_fatalFmt("Aliasing requirements not met. A = %p, B = %p, Q = %p, R = %p.", (void*)A, (void*)B, (void*)Q, (void*)R);
+    }
+
+    u64 maxspan = (u64)1 << I_MB_natural_divMaxNumGuesses;
+    if (maxspan <= MB_natural_base) {
+      MB_debug_fatalFmt("Maximum number of guesses will not cover the span of MB_natural_base: MB_natural_base = %d, span = %ld", MB_natural_base, maxspan);
     }
   #endif
   mb_Status st;
@@ -862,7 +908,9 @@ mb_Status mb_natural_div(mb_Allocator* mem,
     st = mb_natural_set(mem, 0, R); MB_status_check;
     return mb_natural_set(mem, 0, Q);
   }
-  mb_Natural scratch = mb_natural_empty(); // NOTE(1)
+  st = mb_natural_set(mem, 0, scratch); MB_status_check;
+  st = mb_natural_set(mem, 0, Q); MB_status_check;
+  st = mb_natural_set(mem, 0, R); MB_status_check;
 
   // NOTE(2)
   i64 i = (i64)A->len - 1;
@@ -887,7 +935,7 @@ mb_Status mb_natural_div(mb_Allocator* mem,
       i32 j = 0;
 
       mb_Order res;
-      st = i_mb_natural_testGuess(mem, R, B, guess, &scratch, &res); MB_status_check;
+      st = i_mb_natural_testGuess(mem, R, B, guess, scratch, &res); MB_status_check;
 
       // NOTE(4)
       while (res != MB_order_equal && j < I_MB_natural_divMaxNumGuesses) {
@@ -897,12 +945,12 @@ mb_Status mb_natural_div(mb_Allocator* mem,
           high = guess;
         }
         guess = (low + high)/2;
-        st = i_mb_natural_testGuess(mem, R, B, guess, &scratch, &res); MB_status_check;
+        st = i_mb_natural_testGuess(mem, R, B, guess, scratch, &res); MB_status_check;
         j++;
       }
 
-      st = mb_natural_multDigit(mem, B, guess, &scratch); MB_status_check;
-      st = mb_natural_decrBy(mem, &scratch, R); MB_status_check;
+      st = mb_natural_multDigit(mem, B, guess, scratch); MB_status_check;
+      st = mb_natural_decrBy(mem, scratch, R); MB_status_check;
       st = mb_natural_multBase(mem, Q); MB_status_check;
       st = mb_natural_incByDigit(mem, guess, Q); MB_status_check;
     }
@@ -910,12 +958,8 @@ mb_Status mb_natural_div(mb_Allocator* mem,
     i--;
   }
 
-  i_mb_natural_natVecFree(mem, scratch.digits);
   return MB_status_ok;
-  /* NOTE(1): This allocation is fine for now. In the future, I will implement
-              a pool of natural numbers as scratch space that will be passed as
-              an argument together with the allocator.
-     NOTE(2): We implement naïve long division, following the article at:
+  /* NOTE(2): We implement naïve long division, following the article at:
                   https://en.wikipedia.org/wiki/Long_division#Algorithm_for_arbitrary_base
      NOTE(3): Since R > B, then `guess` is at least 1.
      NOTE(4): This digit we're searching for is unique and lives in an ordered space (the natural numbers up to BASE),
