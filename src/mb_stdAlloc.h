@@ -25,16 +25,25 @@ void i_mb_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
 }
 
 static
-void i_mb_stdAlloc_free_all(__attribute__((unused)) void* heap) {
+void i_mb_stdAlloc_freeAll(__attribute__((unused)) void* heap) {
   printf("error: standard malloc provides no free_all function.\n");
   abort();
+}
+
+static
+mb_AllocatorInfo i_mb_stdAlloc_info(__attribute__((unused)) void* heap) {
+  mb_AllocatorInfo out;
+  out.total = 0;
+  out.used = 0;
+  return out;
 }
 
 mb_Allocator _mb_stdAlloc = {
   .heap = NULL,
   .alloc = i_mb_stdAlloc_alloc,
   .free = i_mb_stdAlloc_free,
-  .freeAll = i_mb_stdAlloc_free_all,
+  .freeAll = i_mb_stdAlloc_freeAll,
+  .info = i_mb_stdAlloc_info,
 };
 
 mb_Allocator* MB_stdAlloc = &_mb_stdAlloc;

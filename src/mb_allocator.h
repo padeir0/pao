@@ -36,6 +36,18 @@ crash the program when this function is called (ie, mb_stdmalloc).
 */
 typedef void  (*mb_FreeAll)(void* heap);
 
+typedef struct {
+  usize used;
+  usize total;
+} mb_AllocatorInfo;
+
+/*
+Returns information about the heap.
+If the allocator has no means to return info, then
+it should return all fields set to 0.
+*/
+typedef mb_AllocatorInfo (*mb_Info)(void* heap);
+
 /*
 Generic allocator interface.
 
@@ -51,6 +63,7 @@ typedef struct {
   mb_Alloc alloc;
   mb_Free free;
   mb_FreeAll freeAll;
+  mb_Info info;
 } mb_Allocator;
 
 #endif

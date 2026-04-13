@@ -53,12 +53,16 @@ void i_mb_natural_natVecFree(mb_Allocator* mem, u32* vec) {
 /* BEGIN: UTIL */
 
 /* END: UTIL */
-mb_Natural mb_natural_empty(void) {
+mb_Natural mb_natural_new(void) {
   mb_Natural n;
   n.cap = 0;
   n.len = 0;
   n.digits = NULL;
   return n;
+}
+
+void mb_natural_free(mb_Allocator* mem, mb_Natural n) {
+  i_mb_natural_natVecFree(mem, n.digits);
 }
 
 static
