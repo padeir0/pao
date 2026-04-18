@@ -118,8 +118,11 @@ mb_Status mb_natural_setVec(mb_Allocator* mem, u32* digits, i32 len, mb_Natural*
     if (mem == NULL || digits == NULL || out == NULL) {
       MB_debug_fatalFmt("Some pointer parameter is null. mem = %p, digits = %p, out = %p.", (void*)mem, (void*)digits, (void*)out);
     }
+    if (len < 0) {
+      MB_debug_fatalFmt("Length can't be less than zero. Length = %d", len);
+    }
     {
-      int i = 0;
+      i32 i = 0;
       while (i < len) {
         if (MB_natural_base <= digits[i]) {
           MB_debug_fatalFmt("`digits` contains an invalid digit. digit[%d] = %d.", i, digits[i]);
@@ -358,7 +361,7 @@ mb_Status mb_natural_addDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_
     }
 
     // SAFE(1):
-    mb_Status st = i_mb_natural_pushDigit(mem, (u32)res, out); MB_status_check;
+    st = i_mb_natural_pushDigit(mem, (u32)res, out); MB_status_check;
     i++;
   } while (0 < carry || i < A->len);
 
@@ -737,8 +740,6 @@ mb_Status mb_natural_decrBy(__attribute__((unused)) mb_Allocator* mem, const mb_
   */
 }
 
-// mb_natural_decrBy
-
 /*
 Computes |A - B|, in other words:
   if B<A then A-B
@@ -790,8 +791,7 @@ mb_Status mb_natural_distanceDigit(mb_Allocator* mem, const mb_Natural* A, u32 B
       carry = 0;
     }
     // SAFE(2):
-    mb_Status st = i_mb_natural_pushDigit(mem, (u32)res, out);
-    MB_status_check;
+    st = i_mb_natural_pushDigit(mem, (u32)res, out); MB_status_check;
 
     i++;
   } while (carry > 0 || i < A->len);
