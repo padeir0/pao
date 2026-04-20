@@ -2061,7 +2061,7 @@ bool test_natural_growShrink_3(void) {
   return ok && isAllFree();
 }
 
-// incByDigit/decrByDigit
+// aliased addDigit/distanceDigit
 bool test_natural_growShrink_4(void) {
   mb_Status s;
   u32 B = MB_natural_base-1;
@@ -2085,7 +2085,7 @@ bool test_natural_growShrink_4(void) {
   return ok && isAllFree();
 }
 
-// incBy/decrBy
+// aliased add/distance
 bool test_natural_growShrink_5(void) {
   mb_Status s;
   mb_Natural B = mb_natural_new();
@@ -2111,7 +2111,7 @@ bool test_natural_growShrink_5(void) {
   return ok && isAllFree();
 }
 
-// multDigit/divDigit
+// mult/div
 bool test_natural_growShrink_6(void) {
   mb_Status s;
   mb_Natural A = mb_natural_new();
