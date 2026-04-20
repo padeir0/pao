@@ -8,9 +8,6 @@
 
 char buffer[DEFAULT_SIZE];
 
-// TODO: check if numbers are valid after each operation (using the function above)
-// TODO: remove the usage of macros (DIGS_LEN) in inner scopes
-// TODO: properly free all numbers at the end of each test
 // TODO: improve tests by using an allocator that allows you to
 //       check for number of allocations performed and leaks
 // TODO: write tests for when the allocator fails
@@ -142,23 +139,39 @@ bool test_natural_addDigit_3(void) {
   return ok && isAllFree();
 }
 
-// ensures operands are not modified
-bool test_natural_addDigit_4(void) {
+// tests aliased parameters.
+bool test_natural_addDigit_4a(void) {
   mb_Status s;
-  mb_Natural a = mb_natural_new();
   mb_Natural out = mb_natural_new();
   mb_Natural expected = mb_natural_new();
 
-  s = mb_natural_set(alloc, 314159, &a); checkStatus(s);
-  s = mb_natural_set(alloc, 314160, &expected); checkStatus(s);
+  u32 out_digs[] = {999999999, 999999999};
+  s = mb_natural_setVec(alloc, out_digs, 2, &out); checkStatus(s);
+  u32 exp_digs[] = {1, 0, 0};
+  s = mb_natural_setVec(alloc, exp_digs, 3, &expected); checkStatus(s);
 
-  s = mb_natural_addDigit(alloc, &a, 1, &out); checkStatus(s);
-  bool ok = mb_natural_equalDigit(&a, 314159) &&
-            isValidNumber(&a) && isValidNumber(&out);
+  s = mb_natural_addDigit(alloc, &out, 1, &out); checkStatus(s);
+  bool ok = mb_natural_equal(&out, &expected) &&
+            isValidNumber(&out);
 
-  mb_natural_free(alloc, a);
+
   mb_natural_free(alloc, out);
   mb_natural_free(alloc, expected);
+
+  return ok && isAllFree();
+}
+
+// tests aliased parameters.
+bool test_natural_addDigit_4b(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_new();
+
+  s = mb_natural_set(alloc, 314159, &out); checkStatus(s);
+  s = mb_natural_addDigit(alloc, &out, 1, &out); checkStatus(s);
+  bool ok = mb_natural_equalDigit(&out, 314160) &&
+            isValidNumber(&out);
+
+  mb_natural_free(alloc, out);
 
   return ok && isAllFree();
 }
@@ -532,6 +545,49 @@ bool test_natural_add_2(void) {
   mb_natural_free(alloc, b);
   mb_natural_free(alloc, out1);
   mb_natural_free(alloc, out2);
+  mb_natural_free(alloc, expected);
+
+  return ok && isAllFree();
+}
+
+// tests 2 aliased parameters
+bool test_natural_add_3a(void) {
+  mb_Status s;
+  mb_Natural b = mb_natural_new();
+  mb_Natural out = mb_natural_new();
+  mb_Natural expected = mb_natural_new();
+
+  s = mb_natural_set(alloc, MB_natural_base - 1, &out); checkStatus(s);
+  s = mb_natural_set(alloc, MB_natural_base - 1, &b); checkStatus(s);
+  
+  u32 EXP_DIGS[2] = {1, 999999998};
+  s = mb_natural_setVec(alloc, EXP_DIGS, 2, &expected); checkStatus(s);
+
+  s = mb_natural_add(alloc, &out, &b, &out); checkStatus(s);
+  bool ok = mb_natural_equal(&out, &expected) &&
+            isValidNumber(&out);
+  mb_natural_free(alloc, b);
+  mb_natural_free(alloc, out);
+  mb_natural_free(alloc, expected);
+
+  return ok && isAllFree();
+}
+
+// tests 3 aliased parameters
+bool test_natural_add_3b(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_new();
+  mb_Natural expected = mb_natural_new();
+
+  s = mb_natural_set(alloc, MB_natural_base - 1, &out); checkStatus(s);
+  
+  u32 EXP_DIGS[2] = {1, 999999998};
+  s = mb_natural_setVec(alloc, EXP_DIGS, 2, &expected); checkStatus(s);
+
+  s = mb_natural_add(alloc, &out, &out, &out); checkStatus(s);
+  bool ok = mb_natural_equal(&out, &expected) &&
+            isValidNumber(&out);
+  mb_natural_free(alloc, out);
   mb_natural_free(alloc, expected);
 
   return ok && isAllFree();
@@ -1215,21 +1271,34 @@ bool test_natural_distanceDigit_4(void) {
   return ok && isAllFree();
 }
 
-// ensures operands are not modified
-bool test_natural_distanceDigit_5(void) {
+// tests aliased parameters
+bool test_natural_distanceDigit_5a(void) {
   mb_Status s;
-  mb_Natural a = mb_natural_new();
+  mb_Natural out = mb_natural_new();
+
+  s = mb_natural_set(alloc, 314159, &out); checkStatus(s);
+  s = mb_natural_distanceDigit(alloc, &out, 1, &out); checkStatus(s);
+
+  bool ok = mb_natural_equalDigit(&out, 314158) &&
+            isValidNumber(&out);
+  mb_natural_free(alloc, out);
+  return ok && isAllFree();
+}
+
+bool test_natural_distanceDigit_5b(void) {
+  mb_Status s;
   mb_Natural out = mb_natural_new();
   mb_Natural expected = mb_natural_new();
 
-  s = mb_natural_set(alloc, 314159, &a); checkStatus(s);
-  s = mb_natural_set(alloc, 314158, &expected); checkStatus(s);
-  s = mb_natural_distanceDigit(alloc, &a, 1, &out); checkStatus(s);
+  u32 out_digs[] = {1, 0, 0};
+  s = mb_natural_setVec(alloc, out_digs, 3, &out); checkStatus(s);
+  u32 exp_digs[] = {999999999, 999999999};
+  s = mb_natural_setVec(alloc, exp_digs, 2, &expected); checkStatus(s);
 
-  bool ok = mb_natural_equalDigit(&a, 314159) &&
-            mb_natural_equalDigit(&out, 314158) &&
+  s = mb_natural_distanceDigit(alloc, &out, 1, &out); checkStatus(s);
+
+  bool ok = mb_natural_equal(&out, &expected) &&
             isValidNumber(&out);
-  mb_natural_free(alloc, a);
   mb_natural_free(alloc, out);
   mb_natural_free(alloc, expected);
   return ok && isAllFree();
@@ -1347,6 +1416,67 @@ bool test_natural_distance_3(void) {
   mb_natural_free(alloc, out1);
   mb_natural_free(alloc, out2);
   mb_natural_free(alloc, expected);
+  return ok && isAllFree();
+}
+
+// tests 2 aliased parameters
+bool test_natural_distance_4a(void) {
+  mb_Status s;
+  mb_Natural b = mb_natural_new();
+  mb_Natural out = mb_natural_new();
+  mb_Natural expected = mb_natural_new();
+
+  u32 A_DIGS[3] = {1, 0, 42};
+  s = mb_natural_setVec(alloc, A_DIGS, 3, &out); checkStatus(s);
+  s = mb_natural_set(alloc, 42, &b); checkStatus(s);
+  
+  u32 EXP_DIGS[3] = {1, 0, 0};
+  s = mb_natural_setVec(alloc, EXP_DIGS, 3, &expected); checkStatus(s);
+
+  s = mb_natural_distance(alloc, &out, &b, &out); checkStatus(s);
+
+  bool ok = mb_natural_equal(&out, &expected) &&
+            isValidNumber(&out);
+  mb_natural_free(alloc, b);
+  mb_natural_free(alloc, out);
+  mb_natural_free(alloc, expected);
+  return ok && isAllFree();
+}
+// tests 2 aliased parameters
+bool test_natural_distance_4b(void) {
+  mb_Status s;
+  mb_Natural b = mb_natural_new();
+  mb_Natural out = mb_natural_new();
+  mb_Natural expected = mb_natural_new();
+
+  u32 A_DIGS[3] = {1, 0, 42};
+  s = mb_natural_setVec(alloc, A_DIGS, 3, &out); checkStatus(s);
+  s = mb_natural_set(alloc, 42, &b); checkStatus(s);
+  
+  u32 EXP_DIGS[3] = {1, 0, 0};
+  s = mb_natural_setVec(alloc, EXP_DIGS, 3, &expected); checkStatus(s);
+
+  s = mb_natural_distance(alloc, &b, &out, &out); checkStatus(s);
+
+  bool ok = mb_natural_equal(&out, &expected) &&
+            isValidNumber(&out);
+  mb_natural_free(alloc, b);
+  mb_natural_free(alloc, out);
+  mb_natural_free(alloc, expected);
+  return ok && isAllFree();
+}
+// tests 3 aliased parameters
+bool test_natural_distance_4c(void) {
+  mb_Status s;
+  mb_Natural out = mb_natural_new();
+
+  u32 A_DIGS[3] = {1, 0, 42};
+  s = mb_natural_setVec(alloc, A_DIGS, 3, &out); checkStatus(s);
+  s = mb_natural_distance(alloc, &out, &out, &out); checkStatus(s);
+
+  bool ok = mb_natural_isZero(&out) &&
+            isValidNumber(&out);
+  mb_natural_free(alloc, out);
   return ok && isAllFree();
 }
 /* END: testing distance */
@@ -1652,7 +1782,7 @@ bool test_natural_div_4(void) {
       mb_natural_free(alloc, scratch);
       return false;
     }
-    s = mb_natural_incByDigit(alloc, 1, &B); checkStatus(s);
+    s = mb_natural_addDigit(alloc, &B, 1, &B); checkStatus(s);
   }
   mb_natural_free(alloc, A);
   mb_natural_free(alloc, B);
@@ -1687,7 +1817,7 @@ bool test_natural_div_5(void) {
       mb_natural_free(alloc, scratch);
       return false;
     }
-    s = mb_natural_incByDigit(alloc, MB_natural_base/10, &B); checkStatus(s);
+    s = mb_natural_addDigit(alloc, &B, MB_natural_base/10, &B); checkStatus(s);
   }
   mb_natural_free(alloc, A);
   mb_natural_free(alloc, B);
@@ -1941,12 +2071,12 @@ bool test_natural_growShrink_4(void) {
 
   int i = 0;
   while (i < 100) {
-    s = mb_natural_incByDigit(alloc, B, &C); checkStatus(s);
+    s = mb_natural_addDigit(alloc, &C, B, &C); checkStatus(s);
     i++;
   }
 
   while (0 < i) {
-    s = mb_natural_decrByDigit(alloc, B, &C); checkStatus(s);
+    s = mb_natural_distanceDigit(alloc, &C, B, &C); checkStatus(s);
     i--;
   }
 
@@ -1966,12 +2096,12 @@ bool test_natural_growShrink_5(void) {
 
   int i = 0;
   while (i < 100) {
-    s = mb_natural_incBy(alloc, &B, &C); checkStatus(s);
+    s = mb_natural_add(alloc, &C, &B, &C); checkStatus(s);
     i++;
   }
 
   while (0 < i) {
-    s = mb_natural_decrBy(alloc, &B, &C); checkStatus(s);
+    s = mb_natural_distance(alloc, &C, &B, &C); checkStatus(s);
     i--;
   }
 
@@ -2027,309 +2157,6 @@ bool test_natural_growShrink_6(void) {
 }
 /* END: grow/shrink tests */
 
-/* BEGIN: incByDigit tests*/
-
-// tests 0 as identity
-bool test_natural_incByDigit_0(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 42, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &expected); checkStatus(s);
-  s = mb_natural_incByDigit(alloc, 0, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-bool test_natural_incByDigit_1(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 42, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 84, &expected); checkStatus(s);
-  s = mb_natural_incByDigit(alloc, 42, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-bool test_natural_incByDigit_2(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  u32 A_DIGS[2] = {999999999, 999999999};
-  s = mb_natural_setVec(alloc, A_DIGS, 2, &out); checkStatus(s);
-  
-  u32 EXP_DIGS[3] = {1, 0, 0};
-  s = mb_natural_setVec(alloc, EXP_DIGS, 3, &expected); checkStatus(s);
-
-  s = mb_natural_incByDigit(alloc, 1, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-// tests 0 as identity (in out)
-bool test_natural_incByDigit_3(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 0, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &expected); checkStatus(s);
-  s = mb_natural_incByDigit(alloc, 42, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-/* END: incByDigit tests*/
-
-/* BEGIN: incBy tests*/
-
-// tests 0 as identity
-bool test_natural_incBy_0(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural b = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 42, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 0,  &b); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &expected); checkStatus(s);
-
-  s = mb_natural_incBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-bool test_natural_incBy_1(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural b = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 42, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &b); checkStatus(s);
-  s = mb_natural_set(alloc, 84, &expected); checkStatus(s);
-
-  s = mb_natural_incBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-bool test_natural_incBy_2(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural b = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  u32 A_DIGS[2] = {999999999, 999999999};
-  s = mb_natural_setVec(alloc, A_DIGS, 2, &out); checkStatus(s);
-  u32 B_DIGS[2] = {999999999, 999999999};
-  s = mb_natural_setVec(alloc, B_DIGS, 2, &b); checkStatus(s);
-  u32 EXP_DIGS[3] = {1, 999999999, 999999998};
-  s = mb_natural_setVec(alloc, EXP_DIGS, 3, &expected); checkStatus(s);
-
-  s = mb_natural_incBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-// tests 0 as identity (in out)
-bool test_natural_incBy_3(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural b   = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 0, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &b); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &expected); checkStatus(s);
-  s = mb_natural_incBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-/* END: incBy tests*/
-
-/* BEGIN: decrByDigit tests*/
-// tests carry
-bool test_natural_decrByDigit_1(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  u32 OUT_DIGS[] = {1, 0, 0};
-  s = mb_natural_setVec(alloc, OUT_DIGS, 3, &out); checkStatus(s);
-  u32 EXP_DIGS[2] = {999999999, 999999999};
-  s = mb_natural_setVec(alloc, EXP_DIGS, 2, &expected); checkStatus(s);
-
-  s = mb_natural_decrByDigit(alloc, 1, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-bool test_natural_decrByDigit_2(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 1, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 0, &expected); checkStatus(s);
-
-  s = mb_natural_decrByDigit(alloc, 1, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-/* test 0 as identity */
-bool test_natural_decrByDigit_3(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 42, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &expected); checkStatus(s);
-  s = mb_natural_decrByDigit(alloc, 0, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-/* test 0 - 0 = 0 */
-bool test_natural_decrByDigit_4(void) {
-  mb_Status s;
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 0, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 0, &expected); checkStatus(s);
-  s = mb_natural_decrByDigit(alloc, 0, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-/* END: decrByDigit tests*/
-
-/* BEGIN: decrBy tests*/
-// tests carry
-// TODO: continue refactoring
-bool test_natural_decrBy_1(void) {
-  mb_Status s;
-  mb_Natural b = mb_natural_new();
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  u32 OUT_DIGS[] = {1, 0, 0};
-  s = mb_natural_setVec(alloc, OUT_DIGS, 3, &out); checkStatus(s);
-    u32 EXP_DIGS[2] = {999999999, 999999999};
-  s = mb_natural_setVec(alloc, EXP_DIGS, 2, &expected); checkStatus(s);
-  s = mb_natural_set(alloc, 1, &b); checkStatus(s);
-  s = mb_natural_decrBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-bool test_natural_decrBy_2(void) {
-  mb_Status s;
-  mb_Natural b = mb_natural_new();
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 1, &b); checkStatus(s);
-  s = mb_natural_set(alloc, 1, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 0, &expected); checkStatus(s);
-
-  s = mb_natural_decrBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-/* test 0 as identity */
-bool test_natural_decrBy_3(void) {
-  mb_Status s;
-  mb_Natural b = mb_natural_new();
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 42, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 42, &expected); checkStatus(s);
-  s = mb_natural_set(alloc, 0,  &b); checkStatus(s);
-
-  s = mb_natural_decrBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-
-/* test 0 - 0 = 0 */
-bool test_natural_decrBy_4(void) {
-  mb_Status s;
-  mb_Natural b = mb_natural_new();
-  mb_Natural out = mb_natural_new();
-  mb_Natural expected = mb_natural_new();
-
-  s = mb_natural_set(alloc, 0, &out); checkStatus(s);
-  s = mb_natural_set(alloc, 0, &b); checkStatus(s);
-  s = mb_natural_set(alloc, 0, &expected); checkStatus(s);
-  s = mb_natural_decrBy(alloc, &b, &out); checkStatus(s);
-
-  bool ok = mb_natural_equal(&out, &expected) && isValidNumber(&out);
-  mb_natural_free(alloc, b);
-  mb_natural_free(alloc, out);
-  mb_natural_free(alloc, expected);
-  return ok && isAllFree();
-}
-/* END: decrBy tests*/
-
 /* BEGIN: DRIVER CODE */
 Tester tests[] = {
   {"test_natural_snprint_0", test_natural_snprint_0},
@@ -2341,14 +2168,16 @@ Tester tests[] = {
   {"test_natural_addDigit_1", test_natural_addDigit_1},
   {"test_natural_addDigit_2", test_natural_addDigit_2},
   {"test_natural_addDigit_3", test_natural_addDigit_3},
-  {"test_natural_addDigit_4", test_natural_addDigit_4},
+  {"test_natural_addDigit_4a", test_natural_addDigit_4a},
+  {"test_natural_addDigit_4b", test_natural_addDigit_4b},
   {"test_natural_addDigit_5", test_natural_addDigit_5},
 
   {"test_natural_distanceDigit_1", test_natural_distanceDigit_1},
   {"test_natural_distanceDigit_2", test_natural_distanceDigit_2},
   {"test_natural_distanceDigit_3", test_natural_distanceDigit_3},
   {"test_natural_distanceDigit_4", test_natural_distanceDigit_4},
-  {"test_natural_distanceDigit_5", test_natural_distanceDigit_5},
+  {"test_natural_distanceDigit_5a", test_natural_distanceDigit_5a},
+  {"test_natural_distanceDigit_5b", test_natural_distanceDigit_5b},
 
   {"test_natural_multDigit_1", test_natural_multDigit_1},
   {"test_natural_multDigit_2", test_natural_multDigit_2},
@@ -2399,6 +2228,8 @@ Tester tests[] = {
   {"test_natural_add_1a", test_natural_add_1a},
   {"test_natural_add_1b", test_natural_add_1b},
   {"test_natural_add_2",  test_natural_add_2},
+  {"test_natural_add_3a",  test_natural_add_3a},
+  {"test_natural_add_3b",  test_natural_add_3b},
 
   {"test_natural_compare_1", test_natural_compare_1},
   {"test_natural_compare_2", test_natural_compare_2},
@@ -2412,6 +2243,9 @@ Tester tests[] = {
   {"test_natural_distance_1", test_natural_distance_1},
   {"test_natural_distance_2", test_natural_distance_2},
   {"test_natural_distance_3", test_natural_distance_3},
+  {"test_natural_distance_4a", test_natural_distance_4a},
+  {"test_natural_distance_4b", test_natural_distance_4b},
+  {"test_natural_distance_4c", test_natural_distance_4c},
 
   {"test_natural_compareDigit_1", test_natural_compareDigit_1},
   {"test_natural_compareDigit_2", test_natural_compareDigit_2},
@@ -2427,26 +2261,6 @@ Tester tests[] = {
   {"test_natural_growShrink_4", test_natural_growShrink_4},
   {"test_natural_growShrink_5", test_natural_growShrink_5},
   {"test_natural_growShrink_6", test_natural_growShrink_6},
-
-  {"test_natural_incByDigit_0", test_natural_incByDigit_0},
-  {"test_natural_incByDigit_1", test_natural_incByDigit_1},
-  {"test_natural_incByDigit_2", test_natural_incByDigit_2},
-  {"test_natural_incByDigit_3", test_natural_incByDigit_3},
-
-  {"test_natural_incBy_0", test_natural_incBy_0},
-  {"test_natural_incBy_1", test_natural_incBy_1},
-  {"test_natural_incBy_2", test_natural_incBy_2},
-  {"test_natural_incBy_3", test_natural_incBy_3},
-
-  {"test_natural_decrByDigit_1", test_natural_decrByDigit_1},
-  {"test_natural_decrByDigit_2", test_natural_decrByDigit_2},
-  {"test_natural_decrByDigit_3", test_natural_decrByDigit_3},
-  {"test_natural_decrByDigit_4", test_natural_decrByDigit_4},
-
-  {"test_natural_decrBy_1", test_natural_decrBy_1},
-  {"test_natural_decrBy_2", test_natural_decrBy_2},
-  {"test_natural_decrBy_3", test_natural_decrBy_3},
-  {"test_natural_decrBy_4", test_natural_decrBy_4},
 };
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 

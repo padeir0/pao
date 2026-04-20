@@ -23,4 +23,12 @@ u32 mb_util_maxU32(u32 a, u32 b) {
   return a;
 }
 
+i64 mb_util_absI64(i64 a) {
+  if (a < 0) {
+    return -a;
+  } else {
+    return a;
+  }
+}
+
 #endif
