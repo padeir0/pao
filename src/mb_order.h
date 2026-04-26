@@ -13,6 +13,7 @@ typedef enum {
   MB_order_greater,
 } mb_Order;
 
+static inline
 mb_Order mb_order_invert(mb_Order a) {
   if (a == MB_order_less) {
     return MB_order_greater;

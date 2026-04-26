@@ -48,6 +48,7 @@ usize i_mb_buffer_available(const mb_Buffer* buff) {
 /* Prints n = min(buffer.len, INT_MAX) bytes as a string using printf. 
    UNTESTED: the output of this function is expected to be used for debugging purposes
    and does not posses an automated test routine. */
+static inline
 int mb_buffer_printStr(const mb_Buffer* buff) {
   usize bytesToPrint = buff->len;
   if (bytesToPrint > INT_MAX) {
@@ -56,24 +57,29 @@ int mb_buffer_printStr(const mb_Buffer* buff) {
   return printf("%.*s", (int)bytesToPrint, buff->ptr+buff->start);
 }
 
+static inline
 mb_Buffer mb_buffer_create(byte* ptr, usize cap) {
   mb_Buffer out = {.ptr = ptr, .start = 0, .len = 0, .cap = cap};
   return out;
 }
 
+static inline
 void mb_buffer_reset(mb_Buffer* buff) {
   buff->len = 0;
   buff->start = 0;
 }
 
+static inline
 void mb_buffer_bzero(mb_Buffer* buff) {
   bzero(buff->ptr+buff->start, buff->len);
 }
 
+static inline
 bool mb_buffer_hasSpace(const mb_Buffer* buff, usize size) {
   return size <= i_mb_buffer_available(buff);
 }
 
+static inline
 usize mb_buffer_writeByte(mb_Buffer* buff, byte b) {
   usize absLen = i_mb_buffer_absLen(buff);
   if (absLen < buff->cap) {
@@ -84,6 +90,7 @@ usize mb_buffer_writeByte(mb_Buffer* buff, byte b) {
   return 0;
 }
 
+static inline
 bool mb_buffer_readByte(mb_Buffer* buff, byte* out) {
   if (buff->len > 0) {
     byte b = buff->ptr[buff->start];
@@ -97,6 +104,7 @@ bool mb_buffer_readByte(mb_Buffer* buff, byte* out) {
 
 /* Writes a *NULL-terminated* string to the buffer.
 */
+static inline
 usize mb_buffer_writeLiteral(mb_Buffer* buff, char* s) {
   usize i = 0;
   usize absLen = i_mb_buffer_absLen(buff);
@@ -110,6 +118,7 @@ usize mb_buffer_writeLiteral(mb_Buffer* buff, char* s) {
 
 /* Writes a string with given size to the buffer.
 */
+static inline
 usize mb_buffer_writeString(mb_Buffer* buff, char* s, usize size) {
   usize i = 0;
   usize absLen = i_mb_buffer_absLen(buff);
@@ -125,6 +134,7 @@ usize mb_buffer_writeString(mb_Buffer* buff, char* s, usize size) {
    Output buffer will have 3 times input buffer's length.
    UNTESTED: (TODO:)
 */
+static inline
 usize mb_buffer_toHex(const mb_Buffer* in, mb_Buffer* out) {
   usize writeStart = out->len;
   usize i = 0;
@@ -158,6 +168,7 @@ usize mb_buffer_toHex(const mb_Buffer* in, mb_Buffer* out) {
    have the same characters in order. The capacity is not
    taken into account.
 */
+static inline
 bool mb_buffer_equals(const mb_Buffer* A, const mb_Buffer* B) {
   if (A->len != B->len) {
     return false;

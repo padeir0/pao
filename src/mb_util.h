@@ -9,6 +9,7 @@ See the LICENSE file for more information.
 #ifndef MB_util_H
 #define MB_util_H
 
+static inline
 u32 mb_util_minU32(u32 a, u32 b) {
   if (a <= b) {
     return a;
@@ -16,6 +17,7 @@ u32 mb_util_minU32(u32 a, u32 b) {
   return b;
 }
 
+static inline
 u32 mb_util_maxU32(u32 a, u32 b) {
   if (a <= b) {
     return b;
@@ -23,6 +25,7 @@ u32 mb_util_maxU32(u32 a, u32 b) {
   return a;
 }
 
+static inline
 i64 mb_util_absI64(i64 a) {
   if (a < 0) {
     return -a;

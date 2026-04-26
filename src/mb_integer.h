@@ -18,6 +18,7 @@ typedef struct {
 } mb_Integer;
 
 // returns a integer set to zero
+static inline
 mb_Integer mb_integer_new(void) {
   mb_Integer i;
   i.sign = +1;
@@ -25,10 +26,12 @@ mb_Integer mb_integer_new(void) {
   return i;
 }
 
+static inline
 void mb_integer_free(mb_Allocator* mem, mb_Integer i) {
   mb_natural_free(mem, i.abs);
 }
 
+static inline
 mb_Status mb_integer_set(mb_Allocator* mem, i32 num, mb_Integer* i) {
   i8 sign;
   u32 digit;
@@ -44,16 +47,19 @@ mb_Status mb_integer_set(mb_Allocator* mem, i32 num, mb_Integer* i) {
 }
 
 // TODO: UNTESTED:
+static inline
 mb_Status mb_integer_copy(mb_Allocator* mem, const mb_Integer* A, mb_Integer* out) {
   out->sign = A->sign;
   return mb_natural_copy(mem, &A->abs, &out->abs);
 }
 
+static inline
 mb_Status mb_integer_setVec(mb_Allocator* mem, i8 sign, u32* digits, i32 length, mb_Integer* i) {
   i->sign = sign;
   return mb_natural_setVec(mem, digits, length, &i->abs);
 }
 
+static inline
 bool mb_integer_equal(const mb_Integer* A, const mb_Integer* B) {
   if (mb_natural_isZero(&A->abs) && mb_natural_isZero(&B->abs)) {
     return true;
@@ -61,11 +67,13 @@ bool mb_integer_equal(const mb_Integer* A, const mb_Integer* B) {
   return A->sign == B->sign && mb_natural_equal(&A->abs, &B->abs);
 }
 
+static inline
 bool mb_integer_isZero(const mb_Integer* A) {
   return mb_natural_isZero(&A->abs);
 }
 
 // TODO: UNTESTED:
+static inline
 mb_Order mb_integer_compare(const mb_Integer* A, const mb_Integer* B) {
   if (mb_natural_isZero(&A->abs) && mb_natural_isZero(&B->abs)) {
     return MB_order_equal;
@@ -83,6 +91,7 @@ mb_Order mb_integer_compare(const mb_Integer* A, const mb_Integer* B) {
   return MB_order_equal;
 }
 
+static inline
 usize mb_integer_snprint(const mb_Integer* A, char* buffer, size_t buffSize) {
   if (buffSize == 0) {
     return 0;
@@ -94,6 +103,7 @@ usize mb_integer_snprint(const mb_Integer* A, char* buffer, size_t buffSize) {
   return mb_natural_snprint(&A->abs, buffer, buffSize);
 }
 
+static inline
 mb_Status mb_integer_add(mb_Allocator* mem, const mb_Integer* A, const mb_Integer* B, mb_Integer* out) {
   mb_Status st;
   if (A->sign == B->sign) {
@@ -118,6 +128,7 @@ mb_Status mb_integer_add(mb_Allocator* mem, const mb_Integer* A, const mb_Intege
   */
 }
 
+static inline
 mb_Status mb_integer_sub(mb_Allocator* mem, const mb_Integer* A, const mb_Integer* B, mb_Integer* out) {
   mb_Status st;
   if (A->sign != B->sign) {
@@ -142,6 +153,7 @@ mb_Status mb_integer_sub(mb_Allocator* mem, const mb_Integer* A, const mb_Intege
   */
 }
 
+static inline
 mb_Status mb_integer_mult(mb_Allocator* mem, const mb_Integer* A, const mb_Integer* B, mb_Integer* out) {
   mb_Status st = mb_natural_mult(mem, &A->abs, &B->abs, &out->abs); MB_status_check;
   out->sign = A->sign * B->sign;
@@ -151,6 +163,7 @@ mb_Status mb_integer_mult(mb_Allocator* mem, const mb_Integer* A, const mb_Integ
   return MB_status_ok;
 }
 
+static inline
 mb_Status mb_integer_div(mb_Allocator* mem, mb_Natural* scratch, const mb_Integer* A, const mb_Integer* B, mb_Integer* Q, mb_Integer* R) {
   mb_Status st = mb_natural_div(mem, scratch, &A->abs, &B->abs, &Q->abs, &R->abs); MB_status_check;
 

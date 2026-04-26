@@ -10,7 +10,7 @@ See the LICENSE file for more information.
 #include "mb_allocator.h"
 #include <stdio.h>
 
-static
+static inline
 void* i_mb_stdAlloc_alloc(
   __attribute__((unused)) void* heap,
   usize size,
@@ -19,18 +19,18 @@ void* i_mb_stdAlloc_alloc(
   return malloc(size);
 }
 
-static
+static inline
 void i_mb_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
   free(obj);
 }
 
-static
+static inline
 void i_mb_stdAlloc_freeAll(__attribute__((unused)) void* heap) {
   printf("error: standard malloc provides no free_all function.\n");
   abort();
 }
 
-static
+static inline
 mb_AllocatorInfo i_mb_stdAlloc_info(__attribute__((unused)) void* heap) {
   mb_AllocatorInfo out;
   out.total = 0;
@@ -38,14 +38,16 @@ mb_AllocatorInfo i_mb_stdAlloc_info(__attribute__((unused)) void* heap) {
   return out;
 }
 
-mb_Allocator _mb_stdAlloc = {
-  .heap = NULL,
-  .alloc = i_mb_stdAlloc_alloc,
-  .free = i_mb_stdAlloc_free,
-  .freeAll = i_mb_stdAlloc_freeAll,
-  .info = i_mb_stdAlloc_info,
-};
-
-mb_Allocator* MB_stdAlloc = &_mb_stdAlloc;
+static inline
+mb_Allocator mb_stdAlloc_new(void) {
+  mb_Allocator _mb_stdAlloc = {
+    .heap = NULL,
+    .alloc = i_mb_stdAlloc_alloc,
+    .free = i_mb_stdAlloc_free,
+    .freeAll = i_mb_stdAlloc_freeAll,
+    .info = i_mb_stdAlloc_info,
+  };
+  return _mb_stdAlloc;
+}
 
 #endif

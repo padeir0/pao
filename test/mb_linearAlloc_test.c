@@ -42,7 +42,7 @@ int main(void) {
   u32 i;
 
   i = 0;
-  while (i < MB_buffArraySize && i <= U8_MAX) {
+  while (i < MB_buffArraySize && i <= UINT8_MAX) {
     alloc_size = (i+1)*10;
     buff = (uint8_t*) mb_linearAlloc_alloc(a, alloc_size);
     if (buff == NULL) {
@@ -56,7 +56,7 @@ int main(void) {
   }
 
   i = 0;
-  while (i < MB_buffArraySize && i <= U8_MAX) {
+  while (i < MB_buffArraySize && i <= UINT8_MAX) {
     alloc_size = (i+1)*10;
     if (checkbuff(g_mb_buffs[i], alloc_size, (u8)i) == false) {
       printf("ERROR: corrupted memory\n");

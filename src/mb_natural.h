@@ -53,6 +53,7 @@ void i_mb_natural_natVecFree(mb_Allocator* mem, u32* vec) {
 /* BEGIN: UTIL */
 
 /* END: UTIL */
+static inline
 mb_Natural mb_natural_new(void) {
   mb_Natural n;
   n.cap = 0;
@@ -61,11 +62,12 @@ mb_Natural mb_natural_new(void) {
   return n;
 }
 
+static inline
 void mb_natural_free(mb_Allocator* mem, mb_Natural n) {
   i_mb_natural_natVecFree(mem, n.digits);
 }
 
-static
+static inline
 mb_Status i_mb_natural_pushDigit(mb_Allocator* mem, u32 digit, mb_Natural* out) {
   if (out->cap == 0) {
     out->digits = i_mb_natural_natVecAlloc(mem, MB_natural_minNatVec, (char*)__func__);
@@ -76,7 +78,7 @@ mb_Status i_mb_natural_pushDigit(mb_Allocator* mem, u32 digit, mb_Natural* out) 
   }
   if (out->len == out->cap) {
     u32 new_cap = 2 * out->cap;
-    if (new_cap > (u32)I32_MAX) {
+    if (new_cap > (u32)INT32_MAX) {
       // this limitation is acceptable, a ~8GB number is unrealistic.
       return MB_status_naturalNumberOverflow;
     }
@@ -96,6 +98,7 @@ mb_Status i_mb_natural_pushDigit(mb_Allocator* mem, u32 digit, mb_Natural* out) 
   return MB_status_ok;
 }
 
+static inline
 mb_Status mb_natural_multBase(mb_Allocator* mem, mb_Natural* out) { 
   // TODO: OPT: if pushDigit has to allocate, then we can shift everything while copying. Saves O(n) operations.
   mb_Status st = i_mb_natural_pushDigit(mem, 0, out); MB_status_check;
@@ -113,6 +116,7 @@ mb_Status mb_natural_multBase(mb_Allocator* mem, mb_Natural* out) {
 ie, MSD -> LSD. This is why the code goes backwards to fill
 the number.
 */
+static inline
 mb_Status mb_natural_setVec(mb_Allocator* mem, u32* digits, i32 len, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || digits == NULL || out == NULL) {
@@ -141,6 +145,7 @@ mb_Status mb_natural_setVec(mb_Allocator* mem, u32* digits, i32 len, mb_Natural*
   return MB_status_ok;
 }
 
+static inline
 mb_Status mb_natural_set(mb_Allocator* mem, u32 digit, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || out == NULL) {
@@ -171,6 +176,7 @@ bool mb_natural_isZero(const mb_Natural* N) {
 /* Copies the contents of `A` to `out`,
 if `out` has enough space, no allocations are performed.
 */
+static inline
 mb_Status mb_natural_copy(mb_Allocator* mem, const mb_Natural* A, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || out == NULL) {
@@ -199,6 +205,7 @@ mb_Status mb_natural_copy(mb_Allocator* mem, const mb_Natural* A, mb_Natural* ou
   return MB_status_ok;
 }
 
+static inline
 bool mb_natural_equalDigit(const mb_Natural* A, u32 digit) {
   if (A->len == 0 && digit == 0) {
     return true;
@@ -206,6 +213,7 @@ bool mb_natural_equalDigit(const mb_Natural* A, u32 digit) {
   return A->len == 1 && A->digits[0] == digit;
 }
 
+static inline
 bool mb_natural_equal(const mb_Natural* A, const mb_Natural* B) {
   if (A->len != B->len) {
     return false;
@@ -220,6 +228,7 @@ bool mb_natural_equal(const mb_Natural* A, const mb_Natural* B) {
   return true;
 }
 
+static inline
 mb_Order mb_natural_compareDigit(const mb_Natural* A, u32 b) {
   if (b == 0 && A->len == 0) {
     return MB_order_equal;
@@ -240,6 +249,7 @@ mb_Order mb_natural_compareDigit(const mb_Natural* A, u32 b) {
   return MB_order_equal;
 }
 
+static inline
 mb_Order mb_natural_compare(const mb_Natural* A, const mb_Natural* B) {
   if (A->len < B->len) {
     return MB_order_less;
@@ -270,6 +280,7 @@ mb_Order mb_natural_compare(const mb_Natural* A, const mb_Natural* B) {
 
 // `A` and `B` might be aliased together,
 // but neither may be aliased with `out`.
+static inline
 mb_Status mb_natural_add(mb_Allocator* mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || B == NULL || out == NULL) {
@@ -322,6 +333,7 @@ mb_Status mb_natural_add(mb_Allocator* mem, const mb_Natural* A, const mb_Natura
 }
 
 // `A` and `out` may be the same object
+static inline
 mb_Status mb_natural_addDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || out == NULL) {
@@ -378,6 +390,7 @@ mb_Status mb_natural_addDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_
   */
 }
 
+static inline
 mb_Status mb_natural_multDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || out == NULL) {
@@ -432,6 +445,7 @@ mb_Status mb_natural_multDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb
   */
 }
 
+static inline
 void i_mb_natural_removeLeadingZeroes(mb_Natural* out) {
   // UNSAFE(1):
   i32 i = (i32)out->len - 1;
@@ -447,6 +461,7 @@ void i_mb_natural_removeLeadingZeroes(mb_Natural* out) {
   */
 }
 
+static inline
 mb_Status mb_natural_mult(mb_Allocator* mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || B == NULL || out == NULL) {
@@ -500,6 +515,7 @@ mb_Status mb_natural_mult(mb_Allocator* mem, const mb_Natural* A, const mb_Natur
   */
 }
 
+static inline
 mb_Status mb_natural_distance(mb_Allocator* mem, const mb_Natural* A, const mb_Natural* B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || B == NULL || out == NULL) {
@@ -570,6 +586,7 @@ Computes |A - B|, in other words:
   if B<A then A-B
   else B-A
 */
+static inline
 mb_Status mb_natural_distanceDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_Natural* out) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || out == NULL) {
@@ -630,6 +647,7 @@ mb_Status mb_natural_distanceDigit(mb_Allocator* mem, const mb_Natural* A, u32 B
 }
 
 // sets `out` to `MB_order_equal` if `guess*B == idd` or if `(guess+1)*B > idd`
+static inline
 mb_Status i_mb_natural_testGuess(mb_Allocator* mem, const mb_Natural* idd, const mb_Natural* B, u32 guess, mb_Natural* scratch, mb_Order* out) {
   mb_Status st;
   st = mb_natural_multDigit(mem, B, guess, scratch); MB_status_check;
@@ -657,6 +675,7 @@ mb_Status i_mb_natural_testGuess(mb_Allocator* mem, const mb_Natural* idd, const
 /* Finds `Q` and `R` such that `A = Q*B + R`.
    DRAGONS:
 */
+static inline
 mb_Status mb_natural_div(mb_Allocator* mem, mb_Natural* scratch,
                          const mb_Natural* A, const mb_Natural* B,
                          mb_Natural* Q, mb_Natural* R) {
@@ -750,6 +769,7 @@ mb_Status mb_natural_div(mb_Allocator* mem, mb_Natural* scratch,
    hence, it's a u32.
    DRAGONS:
 */
+static inline
 mb_Status mb_natural_divDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_Natural* Q, u32* R) {
   #if MB_config_debug
     if (mem == NULL || A == NULL || Q == NULL || R == NULL) {
@@ -819,7 +839,7 @@ mb_Status mb_natural_divDigit(mb_Allocator* mem, const mb_Natural* A, u32 B, mb_
   */
 }
 
-static
+static inline
 char* i_mb_natural_firstNonzeroChar(char* buffer, usize buffSize) {
   usize i = 0;
   while (i < buffSize && buffer[i] == '0') {
@@ -828,7 +848,7 @@ char* i_mb_natural_firstNonzeroChar(char* buffer, usize buffSize) {
   return buffer+i;
 }
 
-static
+static inline
 void i_mb_natural_WriteU32(u32 n, char* buffer) {
   int i = 0;
   while (i < MB_natural_digitsPerInt) {
@@ -850,7 +870,7 @@ void i_mb_natural_WriteU32(u32 n, char* buffer) {
 
 /* Only writes a number if the given buffer has sufficient size.
 */
-static
+static inline
 size_t i_mb_natural_snprint(const mb_Natural* nat, char* buffer, usize buffSize, bool padLeft, bool padRight) {
   // NOTE(1):
   usize neededBytes = (usize)(nat->len * MB_natural_digitsPerInt);
@@ -914,6 +934,7 @@ it either fully writes the number or returns 0.
 */
 /* TODO: refactor this to use mb_buffer
 */
+static inline
 usize mb_natural_snprint(const mb_Natural* nat, char* buffer, size_t buffSize) {
   #if MB_config_debug
     if (nat == NULL || buffer == NULL) {

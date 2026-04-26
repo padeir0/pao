@@ -18,6 +18,7 @@ typedef struct {
 } mb_LinearAlloc;
 
 /* returns a arena allocated at the beginning of the buffer */
+static inline
 mb_LinearAlloc* mb_linearAlloc_create(uint8_t* buffer, size_t size) {
   mb_LinearAlloc* out;
   if (buffer == NULL) {
@@ -36,6 +37,7 @@ mb_LinearAlloc* mb_linearAlloc_create(uint8_t* buffer, size_t size) {
 }
 
 /* returns NULL if it fails to allocate */
+static inline
 void* mb_linearAlloc_alloc(mb_LinearAlloc* a, size_t size) {
   void* out = (void*)(a->buffer + a->allocated);
   if (a->allocated+size >= a->buffSize) {
@@ -46,26 +48,30 @@ void* mb_linearAlloc_alloc(mb_LinearAlloc* a, size_t size) {
 }
 
 /* frees the entire arena */
+static inline
 void mb_linearAlloc_freeAll(mb_LinearAlloc* a) {
   a->allocated = 0;
 }
 
 /* returns the amount of memory available */
+static inline
 size_t mb_linearAlloc_available(mb_LinearAlloc* a) {
   return a->buffSize - a->allocated;
 }
 
 /* returns the amount of memory used */
+static inline
 size_t mb_linearAlloc_used(mb_LinearAlloc* a) {
   return a->allocated;
 }
 
 /* returns true if the allocator is empty */
+static inline
 bool mb_linearAlloc_empty(mb_LinearAlloc* a) {
   return a->allocated == 0;
 }
 
-static
+static inline
 void* i_mb_linearAlloc_alloc(
   void* heap,
   usize size,
@@ -74,7 +80,7 @@ void* i_mb_linearAlloc_alloc(
   return mb_linearAlloc_alloc((mb_LinearAlloc*) heap, size);
 }
 
-static
+static inline
 void i_mb_linearAlloc_free(
   __attribute__((unused)) void* heap,
   __attribute__((unused)) void* obj
@@ -83,11 +89,12 @@ void i_mb_linearAlloc_free(
   abort();
 }
 
-static
+static inline
 void i_mb_linearAlloc_freeAll(void* heap) {
   mb_linearAlloc_freeAll((mb_LinearAlloc*)heap);
 }
 
+static inline
 mb_Allocator mb_linearAlloc_createInterface(mb_LinearAlloc* alloc) {
   mb_Allocator out = {
     .heap = (void*)alloc,

@@ -15,7 +15,8 @@ char buffer[DEFAULT_SIZE];
 // TODO: write tests for snprint when buffer is exact fit
 // TODO: write tests for snprint when buffer size is 1
 
-#define alloc MB_stdAlloc
+mb_Allocator _alloc;
+#define alloc (&_alloc)
 
 bool isAllFree(void) {
   return alloc->info(alloc->heap).used == 0;
@@ -2265,6 +2266,7 @@ Tester tests[] = {
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
 int main(void) {
+  _alloc = mb_stdAlloc_new();
   run_tests(tests, TEST_LEN);
 }
 /* END: DRIVER CODE */
