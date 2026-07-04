@@ -1,8 +1,6 @@
-# Marabaixo
+# Pão
 
-Marabaixo é uma linguagem de programação experimental.
-Ainda não terminei o interpretador nem o design.
+Todo meu código em C vai ficar aqui.
+Não é pra usar em produção, olha o nome do repositório, tenha bom senso.
 
-O nome vem do meu sabor preferido de sorvete.
-
-[Style-guide](./docs/styleguide.md), [spec](./docs/spec.md).
+[Style-guide](./docs/styleguide.md).

@@ -4,13 +4,13 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#include "mb_basicTypes.h"
+#include "pao_basicTypes.h"
 
-#ifndef MB_util_H
-#define MB_util_H
+#ifndef PAO_util_H
+#define PAO_util_H
 
 static inline
-u32 mb_util_minU32(u32 a, u32 b) {
+u32 pao_util_minU32(u32 a, u32 b) {
   if (a <= b) {
     return a;
   }
@@ -18,7 +18,7 @@ u32 mb_util_minU32(u32 a, u32 b) {
 }
 
 static inline
-u32 mb_util_maxU32(u32 a, u32 b) {
+u32 pao_util_maxU32(u32 a, u32 b) {
   if (a <= b) {
     return b;
   }
@@ -26,7 +26,7 @@ u32 mb_util_maxU32(u32 a, u32 b) {
 }
 
 static inline
-i64 mb_util_absI64(i64 a) {
+i64 pao_util_absI64(i64 a) {
   if (a < 0) {
     return -a;
   } else {

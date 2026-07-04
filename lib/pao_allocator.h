@@ -4,10 +4,10 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef MB_allocator_H
-#define MB_allocator_H
+#ifndef PAO_allocator_H
+#define PAO_allocator_H
 
-#include "mb_basicTypes.h"
+#include "pao_basicTypes.h"
 
 /*
 Allocates an object of given size.
@@ -20,50 +20,50 @@ func: name of the function that called `alloc`, this is useful
 
 return: pointer to allocated object, NULL if allocation failed
 */
-typedef void* (*mb_Alloc)(void* heap, usize size, char* func);
+typedef void* (*pao_Alloc)(void* heap, usize size, char* func);
 
 /*
-Frees an object previously allocated by mb_Alloc, freeing a
+Frees an object previously allocated by pao_Alloc, freeing a
 wild pointer will lead to undefined behaviour. The object must
 be freed by the same allocator that allocated it, otherwise
 you'll also end up with undefined behaviour.
 */
-typedef void  (*mb_Free)(void* heap, void* obj);
+typedef void  (*pao_Free)(void* heap, void* obj);
 
 /*
 Frees the entire heap. Allocators that do not provide this should
-crash the program when this function is called (ie, mb_stdmalloc).
+crash the program when this function is called (ie, pao_stdmalloc).
 */
-typedef void  (*mb_FreeAll)(void* heap);
+typedef void  (*pao_FreeAll)(void* heap);
 
 typedef struct {
   usize used;
   usize total;
-} mb_AllocatorInfo;
+} pao_AllocatorInfo;
 
 /*
 Returns information about the heap.
 If the allocator has no means to return info, then
 it should return all fields set to 0.
 */
-typedef mb_AllocatorInfo (*mb_Info)(void* heap);
+typedef pao_AllocatorInfo (*pao_Info)(void* heap);
 
 /*
 Generic allocator interface.
 
 Rationale is that allocations should be bureoucratic for the programmer.
-Procedures that allocate should receive mb_Allocator, and all calls to 
-mb_allocator.alloc must pass the name of the function that allocated
-that resource for future debugging purposes. A mb_debugalloc shall
+Procedures that allocate should receive pao_Allocator, and all calls to 
+pao_allocator.alloc must pass the name of the function that allocated
+that resource for future debugging purposes. A pao_debugalloc shall
 be provided to debug memory leaks and it should be a drop-in
 replacement to any other allocator.
 */
 typedef struct {
   void* heap;
-  mb_Alloc alloc;
-  mb_Free free;
-  mb_FreeAll freeAll;
-  mb_Info info;
-} mb_Allocator;
+  pao_Alloc alloc;
+  pao_Free free;
+  pao_FreeAll freeAll;
+  pao_Info info;
+} pao_Allocator;
 
 #endif

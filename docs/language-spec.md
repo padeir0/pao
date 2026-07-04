@@ -1,7 +1,8 @@
-# Marabaixo
+# Ovo
 
-Marabaixo will be, at first, a dynamically typed functional programming language,
+Ovo will be, at first, a dynamically typed functional programming language,
 it may be that later I add a type system on top of it.
+The name is because pão com ovo is very good.
 
 <details>
 

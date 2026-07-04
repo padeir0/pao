@@ -4,7 +4,9 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef MB_blank_H
-#define MB_blank_H
+#ifndef PAO_config_H
+#define PAO_config_H
+
+#define PAO_config_debug 1
 
 #endif

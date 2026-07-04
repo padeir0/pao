@@ -4,28 +4,28 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef MB_debug_H
-#define MB_debug_H
+#ifndef PAO_debug_H
+#define PAO_debug_H
 
 #include <stdio.h>
 
-#define MB_debug_print(str)                                   \
+#define PAO_debug_print(str)                                   \
       fprintf(stderr, "[DEBUG] %s:%s:%d\n",                   \
               __FILE__, __func__, __LINE__);                  \
       fprintf(stderr, "\t" str "\n");
 
-#define MB_debug_printFmt(fmt, ...)                           \
+#define PAO_debug_printFmt(fmt, ...)                           \
       fprintf(stderr, "[DEBUG] %s:%s:%d\n",                   \
               __FILE__, __func__, __LINE__);                  \
       fprintf(stderr, "\t" fmt "\n", __VA_ARGS__);
 
-#define MB_debug_fatal(str)                                   \
+#define PAO_debug_fatal(str)                                   \
       fprintf(stderr, "[DEBUG] %s:%s:%d\n",                   \
               __FILE__, __func__, __LINE__);                  \
       fprintf(stderr, "\t" str "\n");                         \
       abort();                                                
 
-#define MB_debug_fatalFmt(fmt, ...)                           \
+#define PAO_debug_fatalFmt(fmt, ...)                           \
       fprintf(stderr, "[DEBUG] %s:%s:%d\n",                   \
               __FILE__, __func__, __LINE__);                  \
       fprintf(stderr, "\t" fmt "\n", __VA_ARGS__);            \
