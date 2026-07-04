@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include "../src/pao_basicTypes.h"
-#include "../src/pao_status.h"
+#include "../lib/pao_basicTypes.h"
+#include "../lib/pao_status.h"
 #include <strings.h>
 #include <string.h>
-#include "../src/pao_colors.h"
+#include "../lib/pao_colors.h"
 
 #define DEFAULT_SIZE 2048
 

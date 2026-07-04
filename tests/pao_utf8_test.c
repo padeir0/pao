@@ -1,6 +1,6 @@
 #include <strings.h>
 #include "common.h"
-#include "../src/pao_utf8.h"
+#include "../lib/pao_utf8.h"
 
 typedef struct {
   u8 buffer[32];

@@ -1,4 +1,4 @@
-#include "../src/pao_buffer.h"
+#include "../lib/pao_buffer.h"
 #include "common.h"
 
 void _writeOrBurst(pao_Buffer* buff, char* strLit) {

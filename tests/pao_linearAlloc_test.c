@@ -1,4 +1,4 @@
-#include "../src/pao_linearAlloc.h"
+#include "../lib/pao_linearAlloc.h"
 #include <stdio.h>
 #include <stdlib.h>
 
