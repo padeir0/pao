@@ -1,10 +1,10 @@
-#include "../lib/pao_natural.h"
-#include "../lib/pao_basicTypes.h"
-#include "../lib/pao_status.h"
-#include "../lib/pao_stdAlloc.h"
+#include "../../lib/pao_natural.h"
+#include "../../lib/pao_basicTypes.h"
+#include "../../lib/pao_status.h"
+#include "../../lib/pao_stdAlloc.h"
 #include <stdio.h>
 #include <strings.h>
-#include "common.h"
+#include "../common.h"
 
 char buffer[DEFAULT_SIZE];
 

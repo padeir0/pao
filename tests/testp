@@ -1,5 +1,7 @@
 #!/bin/bash
 
+root="${1:-.}"
+
 echo "Running tests on multiple C versions and compilers..."
 
 for compiler in gcc clang; do
@@ -7,14 +9,15 @@ for compiler in gcc clang; do
     echo "$compiler not found, skipping..."
     continue
   fi
-  
+
   for version in c99 c17; do
     for opt in -O0 -O2; do
-    echo "Running tests on $compiler. version: $version; optimization: $opt;"
-      for filename in ./*_test.c; do
-        if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes $opt -std=$version "$filename" -o "out123"; then
-          ./out123
-          rm out123
+      echo "Running tests on $compiler. version: $version; optimization: $opt;"
+      find "$root" -name "*_test.c" | while read -r filename; do
+        out="${filename%.c}.out"
+        if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes $opt -std=$version "$filename" -o "$out"; then
+          "$out"
+          rm "$out"
         else
           echo "Compilation failed for $filename with $compiler ($version) $opt, skipping execution."
         fi

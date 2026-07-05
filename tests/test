@@ -1,0 +1,13 @@
+#!/bin/bash
+
+root="${1:-.}"
+
+find "$root" -name "*_test.c" | while read -r filename; do
+  out="${filename%.c}.out"
+  if gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "$out"; then
+    "$out"
+    rm "$out"
+  else
+    echo "Compilation failed for $filename with gcc (c99), skipping execution."
+  fi
+done
