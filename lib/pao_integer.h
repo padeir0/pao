@@ -46,7 +46,6 @@ pao_Status pao_integer_set(pao_Allocator* mem, i32 num, pao_Integer* i) {
   return pao_natural_set(mem, digit, &i->abs);
 }
 
-// TODO: UNTESTED:
 static inline
 pao_Status pao_integer_copy(pao_Allocator* mem, const pao_Integer* A, pao_Integer* out) {
   out->sign = A->sign;
@@ -72,7 +71,6 @@ bool pao_integer_isZero(const pao_Integer* A) {
   return pao_natural_isZero(&A->abs);
 }
 
-// TODO: UNTESTED:
 static inline
 pao_Order pao_integer_compare(const pao_Integer* A, const pao_Integer* B) {
   if (pao_natural_isZero(&A->abs) && pao_natural_isZero(&B->abs)) {

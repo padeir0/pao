@@ -22,7 +22,7 @@ bool isAllFree(void) {
   return alloc->info(alloc->heap).used == 0;
 }
 
-bool isValidNumber(pao_Natural* n) {
+bool isValidNatural(pao_Natural* n) {
   if (n->len == 0) {
     return true;
   }
@@ -66,7 +66,7 @@ bool test_natural_addDigit_0(void) {
 
   s = pao_natural_addDigit(alloc, &a, 1, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -89,7 +89,7 @@ bool test_natural_addDigit_1(void) {
 
   s = pao_natural_addDigit(alloc, &a, 1, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -110,7 +110,7 @@ bool test_natural_addDigit_2(void) {
 
   s = pao_natural_addDigit(alloc, &a, 42, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -131,7 +131,7 @@ bool test_natural_addDigit_3(void) {
 
   s = pao_natural_addDigit(alloc, &a, 0, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -153,7 +153,7 @@ bool test_natural_addDigit_4a(void) {
 
   s = pao_natural_addDigit(alloc, &out, 1, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
 
   pao_natural_free(alloc, out);
@@ -170,7 +170,7 @@ bool test_natural_addDigit_4b(void) {
   s = pao_natural_set(alloc, 314159, &out); checkStatus(s);
   s = pao_natural_addDigit(alloc, &out, 1, &out); checkStatus(s);
   bool ok = pao_natural_equalDigit(&out, 314160) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, out);
 
@@ -190,7 +190,7 @@ bool test_natural_addDigit_5(void) {
 
   s = pao_natural_addDigit(alloc, &a, 1, &out); checkStatus(s);
   bool ok = pao_natural_equalDigit(&out, 314160) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -433,7 +433,7 @@ bool test_natural_add_0a(void) {
   s = pao_natural_add(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
@@ -460,7 +460,7 @@ bool test_natural_add_0b(void) {
   s = pao_natural_add(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
@@ -486,7 +486,7 @@ bool test_natural_add_1a(void) {
 
   s = pao_natural_add(alloc, &a, &b, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -512,7 +512,7 @@ bool test_natural_add_1b(void) {
 
   s = pao_natural_add(alloc, &a, &b, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -539,8 +539,8 @@ bool test_natural_add_2(void) {
 
   bool ok = pao_natural_equal(&out1, &expected) &&
             pao_natural_equal(&out2, &expected) &&
-            isValidNumber(&out1) &&
-            isValidNumber(&out2);
+            isValidNatural(&out1) &&
+            isValidNatural(&out2);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
@@ -566,7 +566,7 @@ bool test_natural_add_3a(void) {
 
   s = pao_natural_add(alloc, &out, &b, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -587,7 +587,7 @@ bool test_natural_add_3b(void) {
 
   s = pao_natural_add(alloc, &out, &out, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
 
@@ -609,7 +609,7 @@ bool test_natural_multDigit_1(void) {
   s = pao_natural_multDigit(alloc, &a, 0, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -631,7 +631,7 @@ bool test_natural_multDigit_2(void) {
   s = pao_natural_multDigit(alloc, &a, 314159, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -652,7 +652,7 @@ bool test_natural_multDigit_3(void) {
   s = pao_natural_multDigit(alloc, &a, 1, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -673,7 +673,7 @@ bool test_natural_multDigit_4(void) {
   s = pao_natural_multDigit(alloc, &a, 314159, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -693,7 +693,7 @@ bool test_natural_multDigit_5(void) {
     s = pao_natural_set(alloc, 2, &expected); checkStatus(s);
     s = pao_natural_multDigit(alloc, &a, 2, &out); checkStatus(s);
 
-    if (!pao_natural_equal(&out, &expected) || !isValidNumber(&out)) {
+    if (!pao_natural_equal(&out, &expected) || !isValidNatural(&out)) {
       pao_natural_free(alloc, a);
       pao_natural_free(alloc, out);
       pao_natural_free(alloc, expected);
@@ -706,7 +706,7 @@ bool test_natural_multDigit_5(void) {
     s = pao_natural_set(alloc, 4, &expected); checkStatus(s);
     s = pao_natural_multDigit(alloc, &a, 2, &out); checkStatus(s);
 
-    if (!pao_natural_equal(&out, &expected) || !isValidNumber(&out)) {
+    if (!pao_natural_equal(&out, &expected) || !isValidNatural(&out)) {
       pao_natural_free(alloc, a);
       pao_natural_free(alloc, out);
       pao_natural_free(alloc, expected);
@@ -719,7 +719,7 @@ bool test_natural_multDigit_5(void) {
     s = pao_natural_set(alloc, 8, &expected); checkStatus(s);
     s = pao_natural_multDigit(alloc, &a, 2, &out); checkStatus(s);
 
-    if (!pao_natural_equal(&out, &expected) || !isValidNumber(&out)) {
+    if (!pao_natural_equal(&out, &expected) || !isValidNatural(&out)) {
       pao_natural_free(alloc, a);
       pao_natural_free(alloc, out);
       pao_natural_free(alloc, expected);
@@ -745,7 +745,7 @@ bool test_natural_multDigit_6(void) {
     s = pao_natural_set(alloc, 144, &expected); checkStatus(s);
     s = pao_natural_multDigit(alloc, &a, 12, &out); checkStatus(s);
 
-    if (!pao_natural_equal(&out, &expected) || !isValidNumber(&out)) {
+    if (!pao_natural_equal(&out, &expected) || !isValidNatural(&out)) {
       pao_natural_free(alloc, a);
       pao_natural_free(alloc, out);
       pao_natural_free(alloc, expected);
@@ -758,7 +758,7 @@ bool test_natural_multDigit_6(void) {
     s = pao_natural_set(alloc, 3702963, &expected); checkStatus(s);
     s = pao_natural_multDigit(alloc, &a, 3333, &out); checkStatus(s);
 
-    if (!pao_natural_equal(&out, &expected) || !isValidNumber(&out)) {
+    if (!pao_natural_equal(&out, &expected) || !isValidNatural(&out)) {
       pao_natural_free(alloc, a);
       pao_natural_free(alloc, out);
       pao_natural_free(alloc, expected);
@@ -774,7 +774,7 @@ bool test_natural_multDigit_6(void) {
     s = pao_natural_setVec(alloc, digits, 2, &expected); checkStatus(s);
     s = pao_natural_multDigit(alloc, &a, PAO_natural_base-1, &out); checkStatus(s);
 
-    if (!pao_natural_equal(&out, &expected) || !isValidNumber(&out)) {
+    if (!pao_natural_equal(&out, &expected) || !isValidNatural(&out)) {
       pao_natural_free(alloc, a);
       pao_natural_free(alloc, out);
       pao_natural_free(alloc, expected);
@@ -800,7 +800,7 @@ bool test_natural_multDigit_7(void) {
 
   bool ok = pao_natural_equal(&out, &expected) &&
             pao_natural_equalDigit(&a, 4) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -827,7 +827,7 @@ bool test_natural_mult_1(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
@@ -851,7 +851,7 @@ bool test_natural_mult_2(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
@@ -876,7 +876,7 @@ bool test_natural_mult_3(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -900,7 +900,7 @@ bool test_natural_mult_4(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -924,8 +924,8 @@ bool test_natural_mult_5(void) {
   s = pao_natural_mult(alloc, &b, &a, &out2); checkStatus(s);
 
   bool ok = pao_natural_equal(&out1, &out2) &&
-            isValidNumber(&out1) &&
-            isValidNumber(&out2);
+            isValidNatural(&out1) &&
+            isValidNatural(&out2);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out1);
@@ -951,7 +951,7 @@ bool test_natural_mult_6(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
@@ -979,7 +979,7 @@ bool test_natural_mult_7(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -1007,7 +1007,7 @@ bool test_natural_mult_8(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -1030,7 +1030,7 @@ bool test_natural_mult_9(void) {
 
   bool ok = pao_natural_equalDigit(&a, 6) &&
             pao_natural_equalDigit(&b, 7) &&
-            isValidNumber(&a) && isValidNumber(&b);
+            isValidNatural(&a) && isValidNatural(&b);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -1054,7 +1054,7 @@ bool test_natural_mult_10(void) {
   s = pao_natural_mult(alloc, &a, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-          isValidNumber(&out);
+          isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
@@ -1077,7 +1077,7 @@ bool test_natural_multBase_1(void) {
   s = pao_natural_multBase(alloc, &a); checkStatus(s);
 
   bool ok = pao_natural_equal(&a, &expected) &&
-            isValidNumber(&a);
+            isValidNatural(&a);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, expected);
   return ok && isAllFree();
@@ -1097,7 +1097,7 @@ bool test_natural_multBase_2(void) {
   s = pao_natural_multBase(alloc, &a); checkStatus(s);
 
   bool ok = pao_natural_equal(&a, &expected) &&
-            isValidNumber(&a);
+            isValidNatural(&a);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, expected);
   return ok && isAllFree();
@@ -1207,7 +1207,7 @@ bool test_natural_distanceDigit_1(void) {
   s = pao_natural_distanceDigit(alloc, &a, 1, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -1226,7 +1226,7 @@ bool test_natural_distanceDigit_2(void) {
   s = pao_natural_distanceDigit(alloc, &a, 1, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -1245,7 +1245,7 @@ bool test_natural_distanceDigit_3(void) {
   s = pao_natural_distanceDigit(alloc, &a, 0, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -1265,7 +1265,7 @@ bool test_natural_distanceDigit_4(void) {
   s = pao_natural_distanceDigit(alloc, &a, 42, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -1281,7 +1281,7 @@ bool test_natural_distanceDigit_5a(void) {
   s = pao_natural_distanceDigit(alloc, &out, 1, &out); checkStatus(s);
 
   bool ok = pao_natural_equalDigit(&out, 314158) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, out);
   return ok && isAllFree();
 }
@@ -1299,7 +1299,7 @@ bool test_natural_distanceDigit_5b(void) {
   s = pao_natural_distanceDigit(alloc, &out, 1, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
   return ok && isAllFree();
@@ -1330,8 +1330,8 @@ bool test_natural_distance_0(void) {
 
   bool ok = pao_natural_equal(&out1, &expected) &&
             pao_natural_equal(&out2, &expected) &&
-            isValidNumber(&out1) &&
-            isValidNumber(&out2);
+            isValidNatural(&out1) &&
+            isValidNatural(&out2);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out1);
@@ -1353,7 +1353,7 @@ bool test_natural_distance_1(void) {
   s = pao_natural_distance(alloc, &a, &a, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -1378,8 +1378,8 @@ bool test_natural_distance_2(void) {
 
   bool ok = pao_natural_equal(&out1, &expected) &&
             pao_natural_equal(&out2, &expected) &&
-            isValidNumber(&out1) &&
-            isValidNumber(&out2);
+            isValidNatural(&out1) &&
+            isValidNatural(&out2);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
@@ -1410,8 +1410,8 @@ bool test_natural_distance_3(void) {
 
   bool ok = pao_natural_equal(&out1, &expected) &&
             pao_natural_equal(&out2, &expected) &&
-            isValidNumber(&out1) &&
-            isValidNumber(&out2);
+            isValidNatural(&out1) &&
+            isValidNatural(&out2);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out1);
@@ -1437,7 +1437,7 @@ bool test_natural_distance_4a(void) {
   s = pao_natural_distance(alloc, &out, &b, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -1460,7 +1460,7 @@ bool test_natural_distance_4b(void) {
   s = pao_natural_distance(alloc, &b, &out, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&out, &expected) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, b);
   pao_natural_free(alloc, out);
   pao_natural_free(alloc, expected);
@@ -1476,7 +1476,7 @@ bool test_natural_distance_4c(void) {
   s = pao_natural_distance(alloc, &out, &out, &out); checkStatus(s);
 
   bool ok = pao_natural_isZero(&out) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, out);
   return ok && isAllFree();
 }
@@ -1498,7 +1498,7 @@ bool test_natural_divDigit_1(void) {
   s = pao_natural_divDigit(alloc, &A, B, &Q, &R); checkStatus(s);
 
   bool ok = R == exp_R && pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&Q);
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, Q);
   pao_natural_free(alloc, exp_Q);
@@ -1519,7 +1519,7 @@ bool test_natural_divDigit_2(void) {
   s = pao_natural_divDigit(alloc, &A, B, &Q, &R); checkStatus(s);
 
   bool ok = R == exp_R && pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&Q);
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, Q);
   pao_natural_free(alloc, exp_Q);
@@ -1543,7 +1543,7 @@ bool test_natural_divDigit_3(void) {
   s = pao_natural_divDigit(alloc, &A, B, &Q, &R); checkStatus(s);
 
   bool ok = R == exp_R && pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&Q);
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, Q);
   pao_natural_free(alloc, exp_Q);
@@ -1632,7 +1632,7 @@ bool test_natural_divDigit_7(void) {
   s = pao_natural_divDigit(alloc, &A, B, &Q, &R); checkStatus(s);
 
   bool ok = R == exp_R && pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&Q);
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, Q);
   pao_natural_free(alloc, exp_Q);
@@ -1655,7 +1655,7 @@ bool test_natural_divDigit_8(void) {
   s = pao_natural_divDigit(alloc, &A, B, &Q, &R); checkStatus(s);
 
   bool ok = R == exp_R && pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&Q);
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, Q);
   pao_natural_free(alloc, exp_Q);
@@ -1684,8 +1684,8 @@ bool test_natural_div_1(void) {
 
   bool ok = pao_natural_equal(&R, &exp_R) &&
             pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&Q) &&
-            isValidNumber(&R);
+            isValidNatural(&Q) &&
+            isValidNatural(&R);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, Q);
@@ -1715,8 +1715,8 @@ bool test_natural_div_2(void) {
 
   bool ok = pao_natural_equal(&R, &exp_R) &&
             pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&R) && 
-            isValidNumber(&Q);
+            isValidNatural(&R) && 
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, Q);
@@ -1747,8 +1747,8 @@ bool test_natural_div_3(void) {
 
   bool ok = pao_natural_equal(&R, &exp_R) &&
             pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&R) && 
-            isValidNumber(&Q);
+            isValidNatural(&R) && 
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, Q);
@@ -1868,8 +1868,8 @@ bool test_natural_div_7(void) {
 
   bool ok = pao_natural_equal(&R, &exp_R) &&
             pao_natural_equal(&Q, &exp_Q) && 
-            isValidNumber(&R) &&
-            isValidNumber(&Q);
+            isValidNatural(&R) &&
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, Q);
@@ -1898,8 +1898,8 @@ bool test_natural_div_8(void) {
 
   bool ok = pao_natural_equal(&R, &exp_R) &&
             pao_natural_equal(&Q, &exp_Q) &&
-            isValidNumber(&R) &&
-            isValidNumber(&Q);
+            isValidNatural(&R) &&
+            isValidNatural(&Q);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, Q);
@@ -1922,7 +1922,7 @@ bool test_natural_copy_1(void) {
   s = pao_natural_set(alloc, 2222, &a); checkStatus(s);
   s = pao_natural_copy(alloc, &a, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &a) &&
-            isValidNumber(&a);
+            isValidNatural(&a);
 
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
@@ -1940,7 +1940,7 @@ bool test_natural_copy_2(void) {
   s = pao_natural_copy(alloc, &a, &out); checkStatus(s);
 
   bool ok = pao_natural_equal(&a, &out) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
 
@@ -1959,7 +1959,7 @@ bool test_natural_copy_3(void) {
 
   s = pao_natural_copy(alloc, &a, &out); checkStatus(s);
   bool ok = pao_natural_equal(&a, &out) &&
-            isValidNumber(&out);
+            isValidNatural(&out);
   pao_natural_free(alloc, a);
   pao_natural_free(alloc, out);
   return ok && isAllFree();
@@ -1991,7 +1991,7 @@ bool test_natural_growShrink_1(void) {
   }
 
   bool ok = pao_natural_isZero(&A) &&
-            isValidNumber(&A);
+            isValidNatural(&A);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, C);
   return ok && isAllFree();
@@ -2021,7 +2021,7 @@ bool test_natural_growShrink_2(void) {
     i--;
   }
 
-  bool ok = pao_natural_isZero(&A) && isValidNumber(&A);
+  bool ok = pao_natural_isZero(&A) && isValidNatural(&A);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, C);
@@ -2056,7 +2056,7 @@ bool test_natural_growShrink_3(void) {
     i--;
   }
 
-  bool ok = pao_natural_equalDigit(&A, 1) && isValidNumber(&A);
+  bool ok = pao_natural_equalDigit(&A, 1) && isValidNatural(&A);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, C);
   return ok && isAllFree();
@@ -2081,7 +2081,7 @@ bool test_natural_growShrink_4(void) {
     i--;
   }
 
-  bool ok = pao_natural_isZero(&C) && isValidNumber(&C);
+  bool ok = pao_natural_isZero(&C) && isValidNatural(&C);
   pao_natural_free(alloc, C);
   return ok && isAllFree();
 }
@@ -2106,7 +2106,7 @@ bool test_natural_growShrink_5(void) {
     i--;
   }
 
-  bool ok = pao_natural_isZero(&C) && isValidNumber(&C);
+  bool ok = pao_natural_isZero(&C) && isValidNatural(&C);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, C);
   return ok && isAllFree();
@@ -2148,7 +2148,7 @@ bool test_natural_growShrink_6(void) {
     i--;
   }
 
-  bool ok = pao_natural_equalDigit(&A, 1) && isValidNumber(&A);
+  bool ok = pao_natural_equalDigit(&A, 1) && isValidNatural(&A);
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, B);
   pao_natural_free(alloc, C);

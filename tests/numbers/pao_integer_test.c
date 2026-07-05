@@ -12,6 +12,31 @@ char buffer[DEFAULT_SIZE];
 pao_Allocator _alloc;
 #define alloc (&_alloc)
 
+bool isValidInteger(pao_Integer* n) {
+  if (n->abs.len == 0 && n->sign == +1) {
+    if (n->sign == +1) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  // tests for invalid zero and invalid leading zeroes
+  if (n->abs.digits[n->abs.len-1] == 0) {
+    return false;
+  }
+
+  // invalid digits
+  u32 i = 0;
+  while (i < n->abs.len) {
+    if (n->abs.digits[i] >= PAO_natural_base) {
+      return false;
+    }
+    i++;
+  }
+  return true;
+}
+
 bool isAllFree(void) {
   return alloc->info(alloc->heap).used == 0;
 }
@@ -519,6 +544,93 @@ bool test_integer_compare_4d(void) {
 }
 /* END: testing compare */
 
+/* BEGIN: testing copy */
+bool test_integer_copy_1(void) {
+  pao_Integer a = pao_integer_new();
+  pao_Integer out = pao_integer_new();
+  pao_Status s;
+
+  s = pao_integer_set(alloc, 2222, &a); checkStatus(s);
+  s = pao_integer_copy(alloc, &a, &out); checkStatus(s);
+  bool ok = pao_integer_equal(&out, &a) &&
+            isValidInteger(&a);
+
+  pao_integer_free(alloc, a);
+  pao_integer_free(alloc, out);
+
+  return ok && isAllFree();
+}
+
+bool test_integer_copy_2a(void) {
+  pao_Status s;
+  pao_Integer a = pao_integer_new();
+  pao_Integer out = pao_integer_new();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  s = pao_integer_setVec(alloc, +1, A_DIGS, 2, &a); checkStatus(s);
+  s = pao_integer_copy(alloc, &a, &out); checkStatus(s);
+
+  bool ok = pao_integer_equal(&a, &out) &&
+            isValidInteger(&out);
+  pao_integer_free(alloc, a);
+  pao_integer_free(alloc, out);
+
+  return ok && isAllFree();
+}
+
+bool test_integer_copy_2b(void) {
+  pao_Status s;
+  pao_Integer a = pao_integer_new();
+  pao_Integer out = pao_integer_new();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  s = pao_integer_setVec(alloc, -1, A_DIGS, 2, &a); checkStatus(s);
+  s = pao_integer_copy(alloc, &a, &out); checkStatus(s);
+
+  bool ok = pao_integer_equal(&a, &out) &&
+            isValidInteger(&out);
+  pao_integer_free(alloc, a);
+  pao_integer_free(alloc, out);
+
+  return ok && isAllFree();
+}
+
+// must work even if has garbage in the out param
+bool test_integer_copy_3a(void) {
+  pao_Status s;
+  pao_Integer a = pao_integer_new();
+  pao_Integer out = pao_integer_new();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  s = pao_integer_setVec(alloc, +1, A_DIGS, 2, &a); checkStatus(s);
+  s = pao_integer_set(alloc, 123456, &out); checkStatus(s);
+
+  s = pao_integer_copy(alloc, &a, &out); checkStatus(s);
+  bool ok = pao_integer_equal(&a, &out) &&
+            isValidInteger(&out);
+  pao_integer_free(alloc, a);
+  pao_integer_free(alloc, out);
+  return ok && isAllFree();
+}
+
+bool test_integer_copy_3b(void) {
+  pao_Status s;
+  pao_Integer a = pao_integer_new();
+  pao_Integer out = pao_integer_new();
+
+  u32 A_DIGS[] = {999999999, 999999999};
+  s = pao_integer_setVec(alloc, -1, A_DIGS, 2, &a); checkStatus(s);
+  s = pao_integer_set(alloc, 123456, &out); checkStatus(s);
+
+  s = pao_integer_copy(alloc, &a, &out); checkStatus(s);
+  bool ok = pao_integer_equal(&a, &out) &&
+            isValidInteger(&out);
+  pao_integer_free(alloc, a);
+  pao_integer_free(alloc, out);
+  return ok && isAllFree();
+}
+/* END: testing copy */
+
 /* BEGIN: DRIVER CODE */
 Tester tests[] = {
   {"test_integer_snprint_0", test_integer_snprint_0},
@@ -541,6 +653,12 @@ Tester tests[] = {
   {"test_integer_compare_4b", test_integer_compare_4b},
   {"test_integer_compare_4c", test_integer_compare_4c},
   {"test_integer_compare_4d", test_integer_compare_4d},
+
+  {"test_integer_copy_1", test_integer_copy_1},
+  {"test_integer_copy_2a", test_integer_copy_2a},
+  {"test_integer_copy_2b", test_integer_copy_2b},
+  {"test_integer_copy_3a", test_integer_copy_3a},
+  {"test_integer_copy_3b", test_integer_copy_3b},
 
   {"test_integer_growShrink_1a", test_integer_growShrink_1a},
   {"test_integer_growShrink_1b", test_integer_growShrink_1b},
