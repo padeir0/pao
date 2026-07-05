@@ -1,8 +1,8 @@
 // #include "../src/pao_natural.h"
-#include "../../lib/pao_integer.h"
+#include "../../lib/numbers/pao_integer.h"
 #include "../../lib/pao_basicTypes.h"
 #include "../../lib/pao_status.h"
-#include "../../lib/pao_stdAlloc.h"
+#include "../../lib/alloc/pao_stdAlloc.h"
 #include <stdio.h>
 #include <strings.h>
 #include "../common.h"

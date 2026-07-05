@@ -8,8 +8,8 @@ See the LICENSE file for more information.
 #define PAO_linearAlloc_H
 
 #include <stdio.h>
-#include "pao_basicTypes.h"
-#include "pao_allocator.h"
+#include "../pao_basicTypes.h"
+#include "../pao_allocator.h"
 
 typedef struct {
   u8*   buffer;

@@ -7,7 +7,7 @@ See the LICENSE file for more information.
 #ifndef PAO_stdAlloc_H
 #define PAO_stdAlloc_H
 
-#include "pao_allocator.h"
+#include "../pao_allocator.h"
 #include <stdio.h>
 
 static inline

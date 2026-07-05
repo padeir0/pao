@@ -15,6 +15,14 @@ typedef enum {
   PAO_status_bufferTooSmall,
   PAO_status_invalidUTF8,
   PAO_status_eof,
+  PAO_status_outOfBounds,
+  /* indicates the pointer to be freed is unaligned with chunk boundaries */
+  PAO_status_badAlignment,
+  /* indicates given chunk size is too small (minimum is sizeof(node)) */
+  PAO_status_badSize, 
+  /* indicates given buffer is too small (minimum is sizeof(pool) + chunksize) */
+  /* indicates the given buffer is null */
+  PAO_status_nullBuffer
 } pao_Status;
 
 #define PAO_status_check if (st != PAO_status_ok) { return st; }

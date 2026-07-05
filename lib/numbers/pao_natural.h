@@ -10,15 +10,15 @@ See the LICENSE file for more information.
 // remove when reimplemented memcpy
 #include <string.h>
 
-#include "pao_basicTypes.h"
-#include "pao_status.h"
-#include "pao_allocator.h"
-#include "pao_util.h"
-#include "pao_order.h"
-#include "pao_config.h"
+#include "../pao_basicTypes.h"
+#include "../pao_status.h"
+#include "../pao_allocator.h"
+#include "../pao_util.h"
+#include "../pao_order.h"
+#include "../pao_config.h"
 
 #if PAO_config_debug
-  #include "pao_debug.h"
+  #include "../pao_debug.h"
 #endif
 
 typedef struct {

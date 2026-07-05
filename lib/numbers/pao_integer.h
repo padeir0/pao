@@ -7,9 +7,9 @@ See the LICENSE file for more information.
 #ifndef PAO_integer_H
 #define PAO_integer_H
 
-#include "pao_basicTypes.h"
-#include "pao_allocator.h"
-#include "pao_status.h"
+#include "../pao_basicTypes.h"
+#include "../pao_allocator.h"
+#include "../pao_status.h"
 #include "pao_natural.h"
 
 typedef struct {
