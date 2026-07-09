@@ -850,11 +850,7 @@ char* i_pao_natural_firstNonzeroChar(char* buffer, usize buffSize) {
 
 static inline
 void i_pao_natural_WriteU32(u32 n, char* buffer) {
-  int i = 0;
-  while (i < PAO_natural_digitsPerInt) {
-    buffer[i] = '0';
-    i++;
-  }
+  memset(buffer, '0', PAO_natural_digitsPerInt);
   if (n == 0) {
     return;
   }
@@ -869,9 +865,15 @@ void i_pao_natural_WriteU32(u32 n, char* buffer) {
 }
 
 /* Only writes a number if the given buffer has sufficient size.
+
+OBS: `padRight = false` is used with decimal representation of numbers,
+     so that leading zeroes are removed.
+     `padLeft = true` is also used with decimal representation, so that
+     if the digits [1, 1] are behind the period, then the number will read
+     `.1000000001` and not `0.11` incorrectly.
 */
 static inline
-size_t i_pao_natural_snprint(const pao_Natural* nat, char* buffer, usize buffSize, bool padLeft, bool padRight) {
+usize i_pao_natural_snprint(const pao_Natural* nat, char* buffer, usize buffSize, bool padLeft, bool padRight) {
   // NOTE(1):
   usize neededBytes = (usize)(nat->len * PAO_natural_digitsPerInt);
   if (buffSize == 0 || neededBytes >= buffSize) {
@@ -935,7 +937,7 @@ it either fully writes the number or returns 0.
 /* TODO: refactor this to use pao_buffer
 */
 static inline
-usize pao_natural_snprint(const pao_Natural* nat, char* buffer, size_t buffSize) {
+usize pao_natural_snprint(const pao_Natural* nat, char* buffer, usize buffSize) {
   #if PAO_config_debug
     if (nat == NULL || buffer == NULL) {
       PAO_debug_fatalFmt("Some pointer parameter is null. nat = %p, buffer = %p.", (void*)nat, (void*)buffer);

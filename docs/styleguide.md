@@ -111,10 +111,9 @@ Other small things:
  - Never use `goto`, `continue` or `for` loops.
  - Avoid taking the address of local variables.
  - Never modify procedure arguments, never take their address.
- - All private functions must be `static`.
- - Only private functions may be marked with `inline`.
+ - All libary functions must be marked with `static inline`.
  - Only depend on standard library.
- - Provide no compile-time library configuration options.
+ - Library configuration through conditional macros should be rather simple.
  - Provide no compatibility with C++.
  - Bad usage and internal errors should crash the program.
  - Recoverable errors should return a `pao_status` code (or should document the return values).

@@ -21,7 +21,7 @@ func: name of the function that called `alloc`, this is useful
 
 return: pointer to allocated object, NULL if allocation failed
 */
-typedef void* (*pao_Alloc)(void* heap, usize size, char* func);
+typedef void* (*pao_Alloc)(void* heap, usize size, const char* func);
 
 /*
 Frees an object previously allocated by pao_Alloc, freeing a
@@ -66,5 +66,9 @@ typedef struct {
   pao_FreeAll freeAll;
   pao_Info info;
 } pao_Allocator;
+/*
+  TODO: should allocators provide a function that frees AND BZEROES(0) a region of memory?
+        this seems reasonable, but the allocator struct will grow quite a bit...
+*/
 
 #endif

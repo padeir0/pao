@@ -12,7 +12,7 @@ See the LICENSE file for more information.
 
 #include <limits.h>
 #include <stdio.h>
-#include <strings.h>
+#include <string.h> /* only using memset */
 #include "pao_basicTypes.h"
 
 /* This is a general purpose read/write buffer.
@@ -71,7 +71,7 @@ void pao_buffer_reset(pao_Buffer* buff) {
 
 static inline
 void pao_buffer_bzero(pao_Buffer* buff) {
-  bzero(buff->ptr+buff->start, buff->len);
+  memset(buff->ptr+buff->start, 0, buff->len);
 }
 
 static inline
@@ -105,7 +105,7 @@ bool pao_buffer_readByte(pao_Buffer* buff, byte* out) {
 /* Writes a *NULL-terminated* string to the buffer.
 */
 static inline
-usize pao_buffer_writeLiteral(pao_Buffer* buff, char* s) {
+usize pao_buffer_writeLiteral(pao_Buffer* buff, const char* s) {
   usize i = 0;
   usize absLen = i_pao_buffer_absLen(buff);
   while (i + absLen < buff->cap && s[i] != '\0') {

@@ -10,7 +10,7 @@ See the LICENSE file for more information.
 #include "../pao_basicTypes.h"
 #include "../pao_status.h"
 #include "../pao_allocator.h"
-#include <strings.h> /*TODO: reimplement bzero and remove this dependency*/
+#include <string.h> /* only using memset */
 
 typedef struct _pool_snode {
   struct _pool_snode* next;
@@ -26,7 +26,7 @@ typedef struct {
 } pao_Pool;
 
 static inline
-uptr i_pao_pool_distance(uint8_t* a, uint8_t* b) {
+uptr i_pao_pool_distance(u8* a, u8* b) {
   if (a > b) {
     return (uptr)a-(uptr)b;
   } else {
@@ -51,8 +51,8 @@ void i_pao_pool_setList(pao_Pool* p) {
   /* curr is at the edge of the buffer, and may not be valid
    * in case the end is not aligned, we leave padding
    */
-  if ((uint8_t*)curr + p->chunkSize != p->end) {
-    p->end = (uint8_t*)curr;
+  if ((u8*)curr + p->chunkSize != p->end) {
+    p->end = (u8*)curr;
     curr = (i_pao_pool_Node*)((u8*)(curr) - p->chunkSize);
     p->size = i_pao_pool_distance(p->begin, p->end);
   }
@@ -61,7 +61,7 @@ void i_pao_pool_setList(pao_Pool* p) {
   p->tail = curr;
 }
 
-const size_t PAO_pool_minChunkSize = sizeof(i_pao_pool_Node);
+#define PAO_pool_minChunkSize sizeof(i_pao_pool_Node)
 
 /* creates a pool at the beginning of the outBuffer
    returns:
@@ -70,7 +70,7 @@ const size_t PAO_pool_minChunkSize = sizeof(i_pao_pool_Node);
     - PAO_status_bufferTooSmall: if the buffer can't fit the pool + 1 chunk.
  */
 static inline
-pao_Status pao_pool_new(size_t buffsize, size_t chunksize, uint8_t* outBuffer) {
+pao_Status pao_pool_new(usize buffsize, usize chunksize, u8* outBuffer) {
   pao_Pool* p;
 
   if (outBuffer == NULL) {
@@ -91,7 +91,7 @@ pao_Status pao_pool_new(size_t buffsize, size_t chunksize, uint8_t* outBuffer) {
   p->chunkSize = chunksize;
   p->size = i_pao_pool_distance(p->begin, p->end);
 
-  bzero(p->begin, p->size);
+  memset(p->begin, 0, p->size);
   i_pao_pool_setList(p);
   return PAO_status_ok;
 }
@@ -124,7 +124,7 @@ static inline
 pao_Status pao_pool_free(pao_Pool* p, void* ptr) {
   i_pao_pool_Node* new;
 
-  if (!(p->begin <= (uint8_t*)ptr && (uint8_t*)ptr < p->end)) {
+  if (!(p->begin <= (u8*)ptr && (u8*)ptr < p->end)) {
     return PAO_status_outOfBounds;
   }
 
@@ -155,10 +155,14 @@ pao_Status pao_pool_freeAll(pao_Pool* p) {
 }
 
 /* returns the amount of memory available
+
+TODO: this is O(n), it's nice as an integrity check, but
+      a O(1) procedure should be provided, with an incremental
+      counter in the pao_Pool struct.
  */
 static inline
-size_t pao_pool_available(pao_Pool* p) {
-  size_t total = 0;
+usize pao_pool_available(const pao_Pool* p) {
+  usize total = 0;
   i_pao_pool_Node* curr = p->head;
   while (curr != NULL) {
     total += p->chunkSize;
@@ -170,21 +174,21 @@ size_t pao_pool_available(pao_Pool* p) {
 /* returns the amount of memory used
  */
 static inline
-size_t pao_pool_used(pao_Pool* p) {
+usize pao_pool_used(const pao_Pool* p) {
   return p->size - pao_pool_available(p);
 }
 
 /* returns the amount of total memory managed by this pool
  */
 static inline
-size_t pao_pool_total(pao_Pool* p) {
+usize pao_pool_total(const pao_Pool* p) {
   return p->size;
 }
 /* returns if the pool is empty
  */
 static inline
-bool pao_pool_empty(pao_Pool* p) {
-  size_t total = pao_pool_available(p);
+bool pao_pool_empty(const pao_Pool* p) {
+  usize total = pao_pool_available(p);
   if (total < p->size) {
     return false;
   }
@@ -195,7 +199,7 @@ static inline
 void* i_pao_pool_alloc(
   void* heap,
   usize size,
-  __attribute__((unused)) char* func
+  __attribute__((unused)) const char* func
 ) {
   pao_Pool* p = (pao_Pool*) heap;
   if (size > p->chunkSize) {

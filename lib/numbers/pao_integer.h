@@ -32,7 +32,15 @@ void pao_integer_free(pao_Allocator* mem, pao_Integer i) {
 }
 
 static inline
-pao_Status pao_integer_set(pao_Allocator* mem, i32 num, pao_Integer* i) {
+pao_Status pao_integer_set(pao_Allocator* mem, i32 num, pao_Integer* out) {
+  #if PAO_config_debug
+    if (mem == NULL || out == NULL) {
+      PAO_debug_fatalFmt("Some pointer parameter is null. mem = %p, out = %p.", (void*)mem, (void*)out);
+    }
+    if (PAO_natural_base <= pao_util_absI32(num)) {
+      PAO_debug_fatalFmt("`num` does not fit into a single bignum digit. num = %d.", num);
+    }
+  #endif
   i8 sign;
   u32 digit;
   if (num >= 0) {
@@ -42,8 +50,8 @@ pao_Status pao_integer_set(pao_Allocator* mem, i32 num, pao_Integer* i) {
     sign = -1;
     digit = (u32)(-num);
   }
-  i->sign = sign;
-  return pao_natural_set(mem, digit, &i->abs);
+  out->sign = sign;
+  return pao_natural_set(mem, digit, &out->abs);
 }
 
 static inline
@@ -90,7 +98,7 @@ pao_Order pao_integer_compare(const pao_Integer* A, const pao_Integer* B) {
 }
 
 static inline
-usize pao_integer_snprint(const pao_Integer* A, char* buffer, size_t buffSize) {
+usize pao_integer_snprint(const pao_Integer* A, char* buffer, usize buffSize) {
   if (buffSize == 0) {
     return 0;
   }

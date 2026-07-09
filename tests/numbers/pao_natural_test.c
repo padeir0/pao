@@ -82,10 +82,10 @@ bool test_natural_addDigit_1(void) {
   pao_Natural out = pao_natural_new();
   pao_Natural expected = pao_natural_new();
 
-  u32 A_DIGS[] = {999999999, 999999999};
+  u32 A_DIGS[] = {999999999, 999999998};
   s = pao_natural_setVec(alloc, A_DIGS, 2, &a); checkStatus(s);
-  u32 EXP_DIGS[3] = {1, 0, 0};
-  s = pao_natural_setVec(alloc, EXP_DIGS, 3, &expected); checkStatus(s);
+  u32 EXP_DIGS[3] = {999999999, 999999999};
+  s = pao_natural_setVec(alloc, EXP_DIGS, 2, &expected); checkStatus(s);
 
   s = pao_natural_addDigit(alloc, &a, 1, &out); checkStatus(s);
   bool ok = pao_natural_equal(&out, &expected) &&

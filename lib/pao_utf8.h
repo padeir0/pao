@@ -9,6 +9,7 @@ See the LICENSE file for more information.
 
 #include "pao_basicTypes.h"
 #include "pao_status.h"
+#include "pao_config.h"
 
 #if PAO_config_debug
   #include "pao_debug.h"
@@ -41,7 +42,7 @@ static inline
 pao_UTF8DecodeReturn pao_utf8_decode(const u8* buffer, usize buff_size) {
   #if PAO_config_debug
     if (buffer == NULL) {
-      PAO_debug_fatalFmt("Buffer is null.");
+      PAO_debug_fatal("Buffer is null.");
     }
   #endif
 

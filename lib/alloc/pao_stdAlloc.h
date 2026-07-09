@@ -14,7 +14,7 @@ static inline
 void* i_pao_stdAlloc_alloc(
   __attribute__((unused)) void* heap,
   usize size,
-  __attribute__((unused)) char* func
+  __attribute__((unused)) const char* func
 ) {
   return malloc(size);
 }
@@ -40,14 +40,14 @@ pao_AllocatorInfo i_pao_stdAlloc_info(__attribute__((unused)) void* heap) {
 
 static inline
 pao_Allocator pao_stdAlloc_new(void) {
-  pao_Allocator _pao_stdAlloc = {
+  pao_Allocator alloc = {
     .heap = NULL,
     .alloc = i_pao_stdAlloc_alloc,
     .free = i_pao_stdAlloc_free,
     .freeAll = i_pao_stdAlloc_freeAll,
     .info = i_pao_stdAlloc_info,
   };
-  return _pao_stdAlloc;
+  return alloc;
 }
 
 #endif

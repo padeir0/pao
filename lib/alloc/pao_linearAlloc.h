@@ -19,7 +19,7 @@ typedef struct {
 
 /* returns a arena allocated at the beginning of the buffer */
 static inline
-pao_LinearAlloc* pao_linearAlloc_create(uint8_t* buffer, size_t size) {
+pao_LinearAlloc* pao_linearAlloc_create(u8* buffer, usize size) {
   pao_LinearAlloc* out;
   if (buffer == NULL) {
     return NULL;
@@ -38,9 +38,9 @@ pao_LinearAlloc* pao_linearAlloc_create(uint8_t* buffer, size_t size) {
 
 /* returns NULL if it fails to allocate */
 static inline
-void* pao_linearAlloc_alloc(pao_LinearAlloc* a, size_t size) {
+void* pao_linearAlloc_alloc(pao_LinearAlloc* a, usize size) {
   void* out = (void*)(a->buffer + a->allocated);
-  if (a->allocated+size >= a->buffSize) {
+  if (a->allocated+size > a->buffSize) {
     return NULL;
   }
   a->allocated += size;
@@ -56,19 +56,19 @@ pao_Status pao_linearAlloc_freeAll(pao_LinearAlloc* a) {
 
 /* returns the amount of memory available */
 static inline
-size_t pao_linearAlloc_available(pao_LinearAlloc* a) {
+usize pao_linearAlloc_available(pao_LinearAlloc* a) {
   return a->buffSize - a->allocated;
 }
 
 /* returns the amount of memory used */
 static inline
-size_t pao_linearAlloc_used(pao_LinearAlloc* a) {
+usize pao_linearAlloc_used(pao_LinearAlloc* a) {
   return a->allocated;
 }
 
 /* returns the amount of memory managed by this allocator */
 static inline
-size_t pao_linearAlloc_total(pao_LinearAlloc* a) {
+usize pao_linearAlloc_total(pao_LinearAlloc* a) {
   return a->buffSize;
 }
 
@@ -82,7 +82,7 @@ static inline
 void* i_pao_linearAlloc_alloc(
   void* heap,
   usize size,
-  __attribute__((unused)) char* func
+  __attribute__((unused)) const char* func
 ) {
   return pao_linearAlloc_alloc((pao_LinearAlloc*) heap, size);
 }

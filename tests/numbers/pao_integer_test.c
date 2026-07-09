@@ -13,7 +13,7 @@ pao_Allocator _alloc;
 #define alloc (&_alloc)
 
 bool isValidInteger(pao_Integer* n) {
-  if (n->abs.len == 0 && n->sign == +1) {
+  if (n->abs.len == 0) {
     if (n->sign == +1) {
       return true;
     } else {

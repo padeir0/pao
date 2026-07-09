@@ -5,6 +5,10 @@
 #include <string.h>
 #include "../lib/pao_colors.h"
 
+#ifndef PAO_TEST_COMMON
+
+#define PAO_TEST_COMMON 1
+
 #define DEFAULT_SIZE 2048
 
 void checkStatus(pao_Status ns) {
@@ -19,7 +23,9 @@ typedef struct {
   bool (*func)(void);
 } Tester;
 
+static
 char print_buff[DEFAULT_SIZE];
+
 void test(Tester t) {
   bzero(print_buff, DEFAULT_SIZE);
   if (t.func()) {
@@ -40,3 +46,4 @@ void run_tests(Tester* tests, int length) {
   }
 }
 
+#endif

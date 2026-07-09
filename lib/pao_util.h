@@ -4,10 +4,10 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#include "pao_basicTypes.h"
-
 #ifndef PAO_util_H
 #define PAO_util_H
+
+#include "pao_basicTypes.h"
 
 static inline
 u32 pao_util_minU32(u32 a, u32 b) {
@@ -23,6 +23,15 @@ u32 pao_util_maxU32(u32 a, u32 b) {
     return b;
   }
   return a;
+}
+
+static inline
+i32 pao_util_absI32(i32 a) {
+  if (a < 0) {
+    return -a;
+  } else {
+    return a;
+  }
 }
 
 static inline
