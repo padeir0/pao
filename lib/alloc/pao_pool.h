@@ -119,6 +119,7 @@ void* pao_pool_alloc(pao_Pool* p) {
  * returns:
     - PAO_status_outOfBounds: indicates the pointer to be freed is not within the pool
     - PAO_status_badAlignment: indicates the pointer to be freed is unaligned with chunk boundaries
+   TODO: write tests for double free.
  */
 static inline
 pao_Status pao_pool_free(pao_Pool* p, void* ptr) {

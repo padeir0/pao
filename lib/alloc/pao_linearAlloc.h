@@ -37,6 +37,7 @@ pao_LinearAlloc* pao_linearAlloc_create(u8* buffer, usize size) {
 }
 
 /* returns NULL if it fails to allocate */
+/* TODO: Allocate at proper alignment in AMD64/ARM64!!! */
 static inline
 void* pao_linearAlloc_alloc(pao_LinearAlloc* a, usize size) {
   void* out = (void*)(a->buffer + a->allocated);

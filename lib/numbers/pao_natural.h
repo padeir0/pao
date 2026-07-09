@@ -35,7 +35,7 @@ typedef struct {
 
 /* BEGIN: NATVEC */
 static inline
-u32* i_pao_natural_natVecAlloc(pao_Allocator* mem, usize size, char* func) {
+u32* i_pao_natural_natVecAlloc(pao_Allocator* mem, usize size, const char* func) {
   return (u32*)mem->alloc(mem->heap, size*sizeof(u32), func);
 }
 
@@ -50,9 +50,6 @@ void i_pao_natural_natVecFree(pao_Allocator* mem, u32* vec) {
 }
 /* END: NATVEC */
 
-/* BEGIN: UTIL */
-
-/* END: UTIL */
 static inline
 pao_Natural pao_natural_new(void) {
   pao_Natural n;
@@ -70,7 +67,7 @@ void pao_natural_free(pao_Allocator* mem, pao_Natural n) {
 static inline
 pao_Status i_pao_natural_pushDigit(pao_Allocator* mem, u32 digit, pao_Natural* out) {
   if (out->cap == 0) {
-    out->digits = i_pao_natural_natVecAlloc(mem, PAO_natural_minNatVec, (char*)__func__);
+    out->digits = i_pao_natural_natVecAlloc(mem, PAO_natural_minNatVec, (const char*)__func__);
     if (out->digits == NULL) {
       return PAO_status_outOfMemory;
     }

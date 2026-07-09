@@ -8,6 +8,7 @@ See the LICENSE file for more information.
 #define PAO_stdAlloc_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "../pao_allocator.h"
 
 static inline
