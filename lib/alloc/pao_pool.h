@@ -9,6 +9,7 @@ See the LICENSE file for more information.
 
 #include "../pao_basicTypes.h"
 #include "../pao_status.h"
+#include "../pao_allocator.h"
 #include <strings.h> /*TODO: reimplement bzero and remove this dependency*/
 
 typedef struct _pool_snode {
@@ -20,7 +21,7 @@ typedef struct {
   i_pao_pool_Node* tail;
   u8* begin;
   u8* end;
-  usize chunksize;
+  usize chunkSize;
   usize size;
 } pao_Pool;
 
@@ -39,20 +40,20 @@ void i_pao_pool_setList(pao_Pool* p) {
   /* we need this because of alignment, the chunks may not align
    * and leave a padding at the end of the buffer
    */
-  i_pao_pool_Node* end = (i_pao_pool_Node*)((u8*)(p->end) -p->chunksize);
+  i_pao_pool_Node* end = (i_pao_pool_Node*)((u8*)(p->end) -p->chunkSize);
 
   p->head = curr;
   while (curr < end) {
-    curr->next = (i_pao_pool_Node*)((u8*)(curr) + p->chunksize);
+    curr->next = (i_pao_pool_Node*)((u8*)(curr) + p->chunkSize);
     curr = curr->next;
   }
 
   /* curr is at the edge of the buffer, and may not be valid
    * in case the end is not aligned, we leave padding
    */
-  if ((uint8_t*)curr + p->chunksize != p->end) {
+  if ((uint8_t*)curr + p->chunkSize != p->end) {
     p->end = (uint8_t*)curr;
-    curr = (i_pao_pool_Node*)((u8*)(curr) - p->chunksize);
+    curr = (i_pao_pool_Node*)((u8*)(curr) - p->chunkSize);
     p->size = i_pao_pool_distance(p->begin, p->end);
   }
 
@@ -87,7 +88,7 @@ pao_Status pao_pool_new(size_t buffsize, size_t chunksize, uint8_t* outBuffer) {
   p = (pao_Pool*)outBuffer;
   p->begin = outBuffer + sizeof(pao_Pool);
   p->end = outBuffer + buffsize;
-  p->chunksize = chunksize;
+  p->chunkSize = chunksize;
   p->size = i_pao_pool_distance(p->begin, p->end);
 
   bzero(p->begin, p->size);
@@ -127,7 +128,7 @@ pao_Status pao_pool_free(pao_Pool* p, void* ptr) {
     return PAO_status_outOfBounds;
   }
 
-  if (i_pao_pool_distance(ptr, p->begin) % p->chunksize != 0) {
+  if (i_pao_pool_distance(ptr, p->begin) % p->chunkSize != 0) {
     return PAO_status_badAlignment;
   }
 
@@ -148,8 +149,9 @@ pao_Status pao_pool_free(pao_Pool* p, void* ptr) {
 /* frees all objects in the pool
  */
 static inline
-void pao_pool_freeAll(pao_Pool* p) {
+pao_Status pao_pool_freeAll(pao_Pool* p) {
   i_pao_pool_setList(p);
+  return PAO_status_ok;
 }
 
 /* returns the amount of memory available
@@ -159,7 +161,7 @@ size_t pao_pool_available(pao_Pool* p) {
   size_t total = 0;
   i_pao_pool_Node* curr = p->head;
   while (curr != NULL) {
-    total += p->chunksize;
+    total += p->chunkSize;
     curr = curr->next;
   }
   return total;
@@ -172,6 +174,12 @@ size_t pao_pool_used(pao_Pool* p) {
   return p->size - pao_pool_available(p);
 }
 
+/* returns the amount of total memory managed by this pool
+ */
+static inline
+size_t pao_pool_total(pao_Pool* p) {
+  return p->size;
+}
 /* returns if the pool is empty
  */
 static inline
@@ -181,5 +189,53 @@ bool pao_pool_empty(pao_Pool* p) {
     return false;
   }
   return true;
+}
+
+static inline
+void* i_pao_pool_alloc(
+  void* heap,
+  usize size,
+  __attribute__((unused)) char* func
+) {
+  pao_Pool* p = (pao_Pool*) heap;
+  if (size > p->chunkSize) {
+    return NULL;
+  }
+  return pao_pool_alloc(p);
+}
+
+static inline
+pao_Status i_pao_pool_free(
+  void* heap,
+  void* obj
+) {
+  return pao_pool_free((pao_Pool*)heap, obj);
+}
+
+static inline
+pao_Status i_pao_pool_freeAll(void* heap) {
+  return pao_pool_freeAll((pao_Pool*)heap);
+}
+
+static inline
+pao_AllocatorInfo i_pao_pool_info(void* heap) {
+  pao_Pool* p = (pao_Pool*)heap;
+  pao_AllocatorInfo info = {
+    .used = pao_pool_used(p),
+    .total = pao_pool_total(p)
+  };
+  return info;
+}
+
+static inline
+pao_Allocator pao_pool_createInterface(pao_Pool* alloc) {
+  pao_Allocator out = {
+    .heap = (void*)alloc,
+    .alloc = i_pao_pool_alloc,
+    .free = i_pao_pool_free,
+    .freeAll = i_pao_pool_freeAll,
+    .info = i_pao_pool_info
+  };
+  return out;
 }
 #endif

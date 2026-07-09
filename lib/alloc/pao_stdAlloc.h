@@ -7,8 +7,8 @@ See the LICENSE file for more information.
 #ifndef PAO_stdAlloc_H
 #define PAO_stdAlloc_H
 
-#include "../pao_allocator.h"
 #include <stdio.h>
+#include "../pao_allocator.h"
 
 static inline
 void* i_pao_stdAlloc_alloc(
@@ -20,14 +20,14 @@ void* i_pao_stdAlloc_alloc(
 }
 
 static inline
-void i_pao_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
+pao_Status i_pao_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
   free(obj);
+  return PAO_status_ok;
 }
 
 static inline
-void i_pao_stdAlloc_freeAll(__attribute__((unused)) void* heap) {
-  printf("error: standard malloc provides no free_all function.\n");
-  abort();
+pao_Status i_pao_stdAlloc_freeAll(__attribute__((unused)) void* heap) {
+  return PAO_status_failedFree;
 }
 
 static inline

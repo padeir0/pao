@@ -11,7 +11,7 @@
  - [ ] Allocators with static heap size.
    - [x] Arena allocator.
    - [ ] Stack allocator.
-   - [ ] Pool allocator.
+   - [x] Pool allocator.
    - [ ] Free-list allocator.
  - [ ] UTF8 Encoder/Decoder
    - [ ] Encoder

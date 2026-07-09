@@ -8,6 +8,7 @@ See the LICENSE file for more information.
 #define PAO_allocator_H
 
 #include "pao_basicTypes.h"
+#include "pao_status.h"
 
 /*
 Allocates an object of given size.
@@ -28,13 +29,13 @@ wild pointer will lead to undefined behaviour. The object must
 be freed by the same allocator that allocated it, otherwise
 you'll also end up with undefined behaviour.
 */
-typedef void  (*pao_Free)(void* heap, void* obj);
+typedef pao_Status (*pao_Free)(void* heap, void* obj);
 
 /*
 Frees the entire heap. Allocators that do not provide this should
 crash the program when this function is called (ie, pao_stdmalloc).
 */
-typedef void  (*pao_FreeAll)(void* heap);
+typedef pao_Status (*pao_FreeAll)(void* heap);
 
 typedef struct {
   usize used;

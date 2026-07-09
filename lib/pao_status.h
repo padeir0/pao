@@ -22,7 +22,8 @@ typedef enum {
   PAO_status_badSize, 
   /* indicates given buffer is too small (minimum is sizeof(pool) + chunksize) */
   /* indicates the given buffer is null */
-  PAO_status_nullBuffer
+  PAO_status_nullBuffer,
+  PAO_status_failedFree
 } pao_Status;
 
 #define PAO_status_check if (st != PAO_status_ok) { return st; }

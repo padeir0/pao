@@ -49,8 +49,9 @@ void* pao_linearAlloc_alloc(pao_LinearAlloc* a, size_t size) {
 
 /* frees the entire arena */
 static inline
-void pao_linearAlloc_freeAll(pao_LinearAlloc* a) {
+pao_Status pao_linearAlloc_freeAll(pao_LinearAlloc* a) {
   a->allocated = 0;
+  return PAO_status_ok;
 }
 
 /* returns the amount of memory available */
@@ -63,6 +64,12 @@ size_t pao_linearAlloc_available(pao_LinearAlloc* a) {
 static inline
 size_t pao_linearAlloc_used(pao_LinearAlloc* a) {
   return a->allocated;
+}
+
+/* returns the amount of memory managed by this allocator */
+static inline
+size_t pao_linearAlloc_total(pao_LinearAlloc* a) {
+  return a->buffSize;
 }
 
 /* returns true if the allocator is empty */
@@ -81,17 +88,26 @@ void* i_pao_linearAlloc_alloc(
 }
 
 static inline
-void i_pao_linearAlloc_free(
+pao_Status i_pao_linearAlloc_free(
   __attribute__((unused)) void* heap,
   __attribute__((unused)) void* obj
 ) {
-  printf("error: linear allocator provides no free() function.\n");
-  abort();
+  return PAO_status_failedFree;
 }
 
 static inline
-void i_pao_linearAlloc_freeAll(void* heap) {
-  pao_linearAlloc_freeAll((pao_LinearAlloc*)heap);
+pao_Status i_pao_linearAlloc_freeAll(void* heap) {
+  return pao_linearAlloc_freeAll((pao_LinearAlloc*)heap);
+}
+
+static inline
+pao_AllocatorInfo i_pao_linearAlloc_info(void* heap) {
+  pao_LinearAlloc* la = (pao_LinearAlloc*)heap;
+  pao_AllocatorInfo info = {
+    .total = pao_linearAlloc_total(la),
+    .used = pao_linearAlloc_used(la),
+  };
+  return info;
 }
 
 static inline
@@ -101,6 +117,7 @@ pao_Allocator pao_linearAlloc_createInterface(pao_LinearAlloc* alloc) {
     .alloc = i_pao_linearAlloc_alloc,
     .free = i_pao_linearAlloc_free,
     .freeAll = i_pao_linearAlloc_freeAll,
+    .info = i_pao_linearAlloc_info,
   };
   return out;
 }
