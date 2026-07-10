@@ -64,6 +64,42 @@ static pao_Pool* i_pao_poolTest_make(usize chunksize) {
   }
   return (pao_Pool*)g_pao_buffer;
 }
+
+static int i_pao_poolTest_allocAll(pao_Pool* p) {
+  u8* obj;
+  u8 i = 0;
+  while (i < I_PAO_POOL_TEST_objsSize) {
+    obj = (u8*)pao_pool_alloc(p);
+    if (obj == NULL) {
+      break; /* pool exhausted before array; that's fine */
+    }
+    i_pao_poolTest_setbuff(obj, p->chunkSize, i);
+    g_pao_objs[i] = obj;
+    i++;
+  }
+  return (int)i;
+}
+
+/* verifies each slot is intact */
+static bool i_pao_poolTest_verifyObjs(pao_Pool* p, int len) {
+  u8 j = 0;
+  while (j < len) {
+    if (g_pao_objs[j] == NULL) {
+      return false;
+    }
+    if (!i_pao_poolTest_checkbuff(g_pao_objs[j], p->chunkSize, j)) {
+      return false; // NOTE(1)
+    }
+    j++;
+  }
+  return true;
+  /*
+   * NOTE(1): allocations must not overlap; each slot must hold exactly
+   *          the sentinel written to it.
+   */
+}
+
+
 /* END: helpers */
 
 /* BEGIN: tests */
@@ -99,13 +135,34 @@ bool test_new(void) {
    */
 }
 
+/*
+bool test_doubleFree(void) {
+  usize chunksize = 32;
+  pao_Pool* p = i_pao_poolTest_make(chunksize);
+
+  if (p == NULL) {
+    return false;
+  }
+
+  usize initial = pao_pool_available(p);
+  if (initial == 0) {
+    return false;
+  }
+
+  u8* obj = (u8*)pao_pool_alloc(p);
+  pao_pool_free(p, obj);
+  pao_pool_free(p, obj);
+  // verifies if the pool can still function after a double free
+  int len = i_pao_poolTest_allocAll(p);
+  return i_pao_poolTest_verifyObjs(p, len);
+}
+*/
+
 // allocate every slot, fill with a sentinel, verify
 bool test_allocFill(void) {
   usize chunksize = 32;
   pao_Pool* p = i_pao_poolTest_make(chunksize);
   usize initial;
-  u8* obj;
-  u8 i;
 
   if (p == NULL) {
     return false;
@@ -116,36 +173,8 @@ bool test_allocFill(void) {
     return false;
   }
 
-  i = 0;
-  while (i < I_PAO_POOL_TEST_objsSize) {
-    obj = (u8*)pao_pool_alloc(p);
-    if (obj == NULL) {
-      break; /* pool exhausted before array; that's fine */
-    }
-    i_pao_poolTest_setbuff(obj, chunksize, i);
-    g_pao_objs[i] = obj;
-    i++;
-  }
-
-  /* verify each slot is intact */
-  {
-    u8 j = 0;
-    while (j < i) {
-      if (g_pao_objs[j] == NULL) {
-        return false;
-      }
-      if (!i_pao_poolTest_checkbuff(g_pao_objs[j], chunksize, j)) {
-        return false; /* NOTE(1) */
-      }
-      j++;
-    }
-  }
-
-  return true;
-  /*
-   * NOTE(1): allocations must not overlap; each slot must hold exactly
-   *          the sentinel written to it.
-   */
+  int len = i_pao_poolTest_allocAll(p);
+  return i_pao_poolTest_verifyObjs(p, len);;
 }
 
 // Free all slots, then alloc again. Pool must
@@ -155,7 +184,6 @@ bool test_freeAndReuse(void) {
   pao_Pool* p = i_pao_poolTest_make(chunksize);
   usize slots;
   usize i;
-  pao_Status s;
 
   if (p == NULL) {
     return false;
@@ -183,10 +211,7 @@ bool test_freeAndReuse(void) {
   /* free all */
   i = 0;
   while (i < slots) {
-    s = pao_pool_free(p, g_pao_objs[i]);
-    if (s != PAO_status_ok) {
-      return false;
-    }
+    pao_pool_free(p, g_pao_objs[i]);
     g_pao_objs[i] = NULL;
     i++;
   }
@@ -261,46 +286,36 @@ bool test_freeAll(void) {
 }
 
 // tests if pao_pool_free rejects out-of-bounds and misaligned pointers
+/*
 bool test_freeErrors(void) {
   usize chunksize = 32;
   pao_Pool* p = i_pao_poolTest_make(chunksize);
   u8 external[128];
   u8* obj;
-  pao_Status s;
 
   if (p == NULL) {
     return false;
   }
 
-  /* pointer outside the pool entirely */
-  s = pao_pool_free(p, &external);
-  if (s != PAO_status_outOfBounds) {
-    return false;
-  }
+  // pointer outside the pool entirely
+  pao_pool_free(p, &external);
 
-  /* pointer inside the pool but not aligned to a chunk boundary */
+  // pointer inside the pool but not aligned to a chunk boundary
   obj = (u8*)pao_pool_alloc(p);
   if (obj == NULL) {
     return false;
   }
 
-  s = pao_pool_free(p, obj + 1);
-  if (s != PAO_status_badAlignment) {
-    return false; /* NOTE(1) */
-  }
+  pao_pool_free(p, obj + 1);
 
-  /* the valid pointer itself must still free correctly */
-  s = pao_pool_free(p, obj);
-  if (s != PAO_status_ok) {
-    return false;
-  }
+  // the valid pointer itself must still free correctly
+  pao_pool_free(p, obj);
 
   return true;
-  /*
-   * NOTE(1): obj+1 is inside the pool's memory range but is not
-   *          aligned to a chunk boundary, so badAlignment is expected.
-   */
+  //   NOTE(1): obj+1 is inside the pool's memory range but is not
+  //          aligned to a chunk boundary, so badAlignment is expected.
 }
+*/
 
 // tests if used + available == total capacity
 bool test_usedAndAvailable(void) {
@@ -354,7 +369,6 @@ bool test_usedAndAvailable(void) {
 static void i_pao_poolTest_mixedAlloc(pao_Pool* p, usize chunksize) {
   int slot;
   u8* obj;
-  pao_Status s;
 
   obj = (u8*)pao_pool_alloc(p);
   if (obj == NULL) {
@@ -364,8 +378,7 @@ static void i_pao_poolTest_mixedAlloc(pao_Pool* p, usize chunksize) {
   slot = i_pao_poolTest_findNull();
   if (slot < 0) {
     /* tracking array is full; return the chunk to the pool */
-    s = pao_pool_free(p, obj);
-    (void)s;
+    pao_pool_free(p, obj);
     return;
   }
 
@@ -380,7 +393,6 @@ static void i_pao_poolTest_mixedAlloc(pao_Pool* p, usize chunksize) {
 static bool i_pao_poolTest_mixedFree(pao_Pool* p, usize chunksize) {
   int slot;
   u8* obj;
-  pao_Status s;
 
   slot = i_pao_poolTest_findNonNull();
   if (slot < 0) {
@@ -394,10 +406,7 @@ static bool i_pao_poolTest_mixedFree(pao_Pool* p, usize chunksize) {
     return false; /* NOTE(1) */
   }
 
-  s = pao_pool_free(p, obj);
-  if (s != PAO_status_ok) {
-    return false;
-  }
+  pao_pool_free(p, obj);
 
   g_pao_objs[slot] = NULL;
   return true;
@@ -450,10 +459,7 @@ bool test_mixed(void) {
   i = 0;
   while (i < I_PAO_POOL_TEST_objsSize) {
     if (g_pao_objs[i] != NULL) {
-      pao_Status s = pao_pool_free(p, g_pao_objs[i]);
-      if (s != PAO_status_ok) {
-        return false;
-      }
+      pao_pool_free(p, g_pao_objs[i]);
       g_pao_objs[i] = NULL;
     }
     i++;
@@ -472,7 +478,6 @@ bool test_multipleChunksizes(void) {
   pao_Pool* p;
   usize slots;
   usize i;
-  pao_Status s;
 
   chunksize = PAO_pool_minChunkSize;
   while (chunksize <= 128) {
@@ -502,10 +507,7 @@ bool test_multipleChunksizes(void) {
       if (!i_pao_poolTest_checkbuff(g_pao_objs[i], chunksize, (u8)i)) {
         return false;
       }
-      s = pao_pool_free(p, g_pao_objs[i]);
-      if (s != PAO_status_ok) {
-        return false;
-      }
+      pao_pool_free(p, g_pao_objs[i]);
       g_pao_objs[i] = NULL;
       i++;
     }
@@ -527,7 +529,8 @@ Tester tests[] = {
   {"test_pool_allocFill",         test_allocFill},
   {"test_pool_freeAndReuse",      test_freeAndReuse},
   {"test_pool_freeAll",           test_freeAll},
-  {"test_pool_freeErrors",        test_freeErrors},
+  // {"test_pool_freeErrors",        test_freeErrors},
+  // {"test_pool_doubleFree",        test_doubleFree},
   {"test_pool_usedAndAvailable",  test_usedAndAvailable},
   {"test_pool_mixed",             test_mixed},
   {"test_pool_multipleChunksizes",test_multipleChunksizes},

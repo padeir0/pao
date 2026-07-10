@@ -10,6 +10,8 @@ See the LICENSE file for more information.
 #include "../pao_basicTypes.h"
 #include "../pao_status.h"
 #include "../pao_allocator.h"
+#include "../pao_config.h"
+#include "../pao_debug.h"
 #include <string.h> /* only using memset */
 
 typedef struct _pool_snode {
@@ -17,8 +19,8 @@ typedef struct _pool_snode {
 } i_pao_pool_Node;
 
 typedef struct {
-  i_pao_pool_Node* head;
-  i_pao_pool_Node* tail;
+  i_pao_pool_Node* _head;
+  i_pao_pool_Node* _tail;
   u8* begin;
   u8* end;
   usize chunkSize;
@@ -42,7 +44,7 @@ void i_pao_pool_setList(pao_Pool* p) {
    */
   i_pao_pool_Node* end = (i_pao_pool_Node*)((u8*)(p->end) -p->chunkSize);
 
-  p->head = curr;
+  p->_head = curr;
   while (curr < end) {
     curr->next = (i_pao_pool_Node*)((u8*)(curr) + p->chunkSize);
     curr = curr->next;
@@ -58,7 +60,7 @@ void i_pao_pool_setList(pao_Pool* p) {
   }
 
   curr->next = NULL;
-  p->tail = curr;
+  p->_tail = curr;
 }
 
 #define PAO_pool_minChunkSize sizeof(i_pao_pool_Node)
@@ -102,15 +104,15 @@ pao_Status pao_pool_new(usize buffsize, usize chunksize, u8* outBuffer) {
 static inline
 void* pao_pool_alloc(pao_Pool* p) {
   void* curr;
-  if (p->head == NULL) {
+  if (p->_head == NULL) {
     return NULL;
   }
 
-  curr = p->head;
-  p->head = p->head->next;
+  curr = p->_head;
+  p->_head = p->_head->next;
 
-  if (p->head == NULL) {
-    p->tail = NULL;
+  if (p->_head == NULL) {
+    p->_tail = NULL;
   }
   return curr;
 }
@@ -119,40 +121,50 @@ void* pao_pool_alloc(pao_Pool* p) {
  * returns:
     - PAO_status_outOfBounds: indicates the pointer to be freed is not within the pool
     - PAO_status_badAlignment: indicates the pointer to be freed is unaligned with chunk boundaries
-   TODO: write tests for double free.
  */
 static inline
-pao_Status pao_pool_free(pao_Pool* p, void* ptr) {
+void pao_pool_free(pao_Pool* p, void* ptr) {
   i_pao_pool_Node* new;
 
-  if (!(p->begin <= (u8*)ptr && (u8*)ptr < p->end)) {
-    return PAO_status_outOfBounds;
-  }
+  #if PAO_config_debug
+    if (!(p->begin <= (u8*)ptr && (u8*)ptr < p->end)) {
+      PAO_debug_fatalFmt("Pointer to be freed is out of bounds. ptr = %p, pool->begin = %p, pool->end = %p.", ptr, (void*)p->begin, (void*)p->end);
+    }
 
-  if (i_pao_pool_distance(ptr, p->begin) % p->chunkSize != 0) {
-    return PAO_status_badAlignment;
-  }
+    if (i_pao_pool_distance(ptr, p->begin) % p->chunkSize != 0) {
+      PAO_debug_fatalFmt("Pointer to be freed is out of alignment. ptr = %p, pool->begin = %p, pool->chunkSize = %ld.", ptr, (void*)p->begin, p->chunkSize);
+    }
+
+    {
+      i_pao_pool_Node* curr = p->_head;
+      while (curr != NULL) {
+        if ((void*)curr == ptr) {
+          PAO_debug_fatalFmt("Pointer was already freed. ptr = %p, pool->begin = %p.", ptr, (void*)p->begin);
+        }
+        curr = curr->next;
+      }
+    }
+  #endif
 
   new = (i_pao_pool_Node*)ptr;
   new->next = NULL;
 
-  if (p->head == NULL) {
-    p->head = new;
-    p->tail = new;
-    return PAO_status_ok;
+  if (p->_head == NULL) {
+    p->_head = new;
+    p->_tail = new;
+    return;
   }
 
-  p->tail->next = new;
-  p->tail = new;
-  return PAO_status_ok;
+  p->_tail->next = new;
+  p->_tail = new;
+  return;
 }
 
 /* frees all objects in the pool
  */
 static inline
-pao_Status pao_pool_freeAll(pao_Pool* p) {
+void pao_pool_freeAll(pao_Pool* p) {
   i_pao_pool_setList(p);
-  return PAO_status_ok;
 }
 
 /* returns the amount of memory available
@@ -164,7 +176,7 @@ TODO: this is O(n), it's nice as an integrity check, but
 static inline
 usize pao_pool_available(const pao_Pool* p) {
   usize total = 0;
-  i_pao_pool_Node* curr = p->head;
+  i_pao_pool_Node* curr = p->_head;
   while (curr != NULL) {
     total += p->chunkSize;
     curr = curr->next;
@@ -214,12 +226,14 @@ pao_Status i_pao_pool_free(
   void* heap,
   void* obj
 ) {
-  return pao_pool_free((pao_Pool*)heap, obj);
+  pao_pool_free((pao_Pool*)heap, obj);
+  return PAO_status_ok;
 }
 
 static inline
 pao_Status i_pao_pool_freeAll(void* heap) {
-  return pao_pool_freeAll((pao_Pool*)heap);
+  pao_pool_freeAll((pao_Pool*)heap);
+  return PAO_status_ok;
 }
 
 static inline

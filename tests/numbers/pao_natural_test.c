@@ -1550,8 +1550,6 @@ bool test_natural_divDigit_3(void) {
   return ok && isAllFree();
 }
 
-//TODO: continue refactoring
-
 // basically tests if divDigit respects the division theorem
 bool test_natural_divDigit_4(void) {
   pao_Status s;
@@ -1574,7 +1572,7 @@ bool test_natural_divDigit_4(void) {
   }
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, Q);
-  return true;
+  return isAllFree();
 }
 
 // same thing as the previous test, but with more digits
@@ -1600,7 +1598,7 @@ bool test_natural_divDigit_5(void) {
   }
   pao_natural_free(alloc, A);
   pao_natural_free(alloc, Q);
-  return true;
+  return isAllFree();
 }
 
 bool test_natural_divDigit_6(void) {
@@ -1910,8 +1908,6 @@ bool test_natural_div_8(void) {
   return ok && isAllFree();
 }
 /* END: testing div */
-
-// TODO: continue refactoring
 
 /* BEGIN: testing copy */
 bool test_natural_copy_1(void) {

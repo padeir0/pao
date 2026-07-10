@@ -20,6 +20,7 @@ typedef enum {
   PAO_status_badAlignment,
   PAO_status_badSize, 
   PAO_status_nullBuffer,
+  /* used in the allocator interface*/
   PAO_status_failedFree
 } pao_Status;
 
