@@ -12,6 +12,7 @@ See the LICENSE file for more information.
 #include "../pao_allocator.h"
 #include "../pao_config.h"
 #include "../pao_debug.h"
+#include "../pao_util.h"
 #include <string.h> /* only using memset */
 
 typedef struct _pool_snode {
@@ -26,15 +27,6 @@ typedef struct {
   usize chunkSize;
   usize size;
 } pao_Pool;
-
-static inline
-uptr i_pao_pool_distance(u8* a, u8* b) {
-  if (a > b) {
-    return (uptr)a-(uptr)b;
-  } else {
-    return (uptr)b-(uptr)a;
-  }
-}
 
 static inline
 void i_pao_pool_setList(pao_Pool* p) {
@@ -56,7 +48,7 @@ void i_pao_pool_setList(pao_Pool* p) {
   if ((u8*)curr + p->chunkSize != p->end) {
     p->end = (u8*)curr;
     curr = (i_pao_pool_Node*)((u8*)(curr) - p->chunkSize);
-    p->size = i_pao_pool_distance(p->begin, p->end);
+    p->size = pao_util_distanceU8Ptr(p->begin, p->end);
   }
 
   curr->next = NULL;
@@ -91,7 +83,7 @@ pao_Status pao_pool_new(usize buffsize, usize chunksize, u8* outBuffer) {
   p->begin = outBuffer + sizeof(pao_Pool);
   p->end = outBuffer + buffsize;
   p->chunkSize = chunksize;
-  p->size = i_pao_pool_distance(p->begin, p->end);
+  p->size = pao_util_distanceU8Ptr(p->begin, p->end);
 
   memset(p->begin, 0, p->size);
   i_pao_pool_setList(p);
@@ -131,7 +123,7 @@ void pao_pool_free(pao_Pool* p, void* ptr) {
       PAO_debug_fatalFmt("Pointer to be freed is out of bounds. ptr = %p, pool->begin = %p, pool->end = %p.", ptr, (void*)p->begin, (void*)p->end);
     }
 
-    if (i_pao_pool_distance(ptr, p->begin) % p->chunkSize != 0) {
+    if (pao_util_distanceU8Ptr(ptr, p->begin) % p->chunkSize != 0) {
       PAO_debug_fatalFmt("Pointer to be freed is out of alignment. ptr = %p, pool->begin = %p, pool->chunkSize = %ld.", ptr, (void*)p->begin, p->chunkSize);
     }
 

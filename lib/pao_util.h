@@ -43,4 +43,12 @@ i64 pao_util_absI64(i64 a) {
   }
 }
 
+static inline
+uptr pao_util_distanceU8Ptr(u8* a, u8* b) {
+  if (a > b) {
+    return (uptr)a-(uptr)b;
+  } else {
+    return (uptr)b-(uptr)a;
+  }
+}
 #endif

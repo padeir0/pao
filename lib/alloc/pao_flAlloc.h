@@ -12,6 +12,8 @@ See the LICENSE file for more information.
 #include "../pao_status.h"
 #include "../pao_debug.h"
 #include "../pao_config.h"
+#include "../pao_util.h"
+#include "../pao_allocator.h"
 
 typedef struct {
   usize size;
@@ -30,15 +32,7 @@ typedef struct {
 } pao_flAlloc;
 
 static inline
-uptr distance(u8* a, u8* b) {
-  if (a > b) {
-    return (uptr)a-(uptr)b;
-  } else {
-    return (uptr)b-(uptr)a;
-  }
-}
-
-size_t fl_pad(size_t size) {
+size_t pao_flAlloc_pad(size_t size) {
   size = size + sizeof(i_pao_objHeader);
   if (size%WORD != 0) {
     return size + (WORD-size%WORD);
@@ -50,8 +44,12 @@ size_t fl_pad(size_t size) {
   return size;
 }
 
+static inline
 pao_Status pao_flAlloc_create(usize size, u8* buffer) {
   pao_flAlloc* fl;
+  if (buffer == NULL) {
+    return PAO_status_nullBuffer;
+  }
   if (size < sizeof(pao_flAlloc) + sizeof(i_pao_flNode)) {
     return PAO_status_bufferTooSmall;
   }
@@ -64,10 +62,11 @@ pao_Status pao_flAlloc_create(usize size, u8* buffer) {
   fl->begin = (uint8_t*)fl->head;
   fl->end = buffer+size;
 
-  fl->size = distance(fl->begin, fl->end);
+  fl->size = pao_util_distanceU8Ptr(fl->begin, fl->end);
   return PAO_status_ok;
 }
 
+static inline
 u8* i_pao_flAlloc_pop(pao_flAlloc* fl, i_pao_flNode* prev, i_pao_flNode* curr) {
   if (prev != NULL) {
     prev->next = curr->next;
@@ -77,6 +76,7 @@ u8* i_pao_flAlloc_pop(pao_flAlloc* fl, i_pao_flNode* prev, i_pao_flNode* curr) {
   return (uint8_t*)curr;
 }
 
+static inline
 u8* i_pao_flAlloc_split(pao_flAlloc* fl, i_pao_flNode* prev, i_pao_flNode* curr, size_t requested_size) {
   i_pao_flNode* newnode;
 
@@ -90,6 +90,7 @@ u8* i_pao_flAlloc_split(pao_flAlloc* fl, i_pao_flNode* prev, i_pao_flNode* curr,
   return i_pao_flAlloc_pop(fl, prev, curr);
 }
 
+static inline
 void i_pao_flAlloc_getNode(pao_flAlloc* fl, usize size, u8** outptr, usize* allocsize) {
   i_pao_flNode* curr;
   i_pao_flNode* prev;
@@ -137,11 +138,12 @@ void i_pao_flAlloc_getNode(pao_flAlloc* fl, usize size, u8** outptr, usize* allo
 /* tries to allocate a object of the given size,
  * returns NULL if it fails to allocate
  */
+static inline
 void* pao_flAlloc_alloc(pao_flAlloc* fl, usize size) {
   u8* p;
   usize allocsize;
 
-  size = fl_pad(size);
+  size = pao_flAlloc_pad(size);
 
   i_pao_flAlloc_getNode(fl, size, &p, &allocsize);
   if (p == NULL) {
@@ -152,6 +154,7 @@ void* pao_flAlloc_alloc(pao_flAlloc* fl, usize size) {
   return p;
 }
 
+static inline
 void i_pao_flAlloc_append(i_pao_flNode* prev, i_pao_flNode* new) {
   if ((i_pao_flNode*)((u8*)prev + prev->size) == new) {
     /* coalescing: append */
@@ -163,6 +166,7 @@ void i_pao_flAlloc_append(i_pao_flNode* prev, i_pao_flNode* new) {
   return;
 }
 
+static inline
 void i_pao_flAlloc_prepend(pao_flAlloc* fl, i_pao_flNode* new) {
   if ((i_pao_flNode*)((u8*)new + new->size) == fl->head) {
     /* coalescing: prepend */
@@ -177,6 +181,7 @@ void i_pao_flAlloc_prepend(pao_flAlloc* fl, i_pao_flNode* new) {
   return;
 }
 
+static inline
 void i_pao_flAlloc_join(i_pao_flNode* prev, i_pao_flNode* new, i_pao_flNode* curr) {
   size_t size;
 
@@ -208,6 +213,7 @@ void i_pao_flAlloc_join(i_pao_flNode* prev, i_pao_flNode* new, i_pao_flNode* cur
   return;
 }
 
+static inline
 size_t pao_flAlloc_objsize(void* ptr) {
   i_pao_objHeader* obj = (i_pao_objHeader*)((uint8_t*)ptr - sizeof(i_pao_objHeader));
   return obj->size;
@@ -218,6 +224,8 @@ size_t pao_flAlloc_objsize(void* ptr) {
  * or if the object is uncorrectly aligned,
  * it returns false
  */
+ // TODO: protect against double-frees in debug mode
+static inline
 void pao_flAlloc_free(pao_flAlloc* fl, void* p) {
   size_t size;
   i_pao_flNode* new; i_pao_flNode* prev; i_pao_flNode* curr;
@@ -267,6 +275,7 @@ void pao_flAlloc_free(pao_flAlloc* fl, void* p) {
 }
 
 /* frees all objects in the free list */
+static inline
 void pao_flAlloc_freeAll(pao_flAlloc* fl) {
   fl->head = (i_pao_flNode*)fl->begin;
   fl->head->size = fl->size;
@@ -274,6 +283,7 @@ void pao_flAlloc_freeAll(pao_flAlloc* fl) {
 }
 
 /* returns the amount of memory available */
+static inline
 size_t pao_flAlloc_available(pao_flAlloc* fl) {
   i_pao_flNode* curr = fl->head;
   size_t total = 0;
@@ -286,13 +296,68 @@ size_t pao_flAlloc_available(pao_flAlloc* fl) {
 }
 
 /* returns the amount of memory used */
+static inline
 size_t pao_flAlloc_used(pao_flAlloc* fl) {
   return fl->size - pao_flAlloc_available(fl);
 }
 
+/* returns the total amount of memory managed */
+static inline
+size_t pao_flAlloc_total(pao_flAlloc* fl) {
+  return fl->size;
+}
+
 /* returns if the heap is empty */
+static inline
 bool pao_flAlloc_empty(pao_flAlloc* fl) {
   return pao_flAlloc_available(fl) == fl->size;
+}
+
+static inline
+void* i_pao_flAlloc_alloc(
+  void* heap,
+  usize size,
+  __attribute__((unused)) const char* func
+) {
+  pao_flAlloc* p = (pao_flAlloc*) heap;
+  return pao_flAlloc_alloc(p, size);
+}
+
+static inline
+pao_Status i_pao_flAlloc_free(
+  void* heap,
+  void* obj
+) {
+  pao_flAlloc_free((pao_flAlloc*)heap, obj);
+  return PAO_status_ok;
+}
+
+static inline
+pao_Status i_pao_flAlloc_freeAll(void* heap) {
+  pao_flAlloc_freeAll((pao_flAlloc*)heap);
+  return PAO_status_ok;
+}
+
+static inline
+pao_AllocatorInfo i_pao_flAlloc_info(void* heap) {
+  pao_flAlloc* p = (pao_flAlloc*)heap;
+  pao_AllocatorInfo info = {
+    .used = pao_flAlloc_used(p),
+    .total = pao_flAlloc_total(p)
+  };
+  return info;
+}
+
+static inline
+pao_Allocator pao_flAlloc_createInterface(pao_flAlloc* alloc) {
+  pao_Allocator out = {
+    .heap = (void*)alloc,
+    .alloc = i_pao_flAlloc_alloc,
+    .free = i_pao_flAlloc_free,
+    .freeAll = i_pao_flAlloc_freeAll,
+    .info = i_pao_flAlloc_info
+  };
+  return out;
 }
 
 #endif

@@ -12,7 +12,7 @@
    - [x] Arena allocator.
    - [ ] Stack allocator.
    - [x] Pool allocator.
-   - [ ] Free-list allocator.
+   - [x] Free-list allocator.
  - [ ] UTF8 Encoder/Decoder
    - [ ] Encoder
    - [x] Decoder
