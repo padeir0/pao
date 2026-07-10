@@ -26,6 +26,16 @@ pao_Integer pao_integer_new(void) {
   return i;
 }
 
+/* This is a version of `pao_integer_new` that accepts a 
+ * preallocated buffer. */
+static inline
+pao_Integer pao_integer_create(u32* digits, u32 size) {
+  pao_Integer i;
+  i.sign = +1;
+  i.abs = pao_natural_create(digits, size);
+  return i;
+}
+
 static inline
 void pao_integer_free(pao_Allocator* mem, pao_Integer i) {
   pao_natural_free(mem, i.abs);

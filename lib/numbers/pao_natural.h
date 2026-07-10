@@ -59,6 +59,19 @@ pao_Natural pao_natural_new(void) {
   return n;
 }
 
+/* This is a version of `pao_natural_new` that accepts a 
+ * preallocated buffer. It can be combined with the NullAlloc
+ * to create a wide fixed-precision number that exceeds 64bits.
+ */
+static inline
+pao_Natural pao_natural_create(u32* digits, u32 size) {
+  pao_Natural n;
+  n.cap = size;
+  n.len = 0;
+  n.digits = digits;
+  return n;
+}
+
 static inline
 void pao_natural_free(pao_Allocator* mem, pao_Natural n) {
   i_pao_natural_natVecFree(mem, n.digits);

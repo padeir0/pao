@@ -26,4 +26,6 @@ typedef int64_t i64;
 
 typedef uintptr_t uptr;
 typedef size_t    usize;
+
+#define WORD sizeof(void*)
 #endif
