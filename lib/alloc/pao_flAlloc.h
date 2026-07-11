@@ -35,7 +35,7 @@ static inline
 size_t pao_flAlloc_pad(size_t size) {
   size = size + sizeof(i_pao_objHeader);
   if (size%WORD != 0) {
-    return size + (WORD-size%WORD);
+    size = size + (WORD-size%WORD);
   }
   /* objects need space for a Node when deallocated */
   if (size < sizeof(i_pao_flNode)) {
@@ -224,7 +224,6 @@ size_t pao_flAlloc_objsize(void* ptr) {
  * or if the object is uncorrectly aligned,
  * it returns false
  */
- // TODO: protect against double-frees in debug mode
 static inline
 void pao_flAlloc_free(pao_flAlloc* fl, void* p) {
   size_t size;
@@ -256,6 +255,9 @@ void pao_flAlloc_free(pao_flAlloc* fl, void* p) {
   prev = NULL;
   curr = fl->head;
 
+  // TODO: validate against double frees here.
+  // Remember that if the node was joined with another,
+  // then we have to test if new \subset curr, not new == curr
   while (curr != NULL) {
     if (prev != NULL) {
       if (prev < new && new < curr) {
