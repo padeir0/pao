@@ -41,10 +41,13 @@ Exceptions to this naming rule are the types inside `pao_basicTypes.h`.
 
 ## Comment Style
 
-Because a lot of comments in the middle of the code makes the code harder to read,
-i've adopted a policy to keep comments as footnotes. In functions, these footnotes
+Because a lot of comments in the middle of functions  makes the code harder to read,
+i've adopted a policy to keep *large* comments as footnotes. In functions, these footnotes
 are just before the closing `}`, while in the middle of the function you'd only have
-things like `// NOTE(1)`.
+things like `// NOTE(1)`. If the comment is an one liner that does not exceed 80 columns,
+it can be kept in the middle of the function  without resorting to footnotes.
+Comments on top of functions serve as docstrings and are encouraged to be descriptive
+but short and to the point.
 
 There are, so far, these kinds of notes:
  - `NOTE`: Is a brief explanation of rationale that is not tied to safety.

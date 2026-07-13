@@ -176,6 +176,7 @@ bool test_freeAndReuse(void) {
 
   i = 0;
   while (i < slots) {
+    // PAO_debug_printFmt("freeing: %p", (void*)g_pao_objs[i]);
     pao_flAlloc_free(fl, g_pao_objs[i]);
     g_pao_objs[i] = NULL;
     i++;
@@ -528,13 +529,16 @@ bool test_multipleSizes(void) {
 /*
 bool test_freeErrors(void) {
   pao_flAlloc* fl = i_pao_flAllocTest_make();
-  u8 external[128];
 
   if (fl == NULL) {
     return false;
   }
 
-  pao_flAlloc_free(fl, &external);
+  u8* obj1 = pao_flAlloc_alloc(fl, 128);
+  u8* obj2 = pao_flAlloc_alloc(fl, 128);
+  pao_flAlloc_free(fl, obj1);
+  pao_flAlloc_free(fl, obj2);
+  pao_flAlloc_free(fl, obj2);
 
   return true;
 }
@@ -552,7 +556,7 @@ Tester tests[] = {
   {"test_flAlloc_objsize",          test_objsize},
   {"test_flAlloc_mixed",            test_mixed},
   {"test_flAlloc_multipleSizes",    test_multipleSizes},
-  // {"test_flAlloc_freeErrors",       test_freeErrors},
+ // {"test_flAlloc_freeErrors",       test_freeErrors},
 };
 
 int main(void) {

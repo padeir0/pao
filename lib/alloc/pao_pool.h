@@ -31,9 +31,7 @@ typedef struct {
 static inline
 void i_pao_pool_setList(pao_Pool* p) {
   i_pao_pool_Node* curr = (i_pao_pool_Node*)p->begin;
-  /* we need this because of alignment, the chunks may not align
-   * and leave a padding at the end of the buffer
-   */
+  // NOTE(1)
   i_pao_pool_Node* end = (i_pao_pool_Node*)((u8*)(p->end) -p->chunkSize);
 
   p->_head = curr;
@@ -42,9 +40,7 @@ void i_pao_pool_setList(pao_Pool* p) {
     curr = curr->next;
   }
 
-  /* curr is at the edge of the buffer, and may not be valid
-   * in case the end is not aligned, we leave padding
-   */
+  // NOTE(2)
   if ((u8*)curr + p->chunkSize != p->end) {
     p->end = (u8*)curr;
     curr = (i_pao_pool_Node*)((u8*)(curr) - p->chunkSize);
@@ -53,6 +49,11 @@ void i_pao_pool_setList(pao_Pool* p) {
 
   curr->next = NULL;
   p->_tail = curr;
+  /* NOTE(1): we need this because of alignment, the chunks may not align
+              and leave a padding at the end of the buffer
+     NOTE(2): curr is at the edge of the buffer, and may not be valid
+              in case the end is not aligned, we leave padding
+  */
 }
 
 #define PAO_pool_minChunkSize sizeof(i_pao_pool_Node)

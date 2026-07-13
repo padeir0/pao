@@ -14,6 +14,7 @@ See the LICENSE file for more information.
 #include "../pao_config.h"
 #include "../pao_util.h"
 #include "../pao_allocator.h"
+#include "../pao_colors.h"
 
 typedef struct {
   usize size;
@@ -37,11 +38,13 @@ size_t pao_flAlloc_pad(size_t size) {
   if (size%WORD != 0) {
     size = size + (WORD-size%WORD);
   }
-  /* objects need space for a Node when deallocated */
+  // NOTE(1):
   if (size < sizeof(i_pao_flNode)) {
     size = sizeof(i_pao_flNode);
   }
   return size;
+  /* NOTE(1): objects need space for a Node when deallocated 
+  */
 }
 
 static inline
@@ -112,10 +115,7 @@ void i_pao_flAlloc_getNode(pao_flAlloc* fl, usize size, u8** outptr, usize* allo
     }
 
     if (curr->size > size) {
-      /* if we allocate an object and the remaining
-       * size is not sufficient for a node,
-       * we allocate the full space, without splitting
-       */
+      // NOTE(1)
       if (curr->size - size < sizeof(i_pao_flNode)) {
         *outptr = i_pao_flAlloc_pop(fl, prev, curr);
         *allocsize = curr->size;
@@ -133,6 +133,10 @@ void i_pao_flAlloc_getNode(pao_flAlloc* fl, usize size, u8** outptr, usize* allo
   *outptr = NULL;
   *allocsize = 0;
   return;
+  /* NOTE(1): if we allocate an object and the remaining
+              size is not sufficient for a node,
+              we allocate the full space, without splitting
+   */
 }
 
 /* tries to allocate a object of the given size,
@@ -219,6 +223,15 @@ size_t pao_flAlloc_objsize(void* ptr) {
   return obj->size;
 }
 
+/* checks if `new` is within the bounds of `curr`, ie,
+   the memory stored in `new` was already freed and joined
+   with `curr`.
+ */
+bool i_pao_flAlloc_within(i_pao_flNode* curr, i_pao_flNode* new) {
+  return curr == new || // equal
+         ((curr < new) && ((u8*)curr + curr->size) > (u8*)new); // within
+}
+
 /* frees an object allocated by the freelist
  * if the object was not allocated in that particular freelist,
  * or if the object is uncorrectly aligned,
@@ -255,10 +268,10 @@ void pao_flAlloc_free(pao_flAlloc* fl, void* p) {
   prev = NULL;
   curr = fl->head;
 
-  // TODO: validate against double frees here.
-  // Remember that if the node was joined with another,
-  // then we have to test if new \subset curr, not new == curr
   while (curr != NULL) {
+    if (i_pao_flAlloc_within(curr, new)) {
+      PAO_debug_fatalFmt("Double free! obj = %p, curr = %p, curr.size = %ld;", (void*)new, (void*)curr, curr->size)
+    }
     if (prev != NULL) {
       if (prev < new && new < curr) {
         /* in this case, 'new' is a middle node */
