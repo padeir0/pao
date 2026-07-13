@@ -142,6 +142,6 @@ Tester tests[] = {
 };
 
 int main(void) {
-  run_tests(tests, (int)(sizeof(tests) / sizeof(tests[0])));
+  run_tests("utf8", tests, (int)(sizeof(tests) / sizeof(tests[0])));
 }
 /* END: DRIVER CODE */

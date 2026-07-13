@@ -220,5 +220,5 @@ Tester tests[] = {
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
 int main(void) {
-  run_tests(tests, TEST_LEN);
+  run_tests("buffer", tests, TEST_LEN);
 }

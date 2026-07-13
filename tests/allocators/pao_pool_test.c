@@ -537,6 +537,6 @@ Tester tests[] = {
 };
 
 int main(void) {
-  run_tests(tests, (int)(sizeof(tests) / sizeof(tests[0])));
+  run_tests("pool", tests, (int)(sizeof(tests) / sizeof(tests[0])));
 }
 /* END: DRIVER CODE */

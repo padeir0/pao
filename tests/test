@@ -2,6 +2,8 @@
 
 root="${1:-.}"
 
+# checks *_tests.c for proper behaviour
+
 find "$root" -name "*_test.c" | while read -r filename; do
   out="${filename%.c}.out"
   if gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "$out"; then
@@ -11,3 +13,46 @@ find "$root" -name "*_test.c" | while read -r filename; do
     echo "Compilation failed for $filename with gcc (c99), skipping execution."
   fi
 done
+
+echo
+
+# checks *_crash.c tests for proper crashing
+
+BLUE='\033[34m'
+RED='\033[31m'
+RESET='\033[0m'
+
+total=0
+failed=0
+
+SIGABRT_STATUS=134
+
+while read -r filename; do
+  out="${filename%.c}.out"
+  total=$((total + 1))
+
+  if gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "$out"; then
+    { "$out"; status=$?; } > /dev/null 2>&1
+    rm -f "$out"
+
+    if [ "$status" -eq "$SIGABRT_STATUS" ]; then
+      echo -e "${BLUE}OK${RESET}: $filename"
+    else
+      failed=$((failed + 1))
+      if [ "$status" -gt 128 ]; then
+        sig=$(kill -l "$((status - 128))" 2>/dev/null)
+        echo -e "${RED}FAIL${RESET}: $filename got SIG${sig:-UNKNOWN} (status $status), expected SIGABRT"
+      else
+        echo -e "${RED}FAIL${RESET}: $filename exited normally (status $status), expected a crash"
+      fi
+    fi
+  else
+    failed=$((failed + 1))
+    echo -e "${RED}FAIL${RESET}: compilation failed for $filename with gcc (c99)"
+  fi
+done < <(find "$root" -name "*_crash.c")
+
+echo
+echo "$((total - failed))/$total crash tests passed"
+
+[ "$failed" -eq 0 ]

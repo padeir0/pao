@@ -2263,6 +2263,6 @@ Tester tests[] = {
 
 int main(void) {
   _alloc = pao_stdAlloc_new();
-  run_tests(tests, TEST_LEN);
+  run_tests("natural", tests, TEST_LEN);
 }
 /* END: DRIVER CODE */

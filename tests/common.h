@@ -26,24 +26,25 @@ typedef struct {
 static
 char print_buff[DEFAULT_SIZE];
 
-void test(Tester t) {
-  bzero(print_buff, DEFAULT_SIZE);
-  if (t.func()) {
-    strcat(print_buff, PAO_colors_blue "OK" PAO_colors_reset ": ");
-  } else {
-    strcat(print_buff, PAO_colors_red "FAIL" PAO_colors_reset ": ");
-  }
-  strcat(print_buff, t.name);
-  strcat(print_buff, "\n");
-  printf("%s", print_buff);
-}
-
-void run_tests(Tester* tests, int length) {
+void run_tests(const char* name, Tester* tests, int length) {
+  int sucesses = 0;
   int i = 0;
   while (i < length) {
-    test(tests[i]);
+    Tester t = tests[i];
+    bzero(print_buff, DEFAULT_SIZE);
+    bool ok = t.func();
+    if (ok) {
+      sucesses++;
+    } else {
+      strcat(print_buff, PAO_colors_red "FAIL" PAO_colors_reset ": ");
+      strcat(print_buff, t.name);
+      strcat(print_buff, "\n");
+      printf("%s", print_buff);
+    }
     i++;
   }
+
+  printf("%s: %d/%d tests passed.\n", name, sucesses, i);
 }
 
 #endif

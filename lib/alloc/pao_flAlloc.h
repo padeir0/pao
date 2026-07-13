@@ -14,7 +14,6 @@ See the LICENSE file for more information.
 #include "../pao_config.h"
 #include "../pao_util.h"
 #include "../pao_allocator.h"
-#include "../pao_colors.h"
 
 typedef struct {
   usize size;

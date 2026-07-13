@@ -4,8 +4,8 @@ Copyright 2026 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#include "../common.h"
-#include "../../lib/alloc/pao_flAlloc.h"
+#include "../../common.h"
+#include "../../../lib/alloc/pao_flAlloc.h"
 #include <stdlib.h>
 
 // Shared test state
@@ -527,21 +527,6 @@ bool test_multipleSizes(void) {
 // PAO_debug_fatalFmt, which aborts the process, so it can't be
 // exercised from inside this same test run
 /*
-bool test_freeErrors(void) {
-  pao_flAlloc* fl = i_pao_flAllocTest_make();
-
-  if (fl == NULL) {
-    return false;
-  }
-
-  u8* obj1 = pao_flAlloc_alloc(fl, 128);
-  u8* obj2 = pao_flAlloc_alloc(fl, 128);
-  pao_flAlloc_free(fl, obj1);
-  pao_flAlloc_free(fl, obj2);
-  pao_flAlloc_free(fl, obj2);
-
-  return true;
-}
 */
 /* END: tests */
 
@@ -560,6 +545,6 @@ Tester tests[] = {
 };
 
 int main(void) {
-  run_tests(tests, (int)(sizeof(tests) / sizeof(tests[0])));
+  run_tests("flAlloc", tests, (int)(sizeof(tests) / sizeof(tests[0])));
 }
 /* END: DRIVER CODE */
