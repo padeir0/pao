@@ -16,30 +16,28 @@
  - [ ] UTF8 Encoder/Decoder
    - [ ] Encoder
    - [x] Decoder
- - [ ] Associative arrays
-   - [ ] `str -> void*` linear hashmap (only insert, lookup and clear, can use a simple arena allocator) 
-   - [ ] `str -> void*` hashmap (insert, lookup, clear, remove and update, must use freelist or similar)
  - [ ] Command line argument parsing
 
 ## Language
- - [ ] Debug allocator (generic free-list allocator that tracks where things were allocated).
-       (keeps track of block ranges, creates new fixed-sized-blocks when memory is full,
-       uses a single type of static-heap allocator internally).
- - [ ] interpreter
-   - [ ] List Data Structure
-   - [ ] Lexer
-   - [ ] Parser
-   - [ ] Evaluation
 
-## Draughts engine
- - [ ] Game data structure
- - [ ] Board printing
- - [ ] FEN Parser (outputs a board)
- - [ ] PDN Parser (outputs a game)
- - [ ] Move generator
- - [ ] Perft testing
- - [ ] Material-only evaluation
- - [ ] Minimax search
- - [ ] Alpha-beta search
- - [ ] Piece-square tables
- - [ ] Piece-square table tuning
+O Lexer do ovo vai cuspir átomos do `list.h` direto,
+o parser vai criar a lista. Precisamos primeiro terminar o `list.h`:
+
+ - [ ] `number.h` (implementa a number tower como um único objeto)
+ - [ ] `string.h` (implementa a string imutável)
+ - [ ] `ovodict.h` (implementa um dicionário `string -> Atom`)
+ - [ ] `symbol.h` (implementa o `SymbolSpace` com internalização de strings pro `Symbol` ser só um inteiro)
+ - [ ] criar o tipo `Form`
+ - [ ] criar o tipo `Function`
+
+Precisamos também:
+
+ - [ ] Usar a config `config_DEBUG` pra adicionar a informação de onde cada objeto foi alocado nos alocadores.
+
+Daí faremos:
+
+ - [ ] `ovoalloc.h` (alocador especializado pra estrutura `List` e os subtipos de `Atom`, reusa os outros alocadores primitivos)
+ - [ ] Lexer
+ - [ ] Parser
+ - [ ] Evaluation
+ - [ ] Built-ins (fuckton of them)

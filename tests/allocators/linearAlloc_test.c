@@ -1,4 +1,4 @@
-#include "../../lib/alloc/pao_linearAlloc.h"
+#include "../../lib/alloc/linearAlloc.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,7 +35,7 @@ bool checkbuff(u8* obj, usize size, u8 value) {
 u8* g_pao_buffs[PAO_buffArraySize];
 
 int main(void) {
-  pao_LinearAlloc* a = pao_linearAlloc_create(g_pao_buffer, PAO_bufferSize);
+  LinearAlloc* a = linearAlloc_create(g_pao_buffer, PAO_bufferSize);
   checkres((void*)a, "failed to create allocator");
   u8* buff;
   usize alloc_size;
@@ -44,7 +44,7 @@ int main(void) {
   i = 0;
   while (i < PAO_buffArraySize && i <= UINT8_MAX) {
     alloc_size = (i+1)*10;
-    buff = (uint8_t*) pao_linearAlloc_alloc(a, alloc_size);
+    buff = (uint8_t*) linearAlloc_alloc(a, alloc_size);
     if (buff == NULL) {
       printf("ERROR: out of memory\n");
       abort();
@@ -65,13 +65,13 @@ int main(void) {
     i++;
   }
 
-  pao_linearAlloc_freeAll(a);
+  linearAlloc_freeAll(a);
 
-  if (pao_linearAlloc_empty(a) != true) {
+  if (linearAlloc_empty(a) != true) {
     printf("ERROR: arena is not empty\n");
     abort();
   }
 
-  printf("OK: pao_linearAlloc_test\n");
+  printf("OK: linearAlloc_test\n");
   return 0;
 }

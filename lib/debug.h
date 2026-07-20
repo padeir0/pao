@@ -4,26 +4,26 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef PAO_debug_H
-#define PAO_debug_H
+#ifndef PAO_DEBUG_H
+#define PAO_DEBUG_H
 
 #include <stdio.h>
 
-#define PAO_debug_print(str)                                  \
+#define debug_PRINT(str)                                  \
       do {                                                    \
         fprintf(stderr, "[DEBUG] %s:%s:%d\n",                 \
                 __FILE__, __func__, __LINE__);                \
         fprintf(stderr, "\t" str "\n");                       \
       } while (0);
 
-#define PAO_debug_printFmt(fmt, ...)                          \
+#define debug_PRINTFMT(fmt, ...)                          \
       do {                                                    \
         fprintf(stderr, "[DEBUG] %s:%s:%d\n",                 \
                 __FILE__, __func__, __LINE__);                \
         fprintf(stderr, "\t" fmt "\n", __VA_ARGS__);          \
       } while (0);
 
-#define PAO_debug_fatal(str)                                  \
+#define debug_FATAL(str)                                  \
       do {                                                    \
         fprintf(stderr, "[DEBUG] %s:%s:%d\n",                 \
                 __FILE__, __func__, __LINE__);                \
@@ -31,7 +31,7 @@ See the LICENSE file for more information.
         abort();                                              \
       } while (0);
 
-#define PAO_debug_fatalFmt(fmt, ...)                          \
+#define debug_FATALFMT(fmt, ...)                          \
       do {                                                    \
         fprintf(stderr, "[DEBUG] %s:%s:%d\n",                 \
                 __FILE__, __func__, __LINE__);                \

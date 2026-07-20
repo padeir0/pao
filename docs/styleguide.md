@@ -10,34 +10,35 @@ f[b]=d%--g,d/=g--,--b;d*=b);}
 ## Identifier Style
 
 All libs inside `src` must be a single `.h` file,
-named `pao_<namespaceName>.h`, ie,
+named `<namespaceName>.h`, ie,
 the namespace must be in camelCase.
 All files must start license information up top.
-Header guards must be `#define PAO_<namespaceName>_H`.
+Header guards must be `#define PAO_<NAMESPACENAMEINCAPS>_H`, so that it
+doesn't collide with symbol namespaces.
 
 Underscores `_` are reserved, so that snake_case is not allowed.
 Instead we use camelCase for compound names,
 and use underscores `_` to separate namespace names and internal
 names. Identifier rules are the following:
- - Public names start with `pao_`, while internal (private) names
- start with `i_pao_`.
+ - Public names start with `<namespaceName>_`, while internal (private) names
+ start with `i_<namespaceName>_`.
  - All public function names must be of the form
-`pao_<namespaceName>_<nameCamelCase>`, while private functions
-must be of the form `i_pao_<namespaceName>_<nameCamelCase>`.
- - All public macros, constants and enums must be of the form `PAO_<namespaceName>_<nameCamelCase>`,
-while private macros, constants and enums must be of the form `I_PAO_<namespaceName>_<nameCamelCase>`.
+`<namespaceName>_<nameCamelCase>`, while private functions
+must be of the form `i_<namespaceName>_<nameCamelCase>`.
+ - All public macros, constants and enums must be of the form `<namespaceName>_<NAMEINCAPS>`,
+while private macros, constants and enums must be of the form `i_<namespaceName>_<NAMEINCAPS>`.
  - All public types must be typedef'd, with names
-of the form `pao_<NameUpperCamelCase>`, private types must be
-of the form `i_pao_<NameUpperCamelCase>`.
+of the form `<NameUpperCamelCase>`, private types must be
+of the form `i_<NameUpperCamelCase>`.
  - All local variables, arguments, struct fields and union fields must be camelCase,
- no need to prefix them with `i_pao_` or `pao_`.
- - All global variables must be prefixed with `g_pao_` and can only be used inside the folders `tests` and `cmd`.
+ no need to prefix them with `i_<namespace>_` or `<namespace>_`.
+ - All global variables must be prefixed with `g_<namespace>_` and can only be used inside the folders `tests` and `cmd`.
 
 Types often define the namespaces of functions, for example
-`pao_Natural` will define the namespace for the functions
-`pao_natural_add`, `pao_natural_addDigit`, etc.
+`Natural` will define the namespace for the functions
+`natural_add`, `natural_addDigit`, etc.
 
-Exceptions to this naming rule are the types inside `pao_basicTypes.h`.
+Exceptions to this naming rule are the types inside `basicTypes.h`, which are typed in lowerCamelCase.
 
 ## Comment Style
 
@@ -81,7 +82,7 @@ Rationale for this is:
  - The code must behave well _even if_ the compiler abuses undefined behaviours for optimization.
  - The code must *not* use any deprecated features of new C standards.
 
-Tests should not test internal `i_pao` functions, only public ones.
+Tests should not test internal `i_` functions, only public ones.
 It is fine for functions that write to `STDOUT` to be untested,
 these should be marked as `UNTESTED`.
 
@@ -119,4 +120,4 @@ Other small things:
  - Library configuration through conditional macros should be rather simple.
  - Provide no compatibility with C++.
  - Bad usage and internal errors should crash the program.
- - Recoverable errors should return a `pao_status` code (or should document the return values).
+ - Recoverable errors should return a `Status` code (or should document the return values).

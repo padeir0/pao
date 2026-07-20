@@ -4,11 +4,11 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef PAO_allocator_H
-#define PAO_allocator_H
+#ifndef PAO_IALLOCATOR_H
+#define PAO_IALLOCATOR_H
 
-#include "pao_basicTypes.h"
-#include "pao_status.h"
+#include "basicTypes.h"
+#include "status.h"
 
 /*
 Allocates an object of given size.
@@ -21,51 +21,51 @@ func: name of the function that called `alloc`, this is useful
 
 return: pointer to allocated object, NULL if allocation failed
 */
-typedef void* (*pao_Alloc)(void* heap, usize size, const char* func);
+typedef void* (*IAlloc)(void* heap, usize size, const char* func);
 
 /*
-Frees an object previously allocated by pao_Alloc, freeing a
+Frees an object previously allocated by IAlloc, freeing a
 wild pointer will lead to undefined behaviour. The object must
 be freed by the same allocator that allocated it, otherwise
 you'll also end up with undefined behaviour.
 */
-typedef pao_Status (*pao_Free)(void* heap, void* obj);
+typedef Status (*IFree)(void* heap, void* obj);
 
 /*
 Frees the entire heap. Allocators that do not provide this should
-crash the program when this function is called (ie, pao_stdmalloc).
+crash the program when this function is called (ie, stdmalloc).
 */
-typedef pao_Status (*pao_FreeAll)(void* heap);
+typedef Status (*IFreeAll)(void* heap);
 
 typedef struct {
   usize used;
   usize total;
-} pao_AllocatorInfo;
+} AllocatorInfo;
 
 /*
 Returns information about the heap.
 If the allocator has no means to return info, then
 it should return all fields set to 0.
 */
-typedef pao_AllocatorInfo (*pao_Info)(void* heap);
+typedef AllocatorInfo (*IInfo)(void* heap);
 
 /*
 Generic allocator interface.
 
 Rationale is that allocations should be bureoucratic for the programmer.
-Procedures that allocate should receive pao_Allocator, and all calls to 
-pao_allocator.alloc must pass the name of the function that allocated
-that resource for future debugging purposes. A pao_debugalloc shall
+Procedures that allocate should receive IAllocator, and all calls to 
+iallocator.alloc must pass the name of the function that allocated
+that resource for future debugging purposes. A debugalloc shall
 be provided to debug memory leaks and it should be a drop-in
 replacement to any other allocator.
 */
 typedef struct {
   void* heap;
-  pao_Alloc alloc;
-  pao_Free free;
-  pao_FreeAll freeAll;
-  pao_Info info;
-} pao_Allocator;
+  IAlloc alloc;
+  IFree free;
+  IFreeAll freeAll;
+  IInfo info;
+} IAllocator;
 /*
   TODO: should allocators provide a function that frees AND BZEROES(0) a region of memory?
         this seems reasonable, but the allocator struct will grow quite a bit...

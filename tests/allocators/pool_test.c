@@ -5,18 +5,18 @@ See the LICENSE file for more information.
 */
 
 #include "../common.h"
-#include "../../lib/alloc/pao_pool.h"
+#include "../../lib/alloc/pool.h"
 #include <stdlib.h>
 
 // Shared test state
-#define I_PAO_POOL_TEST_buffSize  4096
-#define I_PAO_POOL_TEST_objsSize  64
+#define I_pool_TEST_buffSize  4096
+#define I_pool_TEST_objsSize  64
 
-u8  g_pao_buffer[I_PAO_POOL_TEST_buffSize];
-u8* g_pao_objs[I_PAO_POOL_TEST_objsSize];
+u8  g_pao_buffer[I_pool_TEST_buffSize];
+u8* g_pao_objs[I_pool_TEST_objsSize];
 
 /* BEGIN: helpers */
-static void i_pao_poolTest_setbuff(u8* obj, usize size, u8 value) {
+static void i_poolTest_setbuff(u8* obj, usize size, u8 value) {
   usize i = 0;
   while (i < size) {
     obj[i] = value;
@@ -24,7 +24,7 @@ static void i_pao_poolTest_setbuff(u8* obj, usize size, u8 value) {
   }
 }
 
-static bool i_pao_poolTest_checkbuff(u8* obj, usize size, u8 value) {
+static bool i_poolTest_checkbuff(u8* obj, usize size, u8 value) {
   usize i = 0;
   while (i < size) {
     if (obj[i] != value) {
@@ -35,9 +35,9 @@ static bool i_pao_poolTest_checkbuff(u8* obj, usize size, u8 value) {
   return true;
 }
 
-static int i_pao_poolTest_findNull(void) {
+static int i_poolTest_findNull(void) {
   int i = 0;
-  while (i < I_PAO_POOL_TEST_objsSize) {
+  while (i < I_pool_TEST_objsSize) {
     if (g_pao_objs[i] == NULL) {
       return i;
     }
@@ -46,9 +46,9 @@ static int i_pao_poolTest_findNull(void) {
   return -1;
 }
 
-static int i_pao_poolTest_findNonNull(void) {
+static int i_poolTest_findNonNull(void) {
   int i = 0;
-  while (i < I_PAO_POOL_TEST_objsSize) {
+  while (i < I_pool_TEST_objsSize) {
     if (g_pao_objs[i] != NULL) {
       return i;
     }
@@ -57,23 +57,23 @@ static int i_pao_poolTest_findNonNull(void) {
   return -1;
 }
 
-static pao_Pool* i_pao_poolTest_make(usize chunksize) {
-  pao_Status s = pao_pool_new(I_PAO_POOL_TEST_buffSize, chunksize, g_pao_buffer);
-  if (s != PAO_status_ok) {
+static Pool* i_poolTest_make(usize chunksize) {
+  Status s = pool_new(I_pool_TEST_buffSize, chunksize, g_pao_buffer);
+  if (s != status_OK) {
     return NULL;
   }
-  return (pao_Pool*)g_pao_buffer;
+  return (Pool*)g_pao_buffer;
 }
 
-static int i_pao_poolTest_allocAll(pao_Pool* p) {
+static int i_poolTest_allocAll(Pool* p) {
   u8* obj;
   u8 i = 0;
-  while (i < I_PAO_POOL_TEST_objsSize) {
-    obj = (u8*)pao_pool_alloc(p);
+  while (i < I_pool_TEST_objsSize) {
+    obj = (u8*)pool_alloc(p);
     if (obj == NULL) {
       break; /* pool exhausted before array; that's fine */
     }
-    i_pao_poolTest_setbuff(obj, p->chunkSize, i);
+    i_poolTest_setbuff(obj, p->chunkSize, i);
     g_pao_objs[i] = obj;
     i++;
   }
@@ -81,13 +81,13 @@ static int i_pao_poolTest_allocAll(pao_Pool* p) {
 }
 
 /* verifies each slot is intact */
-static bool i_pao_poolTest_verifyObjs(pao_Pool* p, int len) {
+static bool i_poolTest_verifyObjs(Pool* p, int len) {
   u8 j = 0;
   while (j < len) {
     if (g_pao_objs[j] == NULL) {
       return false;
     }
-    if (!i_pao_poolTest_checkbuff(g_pao_objs[j], p->chunkSize, j)) {
+    if (!i_poolTest_checkbuff(g_pao_objs[j], p->chunkSize, j)) {
       return false; // NOTE(1)
     }
     j++;
@@ -103,27 +103,27 @@ static bool i_pao_poolTest_verifyObjs(pao_Pool* p, int len) {
 /* END: helpers */
 
 /* BEGIN: tests */
-// tests if pao_pool_new validates its arguments correctly
+// tests if pool_new validates its arguments correctly
 bool test_new(void) {
-  pao_Status s;
+  Status s;
 
-  s = pao_pool_new(I_PAO_POOL_TEST_buffSize, sizeof(i_pao_pool_Node), NULL);
-  if (s != PAO_status_nullBuffer) {
+  s = pool_new(I_pool_TEST_buffSize, sizeof(i_pool_Node), NULL);
+  if (s != status_NULLBUFFER) {
     return false; /* NOTE(1) */
   }
 
-  s = pao_pool_new(I_PAO_POOL_TEST_buffSize, PAO_pool_minChunkSize - 1, g_pao_buffer);
-  if (s != PAO_status_badSize) {
+  s = pool_new(I_pool_TEST_buffSize, pool_MINCHUNKSIZE - 1, g_pao_buffer);
+  if (s != status_BADSIZE) {
     return false; /* NOTE(2) */
   }
 
-  s = pao_pool_new(sizeof(pao_Pool), PAO_pool_minChunkSize, g_pao_buffer);
-  if (s != PAO_status_bufferTooSmall) {
+  s = pool_new(sizeof(Pool), pool_MINCHUNKSIZE, g_pao_buffer);
+  if (s != status_BUFFERTOOSMALL) {
     return false; /* NOTE(3) */
   }
 
-  s = pao_pool_new(I_PAO_POOL_TEST_buffSize, PAO_pool_minChunkSize, g_pao_buffer);
-  if (s != PAO_status_ok) {
+  s = pool_new(I_pool_TEST_buffSize, pool_MINCHUNKSIZE, g_pao_buffer);
+  if (s != status_OK) {
     return false;
   }
 
@@ -131,57 +131,57 @@ bool test_new(void) {
   /*
    * NOTE(1): null buffer must be rejected.
    * NOTE(2): chunksize below the minimum (one node-pointer) must be rejected.
-   * NOTE(3): buffer that can't hold pao_Pool header + one chunk must be rejected.
+   * NOTE(3): buffer that can't hold Pool header + one chunk must be rejected.
    */
 }
 
 /*
 bool test_doubleFree(void) {
   usize chunksize = 32;
-  pao_Pool* p = i_pao_poolTest_make(chunksize);
+  Pool* p = i_poolTest_make(chunksize);
 
   if (p == NULL) {
     return false;
   }
 
-  usize initial = pao_pool_available(p);
+  usize initial = pool_available(p);
   if (initial == 0) {
     return false;
   }
 
-  u8* obj = (u8*)pao_pool_alloc(p);
-  pao_pool_free(p, obj);
-  pao_pool_free(p, obj);
+  u8* obj = (u8*)pool_alloc(p);
+  pool_free(p, obj);
+  pool_free(p, obj);
   // verifies if the pool can still function after a double free
-  int len = i_pao_poolTest_allocAll(p);
-  return i_pao_poolTest_verifyObjs(p, len);
+  int len = i_poolTest_allocAll(p);
+  return i_poolTest_verifyObjs(p, len);
 }
 */
 
 // allocate every slot, fill with a sentinel, verify
 bool test_allocFill(void) {
   usize chunksize = 32;
-  pao_Pool* p = i_pao_poolTest_make(chunksize);
+  Pool* p = i_poolTest_make(chunksize);
   usize initial;
 
   if (p == NULL) {
     return false;
   }
 
-  initial = pao_pool_available(p);
+  initial = pool_available(p);
   if (initial == 0) {
     return false;
   }
 
-  int len = i_pao_poolTest_allocAll(p);
-  return i_pao_poolTest_verifyObjs(p, len);;
+  int len = i_poolTest_allocAll(p);
+  return i_poolTest_verifyObjs(p, len);;
 }
 
 // Free all slots, then alloc again. Pool must
 // hand out the same memory range without error.
 bool test_freeAndReuse(void) {
-  usize chunksize = I_PAO_POOL_TEST_buffSize / I_PAO_POOL_TEST_objsSize;
-  pao_Pool* p = i_pao_poolTest_make(chunksize);
+  usize chunksize = I_pool_TEST_buffSize / I_pool_TEST_objsSize;
+  Pool* p = i_poolTest_make(chunksize);
   usize slots;
   usize i;
 
@@ -189,41 +189,41 @@ bool test_freeAndReuse(void) {
     return false;
   }
 
-  slots = pao_pool_available(p) / chunksize;
-  if (slots == 0 || slots > I_PAO_POOL_TEST_objsSize) {
+  slots = pool_available(p) / chunksize;
+  if (slots == 0 || slots > I_pool_TEST_objsSize) {
     return false;
   }
 
   /* fill the pool */
   i = 0;
   while (i < slots) {
-    g_pao_objs[i] = (u8*)pao_pool_alloc(p);
+    g_pao_objs[i] = (u8*)pool_alloc(p);
     if (g_pao_objs[i] == NULL) {
       return false;
     }
     i++;
   }
 
-  if (pao_pool_alloc(p) != NULL) {
+  if (pool_alloc(p) != NULL) {
     return false; /* NOTE(1) */
   }
 
   /* free all */
   i = 0;
   while (i < slots) {
-    pao_pool_free(p, g_pao_objs[i]);
+    pool_free(p, g_pao_objs[i]);
     g_pao_objs[i] = NULL;
     i++;
   }
 
-  if (!pao_pool_empty(p)) {
+  if (!pool_empty(p)) {
     return false; /* NOTE(2) */
   }
 
   /* alloc again — must succeed for the full slot count */
   i = 0;
   while (i < slots) {
-    g_pao_objs[i] = (u8*)pao_pool_alloc(p);
+    g_pao_objs[i] = (u8*)pool_alloc(p);
     if (g_pao_objs[i] == NULL) {
       return false;
     }
@@ -237,10 +237,10 @@ bool test_freeAndReuse(void) {
    */
 }
 
-// tests if pao_pool_freeAll resets the pool fully
+// tests if pool_freeAll resets the pool fully
 bool test_freeAll(void) {
-  usize chunksize = I_PAO_POOL_TEST_buffSize / I_PAO_POOL_TEST_objsSize;
-  pao_Pool* p = i_pao_poolTest_make(chunksize);
+  usize chunksize = I_pool_TEST_buffSize / I_pool_TEST_objsSize;
+  Pool* p = i_poolTest_make(chunksize);
   usize initial;
   usize slots;
   usize i;
@@ -249,32 +249,32 @@ bool test_freeAll(void) {
     return false;
   }
 
-  initial = pao_pool_available(p);
+  initial = pool_available(p);
   slots = initial / chunksize;
-  if (slots == 0 || slots > I_PAO_POOL_TEST_objsSize) {
+  if (slots == 0 || slots > I_pool_TEST_objsSize) {
     return false;
   }
 
   /* drain the pool */
   i = 0;
   while (i < slots) {
-    if (pao_pool_alloc(p) == NULL) {
+    if (pool_alloc(p) == NULL) {
       return false;
     }
     i++;
   }
 
-  if (pao_pool_available(p) != 0) {
+  if (pool_available(p) != 0) {
     return false;
   }
 
-  pao_pool_freeAll(p);
+  pool_freeAll(p);
 
-  if (!pao_pool_empty(p)) {
+  if (!pool_empty(p)) {
     return false; /* NOTE(1) */
   }
 
-  if (pao_pool_available(p) != initial) {
+  if (pool_available(p) != initial) {
     return false; /* NOTE(2) */
   }
 
@@ -285,11 +285,11 @@ bool test_freeAll(void) {
    */
 }
 
-// tests if pao_pool_free rejects out-of-bounds and misaligned pointers
+// tests if pool_free rejects out-of-bounds and misaligned pointers
 /*
 bool test_freeErrors(void) {
   usize chunksize = 32;
-  pao_Pool* p = i_pao_poolTest_make(chunksize);
+  Pool* p = i_poolTest_make(chunksize);
   u8 external[128];
   u8* obj;
 
@@ -298,18 +298,18 @@ bool test_freeErrors(void) {
   }
 
   // pointer outside the pool entirely
-  pao_pool_free(p, &external);
+  pool_free(p, &external);
 
   // pointer inside the pool but not aligned to a chunk boundary
-  obj = (u8*)pao_pool_alloc(p);
+  obj = (u8*)pool_alloc(p);
   if (obj == NULL) {
     return false;
   }
 
-  pao_pool_free(p, obj + 1);
+  pool_free(p, obj + 1);
 
   // the valid pointer itself must still free correctly
-  pao_pool_free(p, obj);
+  pool_free(p, obj);
 
   return true;
   //   NOTE(1): obj+1 is inside the pool's memory range but is not
@@ -319,8 +319,8 @@ bool test_freeErrors(void) {
 
 // tests if used + available == total capacity
 bool test_usedAndAvailable(void) {
-  usize chunksize = I_PAO_POOL_TEST_buffSize / I_PAO_POOL_TEST_objsSize;
-  pao_Pool* p = i_pao_poolTest_make(chunksize);
+  usize chunksize = I_pool_TEST_buffSize / I_pool_TEST_objsSize;
+  Pool* p = i_poolTest_make(chunksize);
   usize total;
   usize slots;
   usize i;
@@ -329,29 +329,29 @@ bool test_usedAndAvailable(void) {
     return false;
   }
 
-  total = pao_pool_available(p);
+  total = pool_available(p);
   slots = total / chunksize;
-  if (slots == 0 || slots > I_PAO_POOL_TEST_objsSize) {
+  if (slots == 0 || slots > I_pool_TEST_objsSize) {
     return false;
   }
 
-  if (pao_pool_used(p) != 0) {
+  if (pool_used(p) != 0) {
     return false;
   }
 
   /* alloc one at a time and check accounting at each step */
   i = 0;
   while (i < slots) {
-    g_pao_objs[i] = (u8*)pao_pool_alloc(p);
+    g_pao_objs[i] = (u8*)pool_alloc(p);
     if (g_pao_objs[i] == NULL) {
       return false;
     }
 
-    if (pao_pool_used(p) + pao_pool_available(p) != total) {
+    if (pool_used(p) + pool_available(p) != total) {
       return false; /* NOTE(1) */
     }
 
-    if (pao_pool_used(p) != (i + 1) * chunksize) {
+    if (pool_used(p) != (i + 1) * chunksize) {
       return false;
     }
 
@@ -366,35 +366,35 @@ bool test_usedAndAvailable(void) {
 }
 
 // random interleaving of alloc and free preserves memory integrity
-static void i_pao_poolTest_mixedAlloc(pao_Pool* p, usize chunksize) {
+static void i_poolTest_mixedAlloc(Pool* p, usize chunksize) {
   int slot;
   u8* obj;
 
-  obj = (u8*)pao_pool_alloc(p);
+  obj = (u8*)pool_alloc(p);
   if (obj == NULL) {
     return; /* pool exhausted; nothing to do */
   }
 
-  slot = i_pao_poolTest_findNull();
+  slot = i_poolTest_findNull();
   if (slot < 0) {
     /* tracking array is full; return the chunk to the pool */
-    pao_pool_free(p, obj);
+    pool_free(p, obj);
     return;
   }
 
   // SAFE(1):
-  i_pao_poolTest_setbuff(obj, chunksize, (u8)slot);
+  i_poolTest_setbuff(obj, chunksize, (u8)slot);
   g_pao_objs[slot] = obj;
-  /* SAFE(1): slot is in [0, I_PAO_POOL_TEST_objsSize), cast to u8 is safe
-   * because I_PAO_POOL_TEST_objsSize <= 64 <= UINT8_MAX
+  /* SAFE(1): slot is in [0, I_pool_TEST_objsSize), cast to u8 is safe
+   * because I_pool_TEST_objsSize <= 64 <= UINT8_MAX
    */
 }
 
-static bool i_pao_poolTest_mixedFree(pao_Pool* p, usize chunksize) {
+static bool i_poolTest_mixedFree(Pool* p, usize chunksize) {
   int slot;
   u8* obj;
 
-  slot = i_pao_poolTest_findNonNull();
+  slot = i_poolTest_findNonNull();
   if (slot < 0) {
     return true; /* nothing allocated yet */
   }
@@ -402,11 +402,11 @@ static bool i_pao_poolTest_mixedFree(pao_Pool* p, usize chunksize) {
   obj = g_pao_objs[slot];
 
   // SAFE(1):
-  if (!i_pao_poolTest_checkbuff(obj, chunksize, (u8)slot)) {
+  if (!i_poolTest_checkbuff(obj, chunksize, (u8)slot)) {
     return false; /* NOTE(1) */
   }
 
-  pao_pool_free(p, obj);
+  pool_free(p, obj);
 
   g_pao_objs[slot] = NULL;
   return true;
@@ -414,25 +414,25 @@ static bool i_pao_poolTest_mixedFree(pao_Pool* p, usize chunksize) {
    * NOTE(1): the sentinel written at alloc time must be unmodified at
    *          free time; corruption means the pool handed out overlapping
    *          chunks.
-   * SAFE(1): slot is in [0, I_PAO_POOL_TEST_objsSize) <= UINT8_MAX
+   * SAFE(1): slot is in [0, I_pool_TEST_objsSize) <= UINT8_MAX
    */
 }
 
 bool test_mixed(void) {
   usize chunksize = 32;
-  pao_Pool* p;
+  Pool* p;
   int iterations;
   bool ok;
   int i;
 
   /* zero the tracking array */
   i = 0;
-  while (i < I_PAO_POOL_TEST_objsSize) {
+  while (i < I_pool_TEST_objsSize) {
     g_pao_objs[i] = NULL;
     i++;
   }
 
-  p = i_pao_poolTest_make(chunksize);
+  p = i_poolTest_make(chunksize);
   if (p == NULL) {
     return false;
   }
@@ -444,9 +444,9 @@ bool test_mixed(void) {
   i = 0;
   while (i < iterations && ok) {
     if (rand() % 2 == 0) {
-      i_pao_poolTest_mixedAlloc(p, chunksize);
+      i_poolTest_mixedAlloc(p, chunksize);
     } else {
-      ok = i_pao_poolTest_mixedFree(p, chunksize);
+      ok = i_poolTest_mixedFree(p, chunksize);
     }
     i++;
   }
@@ -457,15 +457,15 @@ bool test_mixed(void) {
 
   /* drain remaining live allocations */
   i = 0;
-  while (i < I_PAO_POOL_TEST_objsSize) {
+  while (i < I_pool_TEST_objsSize) {
     if (g_pao_objs[i] != NULL) {
-      pao_pool_free(p, g_pao_objs[i]);
+      pool_free(p, g_pao_objs[i]);
       g_pao_objs[i] = NULL;
     }
     i++;
   }
 
-  if (!pao_pool_empty(p)) {
+  if (!pool_empty(p)) {
     return false;
   }
 
@@ -475,44 +475,44 @@ bool test_mixed(void) {
 // run seq alloc/free for a range of sizes
 bool test_multipleChunksizes(void) {
   usize chunksize;
-  pao_Pool* p;
+  Pool* p;
   usize slots;
   usize i;
 
-  chunksize = PAO_pool_minChunkSize;
+  chunksize = pool_MINCHUNKSIZE;
   while (chunksize <= 128) {
-    p = i_pao_poolTest_make(chunksize);
+    p = i_poolTest_make(chunksize);
     if (p == NULL) {
       return false;
     }
 
-    slots = pao_pool_available(p) / chunksize;
-    if (slots > I_PAO_POOL_TEST_objsSize) {
-      slots = I_PAO_POOL_TEST_objsSize;
+    slots = pool_available(p) / chunksize;
+    if (slots > I_pool_TEST_objsSize) {
+      slots = I_pool_TEST_objsSize;
     }
 
     i = 0;
     while (i < slots) {
-      g_pao_objs[i] = (u8*)pao_pool_alloc(p);
+      g_pao_objs[i] = (u8*)pool_alloc(p);
       if (g_pao_objs[i] == NULL) {
         return false;
       }
-      /* SAFE: i <= slots <= I_PAO_POOL_TEST_objsSize <= 64 <= UINT8_MAX */
-      i_pao_poolTest_setbuff(g_pao_objs[i], chunksize, (u8)i);
+      /* SAFE: i <= slots <= I_pool_TEST_objsSize <= 64 <= UINT8_MAX */
+      i_poolTest_setbuff(g_pao_objs[i], chunksize, (u8)i);
       i++;
     }
 
     i = 0;
     while (i < slots) {
-      if (!i_pao_poolTest_checkbuff(g_pao_objs[i], chunksize, (u8)i)) {
+      if (!i_poolTest_checkbuff(g_pao_objs[i], chunksize, (u8)i)) {
         return false;
       }
-      pao_pool_free(p, g_pao_objs[i]);
+      pool_free(p, g_pao_objs[i]);
       g_pao_objs[i] = NULL;
       i++;
     }
 
-    if (!pao_pool_empty(p)) {
+    if (!pool_empty(p)) {
       return false;
     }
 

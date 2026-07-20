@@ -1,18 +1,20 @@
 #include <stdio.h>
-#include "../lib/pao_basicTypes.h"
-#include "../lib/pao_status.h"
 #include <strings.h>
 #include <string.h>
-#include "../lib/pao_colors.h"
+#include <stdbool.h>
+#include <stdlib.h>
 
-#ifndef PAO_TEST_COMMON
+#include "../lib/status.h"
+#include "../lib/colors.h"
 
-#define PAO_TEST_COMMON 1
+#ifndef PAO_TEST_COMMON_H
+
+#define PAO_TEST_COMMON_H 1
 
 #define DEFAULT_SIZE 2048
 
-void checkStatus(pao_Status ns) {
-  if (ns != PAO_status_ok) {
+void checkStatus(Status ns) {
+  if (ns != status_OK) {
     printf("fail: %d\n", ns);
     abort();
   }
@@ -36,7 +38,7 @@ void run_tests(const char* name, Tester* tests, int length) {
     if (ok) {
       sucesses++;
     } else {
-      strcat(print_buff, PAO_colors_red "FAIL" PAO_colors_reset ": ");
+      strcat(print_buff, colors_RED "FAIL" colors_RESET ": ");
       strcat(print_buff, t.name);
       strcat(print_buff, "\n");
       printf("%s", print_buff);

@@ -10,19 +10,19 @@ See the LICENSE file for more information.
  * The whole library should accept this allocator and fail gracefully.
  * This means we can use a static amount of memory if we want :)
  * Which means: the library can be used in embedded devices.
- * (but i highly doubt the pao_Allocator interface would pass
+ * (but i highly doubt the IAllocator interface would pass
  *  DO-178C and friends lmao)
  */
 
 
-#ifndef PAO_nullAlloc_H
-#define PAO_nullAlloc_H
+#ifndef PAO_NULLALLOC_H
+#define PAO_NULLALLOC_H
 
 #include <stdio.h>
-#include "../pao_allocator.h"
+#include "../iallocator.h"
 
 static inline
-void* i_pao_nullAlloc_alloc(
+void* i_nullAlloc_alloc(
   __attribute__((unused)) void* heap,
   __attribute__((unused)) usize size,
   __attribute__((unused)) const char* func
@@ -31,34 +31,34 @@ void* i_pao_nullAlloc_alloc(
 }
 
 static inline
-pao_Status i_pao_nullAlloc_free(
+Status i_nullAlloc_free(
   __attribute__((unused)) void* heap,
   __attribute__((unused)) void* obj
 ) {
-  return PAO_status_failedFree;
+  return status_FAILEDFREE;
 }
 
 static inline
-pao_Status i_pao_nullAlloc_freeAll(__attribute__((unused)) void* heap) {
-  return PAO_status_failedFree;
+Status i_nullAlloc_freeAll(__attribute__((unused)) void* heap) {
+  return status_FAILEDFREE;
 }
 
 static inline
-pao_AllocatorInfo i_pao_nullAlloc_info(__attribute__((unused)) void* heap) {
-  pao_AllocatorInfo out;
+AllocatorInfo i_nullAlloc_info(__attribute__((unused)) void* heap) {
+  AllocatorInfo out;
   out.total = 0;
   out.used = 0;
   return out;
 }
 
 static inline
-pao_Allocator pao_nullAlloc_new(void) {
-  pao_Allocator alloc = {
+IAllocator nullAlloc_new(void) {
+  IAllocator alloc = {
     .heap = NULL,
-    .alloc = i_pao_nullAlloc_alloc,
-    .free = i_pao_nullAlloc_free,
-    .freeAll = i_pao_nullAlloc_freeAll,
-    .info = i_pao_nullAlloc_info,
+    .alloc = i_nullAlloc_alloc,
+    .free = i_nullAlloc_free,
+    .freeAll = i_nullAlloc_freeAll,
+    .info = i_nullAlloc_info,
   };
   return alloc;
 }
