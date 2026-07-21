@@ -941,10 +941,9 @@ usize i_natural_snprint(const Natural* nat, char* buffer, usize buffSize, bool p
   */
 }
 
+/* TODO: refactor this to use Buffer */
 /* Only writes a number if the given buffer has sufficient size, ie,
 it either fully writes the number or returns 0.
-*/
-/* TODO: refactor this to use Buffer
 */
 static inline
 usize natural_snprint(const Natural* nat, char* buffer, usize buffSize) {

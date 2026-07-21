@@ -3,6 +3,7 @@
 #include "../../lib/status.h"
 #include "../../lib/alloc/stdAlloc.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <strings.h>
 #include "../common.h"
 
@@ -10,10 +11,9 @@ char buffer[DEFAULT_SIZE];
 
 // TODO: improve tests by using an allocator that allows you to
 //       check for number of allocations performed and leaks
-// TODO: write tests for when the allocator fails
-// TODO: write tests for snprint when buffer is too small
-// TODO: write tests for snprint when buffer is exact fit
-// TODO: write tests for snprint when buffer size is 1
+bool isEmptyNat(Natural n) {
+  return n.cap == 0 && n.len == 0 && n.digits == NULL;
+}
 
 IAllocator _alloc;
 #define alloc (&_alloc)
@@ -1190,6 +1190,51 @@ bool test_natural_snprint_3(void) {
   natural_free(alloc, A);
   return true;
 }
+
+// buffSize == 0 must always fail, and must never touch the buffer.
+bool test_natural_snprint_tooSmall_0(void) {
+  Status s;
+  Natural A = natural_new();
+  s = natural_set(alloc, 42, &A); checkStatus(s);
+
+  test_buffer[0] = 'X';
+  usize written = natural_snprint(&A, test_buffer, 0);
+  bool ok = written == 0 && test_buffer[0] == 'X';
+
+  natural_free(alloc, A);
+  return ok;
+}
+
+// a buffer far too small for a multi-limb number must fail without
+// writing anything into the buffer (per the "fully writes or returns
+// 0" contract).
+bool test_natural_snprint_tooSmall_1(void) {
+  Status s;
+  Natural A = natural_new();
+  u32 digits[] = {1, 2, 3}; // 3 limbs, neededBytes = 27
+  s = natural_setVec(alloc, digits, 3, &A); checkStatus(s);
+
+  test_buffer[0] = 'X';
+  usize written = natural_snprint(&A, test_buffer, 5);
+  bool ok = written == 0 && test_buffer[0] == 'X';
+
+  natural_free(alloc, A);
+  return ok;
+}
+
+// buffSize == 1: only zero fits in a single byte.
+bool test_natural_snprint_bufferSize1_0(void) {
+  Status s;
+  Natural A = natural_new();
+  s = natural_set(alloc, 0, &A); checkStatus(s);
+
+  usize written = natural_snprint(&A, test_buffer, 1);
+  bool ok = written == 1 && test_buffer[0] == '0';
+
+  natural_free(alloc, A);
+  return ok;
+}
+
 /* END: testing snprint */
 
 /* BEGIN: testing distanceDigit */
@@ -2154,12 +2199,107 @@ bool test_natural_growShrink_6(void) {
 }
 /* END: grow/shrink tests */
 
+/* BEGIN: testing allocator failure */
+// fails on the very first allocation `natural_set` needs to make.
+bool test_natural_alloc_fails_set(void) {
+  i_FailAllocHeap heap;
+  IAllocator fa = i_failAlloc_new(&heap, 0);
+  Natural out = natural_new();
+
+  Status s = natural_set(&fa, 42, &out);
+  bool ok = s == status_OUTOFMEMORY && isEmptyNat(out);
+
+  natural_free(&fa, out); // safe: digits is still NULL
+  return ok;
+}
+
+// fails on the first allocation `natural_setVec` needs, before any
+// digit has been pushed.
+bool test_natural_alloc_fails_setVec_firstAlloc(void) {
+  i_FailAllocHeap heap;
+  IAllocator fa = i_failAlloc_new(&heap, 0);
+  Natural out = natural_new();
+  u32 digits[] = {1, 2, 3};
+
+  Status s = natural_setVec(&fa, digits, 3, &out);
+  bool ok = s == status_OUTOFMEMORY && isEmptyNat(out);
+
+  natural_free(&fa, out);
+  return ok;
+}
+
+// allows the initial cap-4 allocation to succeed, but fails the grow
+// that's needed to fit a 5th digit. Checks that a failed grow leaves
+// the previously-allocated buffer, its length and its contents intact
+// rather than corrupting or leaking it.
+bool test_natural_alloc_fails_setVec_growAlloc(void) {
+  i_FailAllocHeap heap;
+  IAllocator fa = i_failAlloc_new(&heap, 1);
+  Natural out = natural_new();
+  u32 digits[] = {5, 4, 3, 2, 1}; // MSD -> LSD
+
+  Status s = natural_setVec(&fa, digits, 5, &out);
+  u32 expected[] = {1, 2, 3, 4}; // digits pushed before the grow failed (LSD-first)
+
+  bool ok = s == status_OUTOFMEMORY &&
+            out.cap == natural_MINNATVEC &&
+            out.len == 4 &&
+            out.digits != NULL &&
+            memcmp(out.digits, expected, 4*sizeof(u32)) == 0;
+
+  natural_free(&fa, out);
+  return ok;
+}
+
+// `out` starts with no capacity, so `natural_copy` must allocate;
+// fails that allocation and checks `out` is left untouched.
+bool test_natural_alloc_fails_copy(void) {
+  i_FailAllocHeap heap;
+  IAllocator fa = i_failAlloc_new(&heap, -1); // never fail, for setup
+  Natural a = natural_new();
+  Natural out = natural_new();
+
+  Status s = natural_set(&fa, 314159, &a); checkStatus(s);
+
+  heap.allocsUntilFail = 0; // now make the next allocation fail
+  s = natural_copy(&fa, &a, &out);
+  bool ok = s == status_OUTOFMEMORY && isEmptyNat(out);
+
+  natural_free(&fa, a);
+  natural_free(&fa, out);
+  return ok;
+}
+
+// `out` starts empty, so `natural_add` must allocate on its very
+// first digit; fails that allocation and checks `out` is left untouched.
+bool test_natural_alloc_fails_add(void) {
+  i_FailAllocHeap heap;
+  IAllocator fa = i_failAlloc_new(&heap, -1); // never fail, for setup
+  Natural a = natural_new();
+  Natural b = natural_new();
+  Natural out = natural_new();
+
+  Status s = natural_set(&fa, 1, &a); checkStatus(s);
+  s = natural_set(&fa, 1, &b); checkStatus(s);
+
+  heap.allocsUntilFail = 0; // now make the next allocation fail
+  s = natural_add(&fa, &a, &b, &out);
+  bool ok = s == status_OUTOFMEMORY && isEmptyNat(out);
+
+  natural_free(&fa, a);
+  natural_free(&fa, b);
+  natural_free(&fa, out);
+  return ok;
+}
+/* END: testing allocator failure */
+
 /* BEGIN: DRIVER CODE */
 Tester tests[] = {
   {"test_natural_snprint_0", test_natural_snprint_0},
   {"test_natural_snprint_1", test_natural_snprint_1},
   {"test_natural_snprint_2", test_natural_snprint_2},
   {"test_natural_snprint_3", test_natural_snprint_3},
+  {"test_natural_snprint_bufferSize1_0", test_natural_snprint_bufferSize1_0},
 
   {"test_natural_addDigit_0", test_natural_addDigit_0},
   {"test_natural_addDigit_1", test_natural_addDigit_1},
@@ -2258,6 +2398,12 @@ Tester tests[] = {
   {"test_natural_growShrink_4", test_natural_growShrink_4},
   {"test_natural_growShrink_5", test_natural_growShrink_5},
   {"test_natural_growShrink_6", test_natural_growShrink_6},
+
+  {"test_natural_alloc_fails_set", test_natural_alloc_fails_set},
+  {"test_natural_alloc_fails_setVec_firstAlloc", test_natural_alloc_fails_setVec_firstAlloc},
+  {"test_natural_alloc_fails_setVec_growAlloc", test_natural_alloc_fails_setVec_growAlloc},
+  {"test_natural_alloc_fails_copy", test_natural_alloc_fails_copy},
+  {"test_natural_alloc_fails_add", test_natural_alloc_fails_add},
 };
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
