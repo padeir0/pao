@@ -217,7 +217,7 @@ Status natural_copy(IAllocator* mem, const Natural* A, Natural* out) {
 
 static inline
 bool natural_equalDigit(const Natural* A, u32 digit) {
-  if (A->len == 0 && digit == 0) {
+  if (natural_isZero(A) && digit == 0) {
     return true;
   }
   return A->len == 1 && A->digits[0] == digit;
@@ -240,11 +240,13 @@ bool natural_equal(const Natural* A, const Natural* B) {
 
 static inline
 Order natural_compareDigit(const Natural* A, u32 b) {
-  if (b == 0 && A->len == 0) {
-    return order_EQUAL;
-  }
-  if (b != 0 && A->len == 0) {
-    return order_LESS;
+  if (natural_isZero(A)) {
+    if (b == 0) {
+      return order_EQUAL;
+    }
+    if (b != 0) {
+      return order_LESS;
+    }
   }
 
   if (A->len > 1) {
@@ -849,6 +851,44 @@ Status natural_divDigit(IAllocator* mem, const Natural* A, u32 B, Natural* Q, u3
   */
 }
 
+// TODO: UNTESTED:
+static inline
+Status natural_gcd(IAllocator* mem,
+                   const Natural* A, const Natural* B,
+                   Natural* out,
+                   Natural* scr_a, Natural* scr_b,
+                   Natural* scr_div, Natural* scr_q) {
+  #if config_DEBUG
+    if (mem == NULL || A == NULL || B == NULL || out == NULL) {
+      debug_FATALFMT("Some pointer parameter is null. mem = %p, A = %p, B = %p, out = %p.", (void*)mem, (void*)A, (void*)B, (void*)out);
+    }
+    if (scr_a == NULL || scr_b == NULL || scr_div == NULL || scr_q == NULL) {
+      debug_FATALFMT("Some scratch parameter is null. scr_a = %p, scr_b = %p, scr_c = %p, scr_d = %p.", (void*)scr_a, (void*)scr_b, (void*)scr_div, (void*)scr_q);
+    }
+  #endif
+  Status st;
+  Natural* scr_c = out;
+
+  st = natural_set(mem, 0, scr_a); status_CHECK;
+  st = natural_set(mem, 0, scr_b); status_CHECK;
+  st = natural_set(mem, 0, scr_c); status_CHECK;
+  st = natural_set(mem, 0, scr_div); status_CHECK;
+  st = natural_set(mem, 0, scr_q); status_CHECK;
+
+  st = natural_copy(mem, A, scr_a); status_CHECK;
+  st = natural_copy(mem, B, scr_b); status_CHECK;
+
+  while (natural_isZero(scr_b) == false) {
+    st = natural_div(mem, scr_div, scr_a, scr_b, scr_q, scr_c); status_CHECK;
+    Natural* hold = scr_a;
+    scr_a = scr_b;
+    scr_b = scr_c;
+    scr_c = hold;
+  }
+  st = natural_copy(mem, scr_a, out); status_CHECK;
+  return status_OK;
+}
+
 static inline
 char* i_natural_firstNonzeroChar(char* buffer, usize buffSize) {
   usize i = 0;
@@ -874,85 +914,82 @@ void i_natural_WriteU32(u32 n, char* buffer) {
   return;
 }
 
-/* Only writes a number if the given buffer has sufficient size.
-
-OBS: `padRight = false` is used with decimal representation of numbers,
-     so that leading zeroes are removed.
-     `padLeft = true` is also used with decimal representation, so that
-     if the digits [1, 1] are behind the period, then the number will read
-     `.1000000001` and not `0.11` incorrectly.
-*/
 static inline
-usize i_natural_snprint(const Natural* nat, char* buffer, usize buffSize, bool padLeft, bool padRight) {
-  // NOTE(1):
-  usize neededBytes = (usize)(nat->len * natural_DIGITSPERINT);
-  if (buffSize == 0 || neededBytes >= buffSize) {
-    return 0;
+void i_natural_WriteU32Tight(u32 n, char* buffer, u32 digitCount) {
+  char* b = buffer + digitCount - 1;
+  while (buffer <= b) {
+    *b = (char)(n%10) + '0';
+    b--;
+    n = n/10;
   }
-  if (nat->len == 0) {
-    *buffer = '0';
-    return 1;
-  }
-
-  i64 i = (i64)nat->len -1;
-  char* block = buffer;
-
-  do {
-    u32 currDigit = nat->digits[i];
-    // SAFE(1):
-    i_natural_WriteU32(currDigit, block);
-    block += natural_DIGITSPERINT;
-    i--;
-  } while (0 <= i);
-
-  usize size = (uptr)block - (uptr)buffer;
-  if (!padRight) {
-    while (0 < size && *(buffer+size-1) == '0') {
-        size--;
-    }
-  }
-
-  // NOTE(2)
-  if (!padLeft) {
-    char* firstNonzero = i_natural_firstNonzeroChar(buffer, size);
-    if (buffer < firstNonzero) {
-      uptr padLen = (uptr)firstNonzero - (uptr)buffer;
-      size = size - padLen;
-
-      uptr i = 0;
-      while (i < size) {
-        buffer[i] = firstNonzero[i];
-        i++;
-      }
-    }
-  }
-
-  return size;
-  /* NOTE(1): This checks if the buffer size is sufficient, we're generous here and
-              don't care if padding is omitted. We also expect that no useless
-              digits are present, ie: 000000000_000000001,
-              which should be true for all arithmetic implemented here.
-              If for some reason some useless digits are present and
-              padd_left is false, then this will return 0.
-     SAFE(1): We can proceed to write 9 bytes because we already know the buffer has enough space,
-              see note(1).
-     NOTE(2): If there are zeros on the left and we don't want padding,
-              then we shift everything to the left until we get rid of the zeros.
-  */
 }
 
-/* TODO: refactor this to use Buffer */
+static inline
+u32 i_natural_digitCountU32(u32 n) {
+  u32 count = 1;
+  while (n >= 10) {
+    n /= 10;
+    count++;
+  }
+  return count;
+}
+
+// TODO: UNTESTED:
+static inline
+usize natural_printingSize(const Natural* nat) {
+  if (nat->len == 0) {
+    return 1; // zero needs one byte.
+  }
+  // nat->len >= 1
+  u32 msd = nat->digits[nat->len - 1];
+  u32 msdWidth = i_natural_digitCountU32(msd);
+  usize neededBytes = (usize)msdWidth + (usize)(nat->len - 1) * natural_DIGITSPERINT;
+  return neededBytes;
+}
+
 /* Only writes a number if the given buffer has sufficient size, ie,
 it either fully writes the number or returns 0.
 */
 static inline
-usize natural_snprint(const Natural* nat, char* buffer, usize buffSize) {
+usize natural_snprint(const Natural* nat, char* buffer, usize size) {
   #if config_DEBUG
     if (nat == NULL || buffer == NULL) {
       debug_FATALFMT("Some pointer parameter is null. nat = %p, buffer = %p.", (void*)nat, (void*)buffer);
     }
   #endif
-  return i_natural_snprint(nat, buffer, buffSize, false, true);
+
+  usize neededBytes = natural_printingSize(nat);
+  if (neededBytes > size) {
+    return 0;
+  }
+
+  if (nat->len == 0) {
+    *buffer = '0';
+    return 1;
+  }
+
+  char* block = buffer;
+  { // write msd
+    u32 msd = nat->digits[nat->len - 1];
+    u32 msdWidth = i_natural_digitCountU32(msd);
+    i_natural_WriteU32Tight(msd, block, msdWidth);
+    block += msdWidth;
+  }
+
+  i64 i = (i64)nat->len - 2;
+  while (0 <= i) {
+    // SAFE(1):
+    i_natural_WriteU32(nat->digits[i], block);
+    block += natural_DIGITSPERINT;
+    i--;
+  }
+
+  usize writtenSize = (uptr)block - (uptr)buffer;
+  return writtenSize;
+  /* SAFE(1): We already know the buffer has enough space for the
+              remaining (non-leading) limbs, since `neededBytes`
+              accounts for them at full width, see note(1).
+  */
 }
 
 #endif

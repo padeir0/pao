@@ -46,10 +46,10 @@ void run_tests(const char* name, Tester* tests, int length) {
     }
     i++;
   }
-
-  printf("%s: %d/%d tests passed.\n", name, sucesses, i);
+  printf("%s: %d/%d tests passed.\n", name, sucesses, length);
 }
 
+// TODO: refactor this to use FLAlloc.
 /* BEGIN: failing allocator
    A minimal IAllocator, backed by malloc/free, that can be told to
    start returning NULL after a given number of successful allocations.

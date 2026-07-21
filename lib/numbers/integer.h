@@ -109,9 +109,14 @@ Order integer_compare(const Integer* A, const Integer* B) {
 
 static inline
 usize integer_snprint(const Integer* A, char* buffer, usize buffSize) {
-  if (buffSize == 0) {
+  usize neededBytes = natural_printingSize(&A->abs);
+  if (A->sign == -1) {
+    neededBytes++;
+  }
+  if (neededBytes > buffSize) {
     return 0;
   }
+  
   if (A->sign == -1) {
     buffer[0] = '-';
     return natural_snprint(&A->abs, buffer+1, buffSize-1) + 1;
