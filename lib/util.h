@@ -26,21 +26,19 @@ u32 util_maxU32(u32 a, u32 b) {
 }
 
 static inline
-i32 util_absI32(i32 a) {
+u32 util_absI32(i32 a) {
   if (a < 0) {
-    return -a;
-  } else {
-    return a;
+    return -(u32)a;
   }
+  return (u32)a;
 }
 
 static inline
-i64 util_absI64(i64 a) {
+u64 util_absI64(i64 a) {
   if (a < 0) {
-    return -a;
-  } else {
-    return a;
+    return -(u64)a;
   }
+  return (u64)a;
 }
 
 static inline

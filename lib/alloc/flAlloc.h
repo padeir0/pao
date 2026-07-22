@@ -226,6 +226,7 @@ usize flAlloc_objsize(void* ptr) {
    the memory stored in `new` was already freed and joined
    with `curr`.
  */
+static inline
 bool i_flAlloc_within(i_flAlloc_flNode* curr, i_flAlloc_flNode* new) {
   return curr == new || // equal
          ((curr < new) && ((u8*)curr + curr->size) > (u8*)new); // within
@@ -269,7 +270,7 @@ void flAlloc_free(FLAlloc* fl, void* p) {
 
   while (curr != NULL) {
     if (i_flAlloc_within(curr, new)) {
-      debug_FATALFMT("Double free! obj = %p, curr = %p, curr.size = %ld;", (void*)new, (void*)curr, curr->size)
+      debug_FATALFMT("Double free! obj = %p, curr = %p, curr.size = %zu;", (void*)new, (void*)curr, curr->size);
     }
     if (prev != NULL) {
       if (prev < new && new < curr) {

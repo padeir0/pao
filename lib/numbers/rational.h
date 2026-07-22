@@ -8,6 +8,7 @@ See the LICENSE file for more information.
 #define PAO_RATIONAL_H
 
 #include "../basicTypes.h"
+#include "../buffer.h"
 #include "natural.h"
 
 typedef struct {
@@ -68,31 +69,48 @@ Status rational_isZero(const Rational* rat) {
   return natural_isZero(&rat->numerator);
 }
 
-// TODO: UNTESTED:
+/* Prints `rat` as "[-]num/den" into `buffer[0..size-1]`.
+   Returns the number of bytes written, or 0 if the buffer is too small.
+*/
 static inline
 usize rational_snprint(const Rational* rat, char* buffer, usize size) {
   usize neededBytes = natural_printingSize(&rat->numerator);
   neededBytes += natural_printingSize(&rat->denominator);
-  neededBytes += 1; // the '/' sign;
+  neededBytes += 1; /* the '/' separator */
   if (rat->sign == -1) {
     neededBytes += 1;
   }
   if (neededBytes > size) {
     return 0;
   }
-  usize start = 0;
+
+  Buffer buf = buffer_create((byte*)buffer, size);
+
   if (rat->sign == -1) {
-    buffer[0] = '-';
-    start++;
+    buffer_writeByte(&buf, (byte)'-');
   }
-  // TODO: refactor: use buffer.h for god's sake
-  start += natural_snprint(&rat->numerator, buffer+start, size-start);
-  buffer[start] = '/'; start++;
-  start += natural_snprint(&rat->denominator, buffer+start, size-start);
+
+  /* write numerator directly into the backing array at the current position */
+  usize numWritten = natural_snprint(&rat->numerator,
+                                     (char*)buf.ptr + i_buffer_absLen(&buf),
+                                     i_buffer_available(&buf));
+  buf.len += numWritten;
+
+  buffer_writeByte(&buf, (byte)'/'); /* NOTE(1) */
+
+  usize denWritten = natural_snprint(&rat->denominator,
+                                     (char*)buf.ptr + i_buffer_absLen(&buf),
+                                     i_buffer_available(&buf));
+  buf.len += denWritten;
+
   return neededBytes;
+  /* NOTE(1): '/' is written via buffer_writeByte so that capacity tracking
+              stays correct and the next natural_snprint starts at the right
+              position in the backing array. */
 }
 
-// TODO: UNTESTED:
+/* Returns true if A and B represent the same rational value. */
+static inline
 Status rational_equal(IAllocator* mem,
                       const Rational* A, const Rational* B,
                       Natural* scr_a, Natural* scr_b,
@@ -108,17 +126,258 @@ Status rational_equal(IAllocator* mem,
   return status_OK;
 }
 
-/*
-TODO: rational_normalize (sets two rationals to the same denominator)
-TODO: rational_compare
+/* Negates `rat` in-place. Zero stays positive. */
+static inline
+void rational_neg(Rational* rat) {
+  if (!natural_isZero(&rat->numerator)) {
+    rat->sign = (i8)(rat->sign * -1);
+  }
+}
 
-TODO: rational_simplify (uses gcd to simplify the fraction)
+/* Reduces `rat` to lowest terms. If the numerator is zero, sets the
+   denominator to 1 (canonical form).
+   scr_gcd receives the GCD result; the remaining scratch Naturals are
+   forwarded to natural_gcd and natural_div. All must be distinct. */
+static inline
+Status rational_simplify(IAllocator* mem, Rational* rat,
+                         Natural* scr_gcd,
+                         Natural* scr_a, Natural* scr_b,
+                         Natural* scr_div, Natural* scr_q) {
+  #if config_DEBUG
+    if (mem == NULL || rat == NULL) {
+      debug_FATALFMT("Some pointer parameter is null. mem = %p, rat = %p.", (void*)mem, (void*)rat);
+    }
+  #endif
+  Status st;
 
-TODO: rational_add
-TODO: rational_sub
-TODO: rational_div
-TODO: rational_mul
-TODO: rational_neg
-*/
+  if (natural_isZero(&rat->numerator)) {
+    st = natural_set(mem, 1, &rat->denominator); status_CHECK;
+    rat->sign = +1;
+    return status_OK;
+  }
+
+  st = natural_gcd(mem,
+                   &rat->numerator, &rat->denominator,
+                   scr_gcd,
+                   scr_a, scr_b, scr_div, scr_q); status_CHECK;
+
+  /* divide numerator by gcd: copy num → scr_a, div scr_a/gcd → scr_q, copy scr_q → num */
+  st = natural_copy(mem, &rat->numerator,   scr_a);   status_CHECK;
+  st = natural_div(mem, scr_div, scr_a, scr_gcd, scr_q, scr_b); status_CHECK;
+  st = natural_copy(mem, scr_q, &rat->numerator);                status_CHECK;
+
+  /* divide denominator by gcd: copy den → scr_a, div scr_a/gcd → scr_q, copy scr_q → den */
+  st = natural_copy(mem, &rat->denominator, scr_a);   status_CHECK;
+  st = natural_div(mem, scr_div, scr_a, scr_gcd, scr_q, scr_b); status_CHECK;
+  st = natural_copy(mem, scr_q, &rat->denominator);              status_CHECK;
+  return status_OK;
+  /* NOTE(1): We copy num/den into scr_a first so that natural_div's A
+              argument is never aliased with its Q or R outputs. scr_b is
+              reused as the remainder (always zero since gcd divides exactly).
+  */
+}
+
+/* Sets A and B to equivalent fractions with the same denominator (LCM).
+   Modifies A and B in-place. Values are unchanged; only the representation
+   changes. scr_* must all be distinct and distinct from A, B. */
+static inline
+Status rational_normalize(IAllocator* mem,
+                          Rational* A, Rational* B,
+                          Natural* scr_gcd,
+                          Natural* scr_a, Natural* scr_b,
+                          Natural* scr_div, Natural* scr_q) {
+  #if config_DEBUG
+    if (mem == NULL || A == NULL || B == NULL) {
+      debug_FATALFMT("Some pointer parameter is null. mem = %p, A = %p, B = %p.", (void*)mem, (void*)A, (void*)B);
+    }
+  #endif
+  Status st;
+
+  /*
+    Scratch map:
+      scr_gcd : GCD result → used as const B in both divs → new_denom
+      scr_a   : scale_A = B.den / gcd
+      scr_b   : scale_B = A.den / gcd
+      scr_div : temp output for mult; R slot for second div
+      scr_q   : temp output for copies; scratch for second div
+  */
+
+  /* gcd(A.den, B.den) → scr_gcd */
+  st = natural_gcd(mem, &A->denominator, &B->denominator,
+                   scr_gcd, scr_a, scr_b, scr_div, scr_q); status_CHECK;
+
+  /* scale_A = B.den / gcd → scr_a; R → scr_q (discarded); scratch = scr_div */
+  st = natural_div(mem, scr_div, &B->denominator, scr_gcd, scr_a, scr_q); status_CHECK;
+
+  /* scale_B = A.den / gcd → scr_b; R → scr_div (discarded); scratch = scr_q */
+  st = natural_div(mem, scr_q, &A->denominator, scr_gcd, scr_b, scr_div); status_CHECK;
+  /* NOTE(1): &A->denominator and &B->denominator are const Natural* — natural_div
+              reads them without modification. Neither is aliased with Q or R. */
+
+  /* new_denom = A.den * scale_A → scr_gcd */
+  st = natural_copy(mem, &A->denominator, scr_q); status_CHECK;
+  st = natural_mult(mem, scr_q, scr_a, scr_gcd);  status_CHECK;
+
+  /* A.num *= scale_A (scr_a) → scr_div */
+  st = natural_copy(mem, &A->numerator, scr_q);    status_CHECK;
+  st = natural_mult(mem, scr_q, scr_a, scr_div);   status_CHECK;
+  st = natural_copy(mem, scr_div, &A->numerator);  status_CHECK;
+
+  /* B.num *= scale_B (scr_b) → scr_div */
+  st = natural_copy(mem, &B->numerator, scr_q);    status_CHECK;
+  st = natural_mult(mem, scr_q, scr_b, scr_div);   status_CHECK;
+  st = natural_copy(mem, scr_div, &B->numerator);  status_CHECK;
+
+  /* set both denominators to new_denom (scr_gcd) */
+  st = natural_copy(mem, scr_gcd, &A->denominator); status_CHECK;
+  st = natural_copy(mem, scr_gcd, &B->denominator); status_CHECK;
+
+  return status_OK;
+  /* NOTE(1): Passing the rational's denominator fields directly as the A
+              (dividend) argument avoids needing extra copies. The function
+              declares A as `const Natural*` and never modifies it. The Q and R
+              output slots are all distinct from each other and from B (scr_gcd).
+  */
+}
+
+/* Compares two rationals. Returns LESS, EQUAL, or GREATER.
+   Uses cross-multiplication: a/b vs c/d → compare a*d vs c*b.
+   Denominators are always positive. */
+static inline
+Status rational_compare(IAllocator* mem,
+                        const Rational* A, const Rational* B,
+                        Natural* scr_a, Natural* scr_b,
+                        Order* out) {
+  #if config_DEBUG
+    if (mem == NULL || A == NULL || B == NULL || scr_a == NULL || scr_b == NULL || out == NULL) {
+      debug_FATALFMT("Null parameter. mem=%p A=%p B=%p scr_a=%p scr_b=%p out=%p",
+                     (void*)mem, (void*)A, (void*)B, (void*)scr_a, (void*)scr_b, (void*)out);
+    }
+  #endif
+  Status st;
+
+  bool aIsZero = natural_isZero(&A->numerator);
+  bool bIsZero = natural_isZero(&B->numerator);
+
+  if (aIsZero && bIsZero) {
+    *out = order_EQUAL;
+    return status_OK;
+  }
+
+  if (A->sign != B->sign) {
+    *out = (A->sign > B->sign) ? order_GREATER : order_LESS;
+    return status_OK;
+  }
+
+  /* same sign: cross-multiply and compare magnitudes */
+  st = natural_mult(mem, &A->numerator,   &B->denominator, scr_a); status_CHECK;
+  st = natural_mult(mem, &B->numerator,   &A->denominator, scr_b); status_CHECK;
+
+  Order natOrd = natural_compare(scr_a, scr_b);
+
+  if (A->sign < 0) {
+    *out = order_invert(natOrd);
+  } else {
+    *out = natOrd;
+  }
+
+  return status_OK;
+}
+
+/* Adds A and B, writing the (unsimplified) result to out.
+   scr_a and scr_b are scratch Naturals for the cross products.
+   out must be freshly constructed (rational_new) or already freed. */
+static inline
+Status rational_add(IAllocator* mem,
+                    const Rational* A, const Rational* B,
+                    Natural* scr_a, Natural* scr_b,
+                    Rational* out) {
+  Status st;
+
+  /* cross products: A.num * B.den and B.num * A.den */
+  st = natural_mult(mem, &A->numerator, &B->denominator, scr_a); status_CHECK;
+  st = natural_mult(mem, &B->numerator, &A->denominator, scr_b); status_CHECK;
+  /* denominator: A.den * B.den */
+  st = natural_mult(mem, &A->denominator, &B->denominator, &out->denominator); status_CHECK;
+
+  if (A->sign == B->sign) {
+    /* same sign: just add the numerators */
+    out->sign = A->sign;
+    st = natural_add(mem, scr_a, scr_b, &out->numerator); status_CHECK;
+  } else {
+    /* different signs: subtract smaller from larger; sign = sign of larger */
+    Order ord = natural_compare(scr_a, scr_b);
+    if (ord == order_EQUAL) {
+      out->sign = +1;
+      st = natural_set(mem, 0, &out->numerator); status_CHECK;
+    } else if (ord == order_GREATER) {
+      out->sign = A->sign;
+      st = natural_distance(mem, scr_a, scr_b, &out->numerator); status_CHECK;
+    } else {
+      out->sign = B->sign;
+      st = natural_distance(mem, scr_b, scr_a, &out->numerator); status_CHECK;
+    }
+  }
+
+  return status_OK;
+}
+
+/* Subtracts B from A, writing the (unsimplified) result to out. */
+static inline
+Status rational_sub(IAllocator* mem,
+                    const Rational* A, const Rational* B,
+                    Natural* scr_a, Natural* scr_b,
+                    Rational* out) {
+  /* flip B's sign and add */
+  Rational negB;
+  negB.sign = (i8)(B->sign * -1);
+  if (natural_isZero(&B->numerator)) {
+    negB.sign = +1;
+  }
+  negB.numerator   = B->numerator;
+  negB.denominator = B->denominator;
+  return rational_add(mem, A, &negB, scr_a, scr_b, out);
+}
+
+/* Multiplies A and B: (a/b) * (c/d) = (a*c)/(b*d). */
+static inline
+Status rational_mul(IAllocator* mem,
+                    const Rational* A, const Rational* B,
+                    Rational* out) {
+  Status st;
+  out->sign = (i8)(A->sign * B->sign);
+  if (natural_isZero(&A->numerator) || natural_isZero(&B->numerator)) {
+    out->sign = +1;
+    st = natural_set(mem, 0, &out->numerator);    status_CHECK;
+    st = natural_set(mem, 1, &out->denominator);  status_CHECK;
+    return status_OK;
+  }
+  st = natural_mult(mem, &A->numerator,   &B->numerator,   &out->numerator);   status_CHECK;
+  st = natural_mult(mem, &A->denominator, &B->denominator, &out->denominator); status_CHECK;
+  return status_OK;
+}
+
+/* Divides A by B: (a/b) / (c/d) = (a*d)/(b*c).
+   Returns status_DIVISIONBYZERO if B's numerator is zero. */
+static inline
+Status rational_div(IAllocator* mem,
+                    const Rational* A, const Rational* B,
+                    Rational* out) {
+  if (natural_isZero(&B->numerator)) {
+    return status_DIVISIONBYZERO;
+  }
+  Status st;
+  out->sign = (i8)(A->sign * B->sign);
+  if (natural_isZero(&A->numerator)) {
+    out->sign = +1;
+    st = natural_set(mem, 0, &out->numerator);    status_CHECK;
+    st = natural_set(mem, 1, &out->denominator);  status_CHECK;
+    return status_OK;
+  }
+  st = natural_mult(mem, &A->numerator,   &B->denominator, &out->numerator);   status_CHECK;
+  st = natural_mult(mem, &A->denominator, &B->numerator,   &out->denominator); status_CHECK;
+  return status_OK;
+}
+
 
 #endif

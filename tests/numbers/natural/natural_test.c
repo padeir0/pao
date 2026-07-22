@@ -2014,6 +2014,280 @@ bool test_natural_div_8(void) {
   return ok && isAllFree();
 }
 /* END: testing div */
+/* BEGIN: Algorithm D specific tests */
+
+/* Forces the D6 add-back step.
+   Classical construction from Knuth TAOCP 4.3.1:
+   Choose B with MSD = BASE/2 (minimum post-normalization) so that the
+   quotient estimate can overshoot. We use:
+     B = [BASE-1, BASE/2]  (2 digits, LSD-first: digits[0]=BASE-1, digits[1]=BASE/2)
+   and pick A so that A = B * (BASE-1) + (B-1), forcing qhat to overestimate.
+   We verify correctness via the division theorem: A == Q*B + R and R < B.
+*/
+bool test_natural_div_addback(void) {
+  Status s;
+  Natural A  = natural_new();
+  Natural B  = natural_new();
+  Natural Q  = natural_new();
+  Natural R  = natural_new();
+  Natural scratch = natural_new();
+  Natural tmp = natural_new();
+  Natural lhs = natural_new();
+
+  /* B = BASE/2 * BASE + (BASE-1)  i.e. digits[1]=BASE/2, digits[0]=BASE-1 */
+  u32 B_digs[] = {natural_BASE - 1, natural_BASE / 2};
+  s = natural_setVec(alloc, B_digs, 2, &B); checkStatus(s);
+
+  /* A = B * (BASE-1) + (B-1).
+     We build A = B*(BASE-1) using mult, then add B-1 using distance/add. */
+  Natural coeff = natural_new();
+  s = natural_set(alloc, natural_BASE - 1, &coeff); checkStatus(s);
+  s = natural_mult(alloc, &B, &coeff, &A); checkStatus(s);
+  natural_free(alloc, coeff);
+
+  /* add (B - 1) to A: add B then subtract 1 */
+  Natural Bminus1 = natural_new();
+  s = natural_copy(alloc, &B, &Bminus1); checkStatus(s);
+  /* Bminus1 = B - 1 via distanceDigit (B > 0 so |B-0|-1... easier: addDigit -1) */
+  /* We do: tmp = B; tmp -= 1 */
+  u32 one_digs[] = {1};
+  Natural one = natural_new();
+  s = natural_setVec(alloc, one_digs, 1, &one); checkStatus(s);
+  s = natural_distance(alloc, &Bminus1, &one, &Bminus1); checkStatus(s);
+  natural_free(alloc, one);
+  s = natural_add(alloc, &A, &Bminus1, &A); checkStatus(s);
+  natural_free(alloc, Bminus1);
+
+  s = natural_div(alloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
+
+  /* verify division theorem: A == Q*B + R */
+  s = natural_mult(alloc, &Q, &B, &tmp); checkStatus(s);
+  s = natural_add(alloc, &tmp, &R, &lhs); checkStatus(s);
+  bool theorem = natural_equal(&lhs, &A);
+
+  /* verify 0 <= R < B */
+  bool rLessB = natural_compare(&R, &B) == order_LESS;
+
+  bool ok = theorem && rLessB && isValidNatural(&Q) && isValidNatural(&R);
+
+  natural_free(alloc, A);
+  natural_free(alloc, B);
+  natural_free(alloc, Q);
+  natural_free(alloc, R);
+  natural_free(alloc, scratch);
+  natural_free(alloc, tmp);
+  natural_free(alloc, lhs);
+  return ok && isAllFree();
+}
+
+/* Single-digit divisor fast path: exercises the B.len==1 delegation. */
+bool test_natural_div_single_digit_divisor(void) {
+  Status s;
+  Natural A  = natural_new();
+  Natural B  = natural_new();
+  Natural Q1 = natural_new();
+  Natural R1 = natural_new();
+  Natural Q2 = natural_new();
+  Natural scratch = natural_new();
+  u32 r2 = 0;
+
+  /* A = 999999999 * BASE^2 + 123456789 * BASE + 7 (3 digits) */
+  u32 A_digs[] = {7, 123456789, 999999999};
+  s = natural_setVec(alloc, A_digs, 3, &A); checkStatus(s);
+  s = natural_set(alloc, 3, &B); checkStatus(s);
+
+  s = natural_div(alloc, &scratch, &A, &B, &Q1, &R1); checkStatus(s);
+  s = natural_divDigit(alloc, &A, 3, &Q2, &r2); checkStatus(s);
+
+  Natural R2 = natural_new();
+  s = natural_set(alloc, r2, &R2); checkStatus(s);
+
+  bool ok = natural_equal(&Q1, &Q2) &&
+            natural_equal(&R1, &R2) &&
+            isValidNatural(&Q1) &&
+            isValidNatural(&R1);
+
+  natural_free(alloc, A);
+  natural_free(alloc, B);
+  natural_free(alloc, Q1);
+  natural_free(alloc, R1);
+  natural_free(alloc, Q2);
+  natural_free(alloc, R2);
+  natural_free(alloc, scratch);
+  return ok && isAllFree();
+}
+
+/* Equal-length operands: m == 0, quotient is a single digit. */
+bool test_natural_div_equal_length(void) {
+  Status s;
+  Natural A  = natural_new();
+  Natural B  = natural_new();
+  Natural Q  = natural_new();
+  Natural R  = natural_new();
+  Natural scratch = natural_new();
+  Natural expQ = natural_new();
+  Natural expR = natural_new();
+
+  /* A = [1, 7] MSD-first => 1*BASE + 7 (setVec receives MSD first)
+     B = [1, 3] MSD-first => 1*BASE + 3
+     A / B = 1 remainder (BASE+7) - (BASE+3) = 4 */
+  u32 A_digs[] = {1, 7};
+  u32 B_digs[] = {1, 3};
+  s = natural_setVec(alloc, A_digs, 2, &A); checkStatus(s);
+  s = natural_setVec(alloc, B_digs, 2, &B); checkStatus(s);
+  s = natural_set(alloc, 1, &expQ); checkStatus(s);
+  s = natural_set(alloc, 4, &expR); checkStatus(s);
+
+  s = natural_div(alloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
+
+  bool ok = natural_equal(&Q, &expQ) &&
+            natural_equal(&R, &expR) &&
+            isValidNatural(&Q) &&
+            isValidNatural(&R);
+
+  natural_free(alloc, A);
+  natural_free(alloc, B);
+  natural_free(alloc, Q);
+  natural_free(alloc, R);
+  natural_free(alloc, scratch);
+  natural_free(alloc, expQ);
+  natural_free(alloc, expR);
+  return ok && isAllFree();
+}
+
+/* Large quotient: A has 5 digits, B has 2 — produces a 4-digit quotient. */
+bool test_natural_div_large_quotient(void) {
+  Status s;
+  Natural A  = natural_new();
+  Natural B  = natural_new();
+  Natural Q  = natural_new();
+  Natural R  = natural_new();
+  Natural scratch = natural_new();
+  Natural tmp = natural_new();
+  Natural lhs = natural_new();
+
+  /* A = BASE^4 * 2 + BASE^3 * 3 + BASE^2 * 5 + BASE * 7 + 11 */
+  u32 A_digs[] = {11, 7, 5, 3, 2};
+  s = natural_setVec(alloc, A_digs, 5, &A); checkStatus(s);
+  /* B = BASE + 1 */
+  u32 B_digs[] = {1, 1};
+  s = natural_setVec(alloc, B_digs, 2, &B); checkStatus(s);
+
+  s = natural_div(alloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
+
+  /* verify: A == Q*B + R and R < B */
+  s = natural_mult(alloc, &Q, &B, &tmp); checkStatus(s);
+  s = natural_add(alloc, &tmp, &R, &lhs); checkStatus(s);
+  bool theorem = natural_equal(&lhs, &A);
+  bool rLessB  = natural_compare(&R, &B) == order_LESS;
+  bool qLen    = Q.len == 4; /* 5-digit / 2-digit => 4-digit quotient */
+
+  bool ok = theorem && rLessB && qLen && isValidNatural(&Q) && isValidNatural(&R);
+  natural_free(alloc, A);
+  natural_free(alloc, B);
+  natural_free(alloc, Q);
+  natural_free(alloc, R);
+  natural_free(alloc, scratch);
+  natural_free(alloc, tmp);
+  natural_free(alloc, lhs);
+  return ok && isAllFree();
+}
+
+/* Maximum digit values: all digits at BASE-1 = 999999999. */
+bool test_natural_div_max_digits(void) {
+  Status s;
+  Natural A  = natural_new();
+  Natural B  = natural_new();
+  Natural Q  = natural_new();
+  Natural R  = natural_new();
+  Natural scratch = natural_new();
+  Natural tmp = natural_new();
+  Natural lhs = natural_new();
+
+  /* A = [MAX, MAX, MAX, MAX] = BASE^4 - 1 */
+  u32 MAX = natural_BASE - 1;
+  u32 A_digs[] = {MAX, MAX, MAX, MAX};
+  /* B = [MAX, MAX] = BASE^2 - 1 */
+  u32 B_digs[] = {MAX, MAX};
+  s = natural_setVec(alloc, A_digs, 4, &A); checkStatus(s);
+  s = natural_setVec(alloc, B_digs, 2, &B); checkStatus(s);
+
+  s = natural_div(alloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
+
+  s = natural_mult(alloc, &Q, &B, &tmp); checkStatus(s);
+  s = natural_add(alloc, &tmp, &R, &lhs); checkStatus(s);
+  bool theorem = natural_equal(&lhs, &A);
+  bool rLessB  = natural_compare(&R, &B) == order_LESS;
+
+  bool ok = theorem && rLessB && isValidNatural(&Q) && isValidNatural(&R);
+  natural_free(alloc, A);
+  natural_free(alloc, B);
+  natural_free(alloc, Q);
+  natural_free(alloc, R);
+  natural_free(alloc, scratch);
+  natural_free(alloc, tmp);
+  natural_free(alloc, lhs);
+  return ok && isAllFree();
+}
+
+/* Property test: for several multi-digit pairs verify A == Q*B + R and R < B. */
+bool test_natural_div_theorem_multidigit(void) {
+  Status s;
+  Natural A  = natural_new();
+  Natural B  = natural_new();
+  Natural Q  = natural_new();
+  Natural R  = natural_new();
+  Natural scratch = natural_new();
+  Natural tmp = natural_new();
+  Natural lhs = natural_new();
+
+  /* table of (A digits MSD-first, A len, B digits MSD-first, B len) */
+  struct { u32 a[5]; int alen; u32 b[3]; int blen; } cases[] = {
+    /* 3-digit / 2-digit */
+    {{500000001, 999999999, 123456789}, 3, {999999998, 500000001}, 2},
+    /* 4-digit / 2-digit */
+    {{1, 0, 0, 1}, 4, {999999999, 999999999}, 2},
+    /* 4-digit / 3-digit */
+    {{7, 3, 5, 2}, 4, {6, 1, 2}, 3},
+    /* 5-digit / 2-digit, small divisor */
+    {{1, 1, 1, 1, 1}, 5, {1, 2}, 2},
+    /* equal length: 3-digit / 3-digit */
+    {{999999998, 500000000, 1}, 3, {999999999, 500000000, 1}, 3},
+  };
+  int ncases = (int)(sizeof(cases) / sizeof(cases[0]));
+
+  bool ok = true;
+  int i = 0;
+  while (i < ncases && ok) {
+    natural_set(alloc, 0, &A); /* reset without free — just clear len */
+    natural_set(alloc, 0, &B);
+    natural_set(alloc, 0, &Q);
+    natural_set(alloc, 0, &R);
+    s = natural_setVec(alloc, cases[i].a, cases[i].alen, &A); checkStatus(s);
+    s = natural_setVec(alloc, cases[i].b, cases[i].blen, &B); checkStatus(s);
+    s = natural_div(alloc, &scratch, &A, &B, &Q, &R); checkStatus(s);
+
+    natural_set(alloc, 0, &tmp);
+    natural_set(alloc, 0, &lhs);
+    s = natural_mult(alloc, &Q, &B, &tmp); checkStatus(s);
+    s = natural_add(alloc, &tmp, &R, &lhs); checkStatus(s);
+
+    bool theorem = natural_equal(&lhs, &A);
+    bool rLessB  = natural_compare(&R, &B) == order_LESS;
+    ok = ok && theorem && rLessB && isValidNatural(&Q) && isValidNatural(&R);
+    i++;
+  }
+
+  natural_free(alloc, A);
+  natural_free(alloc, B);
+  natural_free(alloc, Q);
+  natural_free(alloc, R);
+  natural_free(alloc, scratch);
+  natural_free(alloc, tmp);
+  natural_free(alloc, lhs);
+  return ok && isAllFree();
+}
+/* END: Algorithm D specific tests */
 
 /* BEGIN: testing gcd */
 static bool i_naturalTest_gcdCheck(u32 a, u32 b, u32 expected) {
@@ -2481,6 +2755,12 @@ Tester tests[] = {
   {"test_natural_div_6", test_natural_div_6},
   {"test_natural_div_7", test_natural_div_7},
   {"test_natural_div_8", test_natural_div_8},
+  {"test_natural_div_addback", test_natural_div_addback},
+  {"test_natural_div_single_digit_divisor", test_natural_div_single_digit_divisor},
+  {"test_natural_div_equal_length", test_natural_div_equal_length},
+  {"test_natural_div_large_quotient", test_natural_div_large_quotient},
+  {"test_natural_div_max_digits", test_natural_div_max_digits},
+  {"test_natural_div_theorem_multidigit", test_natural_div_theorem_multidigit},
 
   {"test_natural_gcd_1", test_natural_gcd_1},
   {"test_natural_gcd_2", test_natural_gcd_2},

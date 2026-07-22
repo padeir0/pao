@@ -26,6 +26,7 @@ typedef struct {
   u8* end;
   usize chunkSize;
   usize size;
+  usize freeCount;
 } Pool;
 
 static inline
@@ -49,6 +50,17 @@ void i_pool_setList(Pool* p) {
 
   curr->next = NULL;
   p->_tail = curr;
+
+  /* Count the free chunks. */
+  {
+    usize count = 0;
+    i_pool_Node* c = p->_head;
+    while (c != NULL) {
+      count++;
+      c = c->next;
+    }
+    p->freeCount = count;
+  }
   /* NOTE(1): we need this because of alignment, the chunks may not align
               and leave a padding at the end of the buffer
      NOTE(2): curr is at the edge of the buffer, and may not be valid
@@ -107,6 +119,7 @@ void* pool_alloc(Pool* p) {
   if (p->_head == NULL) {
     p->_tail = NULL;
   }
+  p->freeCount--;
   return curr;
 }
 
@@ -125,7 +138,7 @@ void pool_free(Pool* p, void* ptr) {
     }
 
     if (util_distanceU8Ptr(ptr, p->begin) % p->chunkSize != 0) {
-      debug_FATALFMT("Pointer to be freed is out of alignment. ptr = %p, pool->begin = %p, pool->chunkSize = %ld.", ptr, (void*)p->begin, p->chunkSize);
+      debug_FATALFMT("Pointer to be freed is out of alignment. ptr = %p, pool->begin = %p, pool->chunkSize = %zu.", ptr, (void*)p->begin, p->chunkSize);
     }
 
     {
@@ -145,11 +158,13 @@ void pool_free(Pool* p, void* ptr) {
   if (p->_head == NULL) {
     p->_head = new;
     p->_tail = new;
+    p->freeCount++;
     return;
   }
 
   p->_tail->next = new;
   p->_tail = new;
+  p->freeCount++;
   return;
 }
 
@@ -160,21 +175,26 @@ void pool_freeAll(Pool* p) {
   i_pool_setList(p);
 }
 
-/* returns the amount of memory available
-
-TODO: this is O(n), it's nice as an integrity check, but
-      a O(1) procedure should be provided, with an incremental
-      counter in the Pool struct.
+/* Returns the amount of memory available in O(1).
+   In debug mode, also walks the free list to verify the counter is consistent.
  */
 static inline
 usize pool_available(const Pool* p) {
-  usize total = 0;
-  i_pool_Node* curr = p->_head;
-  while (curr != NULL) {
-    total += p->chunkSize;
-    curr = curr->next;
+  #if config_DEBUG
+  {
+    usize walkCount = 0;
+    i_pool_Node* curr = p->_head;
+    while (curr != NULL) {
+      walkCount++;
+      curr = curr->next;
+    }
+    if (walkCount != p->freeCount) {
+      debug_FATALFMT("pool_available: freeCount mismatch. counter = %zu, walk = %zu.",
+                     p->freeCount, walkCount);
+    }
   }
-  return total;
+  #endif
+  return p->freeCount * p->chunkSize;
 }
 
 /* returns the amount of memory used

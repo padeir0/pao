@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <strings.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -31,14 +30,14 @@ static
 char print_buff[DEFAULT_SIZE];
 
 void run_tests(const char* name, Tester* tests, int length) {
-  int sucesses = 0;
+  int successes = 0;
   int i = 0;
   while (i < length) {
     Tester t = tests[i];
-    bzero(print_buff, DEFAULT_SIZE);
+    memset(print_buff, 0, DEFAULT_SIZE);
     bool ok = t.func();
     if (ok) {
-      sucesses++;
+      successes++;
     } else {
       strcat(print_buff, colors_RED "FAIL" colors_RESET ": ");
       strcat(print_buff, t.name);
@@ -47,7 +46,7 @@ void run_tests(const char* name, Tester* tests, int length) {
     }
     i++;
   }
-  printf("%s: %d/%d tests passed.\n", name, sucesses, length);
+  printf("%s: %d/%d tests passed.\n", name, successes, length);
 }
 
 /* BEGIN: failing allocator

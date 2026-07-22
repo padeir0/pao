@@ -66,9 +66,5 @@ typedef struct {
   IFreeAll freeAll;
   IInfo info;
 } IAllocator;
-/*
-  TODO: should allocators provide a function that frees AND BZEROES(0) a region of memory?
-        this seems reasonable, but the allocator struct will grow quite a bit...
-*/
 
 #endif

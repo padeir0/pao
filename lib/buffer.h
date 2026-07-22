@@ -7,8 +7,6 @@ See the LICENSE file for more information.
 #ifndef PAO_BUFFER_H
 #define PAO_BUFFER_H
 
-// TODO: buffer_copy(in, out) -> usize
-// TODO: buffer_copySome(in, out, len) -> usize
 
 #include <limits.h>
 #include <stdio.h>
@@ -119,7 +117,7 @@ usize buffer_writeLiteral(Buffer* buff, const char* s) {
 /* Writes a string with given size to the buffer.
 */
 static inline
-usize buffer_writeString(Buffer* buff, char* s, usize size) {
+usize buffer_writeString(Buffer* buff, const char* s, usize size) {
   usize i = 0;
   usize absLen = i_buffer_absLen(buff);
   while (i + absLen < buff->cap && i < size) {
@@ -130,9 +128,35 @@ usize buffer_writeString(Buffer* buff, char* s, usize size) {
   return i;
 }
 
+/* Copies up to `len` readable bytes from `in` into `out`.
+   Does NOT consume bytes from `in` (in->start is unchanged).
+   Returns the number of bytes copied.
+*/
+static inline
+usize buffer_copySome(const Buffer* in, Buffer* out, usize len) {
+  usize i = 0;
+  usize avail = i_buffer_available(out);
+  usize limit = len < in->len ? len : in->len;
+  limit = limit < avail ? limit : avail;
+  while (i < limit) {
+    out->ptr[i_buffer_absLen(out)] = in->ptr[in->start + i];
+    out->len++;
+    i++;
+  }
+  return i;
+}
+
+/* Copies all readable bytes from `in` into `out`.
+   Does NOT consume bytes from `in` (in->start is unchanged).
+   Returns the number of bytes copied.
+*/
+static inline
+usize buffer_copy(const Buffer* in, Buffer* out) {
+  return buffer_copySome(in, out, in->len);
+}
+
 /* Converts a buffer into a hex string, separated by spaces.
    Output buffer will have 3 times input buffer's length.
-   UNTESTED: (TODO:)
 */
 static inline
 usize buffer_toHex(const Buffer* in, Buffer* out) {

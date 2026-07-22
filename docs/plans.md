@@ -6,7 +6,7 @@
  - [ ] Arbitrary precision numbers
    - [x] Natural numbers.
    - [x] Integers.
-   - [ ] Rationals.
+   - [x] Rationals.
    - [ ] Decimals (fixed point).
  - [ ] Allocators with static heap size.
    - [x] Arena allocator.

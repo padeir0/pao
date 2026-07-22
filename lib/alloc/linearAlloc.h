@@ -36,16 +36,20 @@ LinearAlloc* linearAlloc_create(u8* buffer, usize size) {
   return out;
 }
 
-/* returns NULL if it fails to allocate */
-/* TODO: Allocate at proper alignment in AMD64/ARM64!!! */
+/* Allocates `size` bytes, rounded up to the next WORD boundary. */
 static inline
 void* linearAlloc_alloc(LinearAlloc* a, usize size) {
-  void* out = (void*)(a->buffer + a->allocated);
-  if (a->allocated+size > a->buffSize) {
+  usize aligned = (size + WORD - 1) & ~(WORD - 1);
+  if (a->allocated + aligned > a->buffSize) {
     return NULL;
   }
-  a->allocated += size;
+  void* out = (void*)(a->buffer + a->allocated);
+  a->allocated += aligned;
   return out;
+  /* SAFE(1): WORD is sizeof(void*), always a power of two on amd64/arm64.
+     SAFE(2): a->buffer starts at buffer + sizeof(LinearAlloc), which is
+              already pointer-aligned because the struct contains a pointer.
+  */
 }
 
 /* frees the entire arena */

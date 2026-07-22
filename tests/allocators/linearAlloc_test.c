@@ -185,9 +185,13 @@ bool test_usedAndAvailable(void) {
     return false;
   }
 
+  /* 10-byte allocations round up to WORD (8 or 16 bytes) due to alignment. */
+  usize allocSize = 10;
+  usize alignedSize = (allocSize + WORD - 1) & ~(WORD - 1);
+
   i = 0;
   while (i < I_linearAlloc_TEST_objsSize) {
-    if (linearAlloc_alloc(a, 10) == NULL) {
+    if (linearAlloc_alloc(a, allocSize) == NULL) {
       return false;
     }
 
@@ -195,7 +199,7 @@ bool test_usedAndAvailable(void) {
       return false; /* NOTE(1) */
     }
 
-    if (linearAlloc_used(a) != (i + 1) * 10) {
+    if (linearAlloc_used(a) != (usize)(i + 1) * alignedSize) {
       return false;
     }
 
@@ -207,6 +211,49 @@ bool test_usedAndAvailable(void) {
    * NOTE(1): used + available must always equal the arena's total
    *          capacity, regardless of how much has been allocated.
    */
+}
+
+/* returned pointers must be WORD-aligned regardless of request size */
+bool test_alignment_basic(void) {
+  LinearAlloc* a = i_linearAllocTest_make();
+  void* p1;
+  void* p2;
+
+  if (a == NULL) {
+    return false;
+  }
+
+  p1 = linearAlloc_alloc(a, 1);
+  p2 = linearAlloc_alloc(a, 1);
+  if (p1 == NULL || p2 == NULL) {
+    return false;
+  }
+
+  return ((uptr)p1 % WORD == 0) && ((uptr)p2 % WORD == 0);
+}
+
+/* allocating 1 byte must consume WORD bytes due to alignment padding */
+bool test_alignment_used(void) {
+  LinearAlloc* a = i_linearAllocTest_make();
+
+  if (a == NULL) {
+    return false;
+  }
+
+  linearAlloc_alloc(a, 1);
+  return linearAlloc_used(a) == WORD;
+}
+
+/* allocating exactly WORD bytes must not add extra padding */
+bool test_alignment_exact(void) {
+  LinearAlloc* a = i_linearAllocTest_make();
+
+  if (a == NULL) {
+    return false;
+  }
+
+  linearAlloc_alloc(a, WORD);
+  return linearAlloc_used(a) == WORD;
 }
 
 // individual objects can't be freed; the IAllocator interface must
@@ -240,6 +287,9 @@ Tester tests[] = {
   {"test_linearAlloc_freeAll",              test_freeAll},
   {"test_linearAlloc_usedAndAvailable",     test_usedAndAvailable},
   {"test_linearAlloc_individualFreeFails",  test_individualFreeFails},
+  {"test_linearAlloc_alignment_basic",      test_alignment_basic},
+  {"test_linearAlloc_alignment_used",       test_alignment_used},
+  {"test_linearAlloc_alignment_exact",      test_alignment_exact},
 };
 
 int main(void) {
