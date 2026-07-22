@@ -1,20 +1,22 @@
-#include "../../lib/numbers/natural.h"
-#include "../../lib/basicTypes.h"
-#include "../../lib/status.h"
-#include "../../lib/alloc/stdAlloc.h"
+#include "../../../lib/numbers/natural.h"
+#include "../../../lib/basicTypes.h"
+#include "../../../lib/status.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include "../common.h"
+#include "../../common.h"
 
 char buffer[DEFAULT_SIZE];
 
-// TODO: improve tests by using an allocator that allows you to
-//       check for number of allocations performed and leaks
 bool isEmptyNat(Natural n) {
   return n.cap == 0 && n.len == 0 && n.digits == NULL;
 }
 
+/* backed by FLAlloc (see common.h) instead of stdAlloc, so that
+ * info().used actually tracks live allocations: isAllFree() below
+ * is a real leak check, not a constant true.
+ */
+i_FailAllocHeap _heap;
 IAllocator _alloc;
 #define alloc (&_alloc)
 
@@ -1237,6 +1239,63 @@ bool test_natural_snprint_bufferSize1_0(void) {
 
 /* END: testing snprint */
 
+/* BEGIN: testing printingSize */
+// zero needs exactly one byte ("0")
+bool test_natural_printingSize_zero(void) {
+  Status s;
+  Natural A = natural_new();
+  s = natural_set(alloc, 0, &A); checkStatus(s);
+
+  bool ok = natural_printingSize(&A) == 1;
+
+  natural_free(alloc, A);
+  return ok && isAllFree();
+}
+
+// single-limb number: printingSize must match the digit count exactly
+bool test_natural_printingSize_singleLimb(void) {
+  Status s;
+  Natural A = natural_new();
+  s = natural_set(alloc, 314159, &A); checkStatus(s);
+
+  bool ok = natural_printingSize(&A) == 6; /* strlen("314159") */
+
+  natural_free(alloc, A);
+  return ok && isAllFree();
+}
+
+// multi-limb number: only the most-significant limb may be printed
+// without leading zeroes, every other limb contributes exactly
+// natural_DIGITSPERINT bytes.
+bool test_natural_printingSize_multiLimb(void) {
+  Status s;
+  Natural A = natural_new();
+  u32 digits[] = {1, 0, 0}; /* MSD -> LSD: 1 followed by two all-zero limbs */
+  s = natural_setVec(alloc, digits, 3, &A); checkStatus(s);
+
+  /* "1" followed by 2*9 zeroes, ie strlen("1000000000000000000") */
+  bool ok = natural_printingSize(&A) == 1 + 2*natural_DIGITSPERINT;
+
+  natural_free(alloc, A);
+  return ok && isAllFree();
+}
+
+// printingSize must always agree with how many bytes snprint actually
+// writes, given a buffer large enough to never truncate.
+bool test_natural_printingSize_matchesSnprint(void) {
+  Status s;
+  Natural A = natural_new();
+  u32 digits[] = {42, 7, 123456789};
+  s = natural_setVec(alloc, digits, 3, &A); checkStatus(s);
+
+  usize written = natural_snprint(&A, test_buffer, DEFAULT_SIZE);
+  bool ok = written > 0 && natural_printingSize(&A) == written;
+
+  natural_free(alloc, A);
+  return ok && isAllFree();
+}
+/* END: testing printingSize */
+
 /* BEGIN: testing distanceDigit */
 // tests carry
 bool test_natural_distanceDigit_1(void) {
@@ -1918,6 +1977,8 @@ bool test_natural_div_7(void) {
   natural_free(alloc, Q);
   natural_free(alloc, R);
   natural_free(alloc, scratch);
+  natural_free(alloc, exp_Q);
+  natural_free(alloc, exp_R);
   return ok && isAllFree();
 }
 
@@ -1953,6 +2014,66 @@ bool test_natural_div_8(void) {
   return ok && isAllFree();
 }
 /* END: testing div */
+
+/* BEGIN: testing gcd */
+static bool i_naturalTest_gcdCheck(u32 a, u32 b, u32 expected) {
+  Status s;
+  Natural A = natural_new(), B = natural_new(), out = natural_new();
+  Natural scr_a = natural_new(), scr_b = natural_new();
+  Natural scr_div = natural_new(), scr_q = natural_new();
+
+  s = natural_set(alloc, a, &A); checkStatus(s);
+  s = natural_set(alloc, b, &B); checkStatus(s);
+
+  s = natural_gcd(alloc, &A, &B, &out, &scr_a, &scr_b, &scr_div, &scr_q); checkStatus(s);
+
+  bool ok = natural_equalDigit(&out, expected) && isValidNatural(&out);
+
+  natural_free(alloc, A);
+  natural_free(alloc, B);
+  natural_free(alloc, out);
+  natural_free(alloc, scr_a);
+  natural_free(alloc, scr_b);
+  natural_free(alloc, scr_div);
+  natural_free(alloc, scr_q);
+  return ok && isAllFree();
+}
+
+// classic Euclid example: gcd(1071, 462) = 21
+bool test_natural_gcd_1(void) {
+  return i_naturalTest_gcdCheck(1071, 462, 21);
+}
+
+// a multiple of b: gcd(48, 18) = 6
+bool test_natural_gcd_2(void) {
+  return i_naturalTest_gcdCheck(48, 18, 6);
+}
+
+// gcd(0, n) = n
+bool test_natural_gcd_zeroA(void) {
+  return i_naturalTest_gcdCheck(0, 5, 5);
+}
+
+// gcd(n, 0) = n
+bool test_natural_gcd_zeroB(void) {
+  return i_naturalTest_gcdCheck(5, 0, 5);
+}
+
+// gcd(0, 0) = 0
+bool test_natural_gcd_bothZero(void) {
+  return i_naturalTest_gcdCheck(0, 0, 0);
+}
+
+// coprime numbers: gcd(17, 13) = 1
+bool test_natural_gcd_coprime(void) {
+  return i_naturalTest_gcdCheck(17, 13, 1);
+}
+
+// gcd(n, n) = n
+bool test_natural_gcd_equal(void) {
+  return i_naturalTest_gcdCheck(314159, 314159, 314159);
+}
+/* END: testing gcd */
 
 /* BEGIN: testing copy */
 bool test_natural_copy_1(void) {
@@ -2301,6 +2422,11 @@ Tester tests[] = {
   {"test_natural_snprint_3", test_natural_snprint_3},
   {"test_natural_snprint_bufferSize1_0", test_natural_snprint_bufferSize1_0},
 
+  {"test_natural_printingSize_zero", test_natural_printingSize_zero},
+  {"test_natural_printingSize_singleLimb", test_natural_printingSize_singleLimb},
+  {"test_natural_printingSize_multiLimb", test_natural_printingSize_multiLimb},
+  {"test_natural_printingSize_matchesSnprint", test_natural_printingSize_matchesSnprint},
+
   {"test_natural_addDigit_0", test_natural_addDigit_0},
   {"test_natural_addDigit_1", test_natural_addDigit_1},
   {"test_natural_addDigit_2", test_natural_addDigit_2},
@@ -2356,6 +2482,14 @@ Tester tests[] = {
   {"test_natural_div_7", test_natural_div_7},
   {"test_natural_div_8", test_natural_div_8},
 
+  {"test_natural_gcd_1", test_natural_gcd_1},
+  {"test_natural_gcd_2", test_natural_gcd_2},
+  {"test_natural_gcd_zeroA", test_natural_gcd_zeroA},
+  {"test_natural_gcd_zeroB", test_natural_gcd_zeroB},
+  {"test_natural_gcd_bothZero", test_natural_gcd_bothZero},
+  {"test_natural_gcd_coprime", test_natural_gcd_coprime},
+  {"test_natural_gcd_equal", test_natural_gcd_equal},
+
   {"test_natural_copy_1", test_natural_copy_1},
   {"test_natural_copy_2", test_natural_copy_2},
   {"test_natural_copy_3", test_natural_copy_3},
@@ -2408,7 +2542,7 @@ Tester tests[] = {
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
 int main(void) {
-  _alloc = stdAlloc_new();
+  _alloc = i_failAlloc_new(&_heap, -1); /* never fail */
   run_tests("natural", tests, TEST_LEN);
 }
 /* END: DRIVER CODE */

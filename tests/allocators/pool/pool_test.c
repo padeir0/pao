@@ -4,8 +4,8 @@ Copyright 2026 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#include "../common.h"
-#include "../../lib/alloc/pool.h"
+#include "../../common.h"
+#include "../../../lib/alloc/pool.h"
 #include <stdlib.h>
 
 // Shared test state
@@ -135,29 +135,6 @@ bool test_new(void) {
    */
 }
 
-/*
-bool test_doubleFree(void) {
-  usize chunksize = 32;
-  Pool* p = i_poolTest_make(chunksize);
-
-  if (p == NULL) {
-    return false;
-  }
-
-  usize initial = pool_available(p);
-  if (initial == 0) {
-    return false;
-  }
-
-  u8* obj = (u8*)pool_alloc(p);
-  pool_free(p, obj);
-  pool_free(p, obj);
-  // verifies if the pool can still function after a double free
-  int len = i_poolTest_allocAll(p);
-  return i_poolTest_verifyObjs(p, len);
-}
-*/
-
 // allocate every slot, fill with a sentinel, verify
 bool test_allocFill(void) {
   usize chunksize = 32;
@@ -284,38 +261,6 @@ bool test_freeAll(void) {
    * NOTE(2): available bytes must be restored to the original capacity.
    */
 }
-
-// tests if pool_free rejects out-of-bounds and misaligned pointers
-/*
-bool test_freeErrors(void) {
-  usize chunksize = 32;
-  Pool* p = i_poolTest_make(chunksize);
-  u8 external[128];
-  u8* obj;
-
-  if (p == NULL) {
-    return false;
-  }
-
-  // pointer outside the pool entirely
-  pool_free(p, &external);
-
-  // pointer inside the pool but not aligned to a chunk boundary
-  obj = (u8*)pool_alloc(p);
-  if (obj == NULL) {
-    return false;
-  }
-
-  pool_free(p, obj + 1);
-
-  // the valid pointer itself must still free correctly
-  pool_free(p, obj);
-
-  return true;
-  //   NOTE(1): obj+1 is inside the pool's memory range but is not
-  //          aligned to a chunk boundary, so badAlignment is expected.
-}
-*/
 
 // tests if used + available == total capacity
 bool test_usedAndAvailable(void) {
@@ -529,8 +474,6 @@ Tester tests[] = {
   {"test_pool_allocFill",         test_allocFill},
   {"test_pool_freeAndReuse",      test_freeAndReuse},
   {"test_pool_freeAll",           test_freeAll},
-  // {"test_pool_freeErrors",        test_freeErrors},
-  // {"test_pool_doubleFree",        test_doubleFree},
   {"test_pool_usedAndAvailable",  test_usedAndAvailable},
   {"test_pool_mixed",             test_mixed},
   {"test_pool_multipleChunksizes",test_multipleChunksizes},

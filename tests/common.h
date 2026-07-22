@@ -7,6 +7,7 @@
 #include "../lib/status.h"
 #include "../lib/colors.h"
 #include "../lib/iallocator.h"
+#include "../lib/alloc/flAlloc.h"
 
 #ifndef PAO_TEST_COMMON_H
 
@@ -49,13 +50,19 @@ void run_tests(const char* name, Tester* tests, int length) {
   printf("%s: %d/%d tests passed.\n", name, sucesses, length);
 }
 
-// TODO: refactor this to use FLAlloc.
 /* BEGIN: failing allocator
-   A minimal IAllocator, backed by malloc/free, that can be told to
-   start returning NULL after a given number of successful allocations.
+   An IAllocator, backed by a FLAlloc heap, that can be told to start
+   returning NULL after a given number of successful allocations.
    This lets us simulate an out-of-memory allocator and check that
    natural functions propagate status_OUTOFMEMORY instead of
    crashing or corrupting already-allocated state.
+
+   Being backed by FLAlloc rather than malloc/free is a deliberate
+   upgrade over a bare malloc wrapper: `info().used`/`info().total`
+   reflect real, precise heap accounting (so callers can assert on
+   leaks), and `flAlloc_free` catches double-frees and out-of-bounds
+   frees with a hard `abort()` instead of silently corrupting the
+   heap or the process's real malloc arena.
 
    `allocsUntilFail == -1` means "never fail", which is handy for
    building up natural numbers before flipping the switch to 0 right
@@ -65,9 +72,12 @@ void run_tests(const char* name, Tester* tests, int length) {
    macro would otherwise shadow the `IAllocator.alloc` field name
    used here.
 */
+#define I_FAILALLOC_BUFFSIZE 65536
+
 typedef struct {
   int allocsUntilFail;
-  usize used;
+  u8  buffer[I_FAILALLOC_BUFFSIZE];
+  FLAlloc* fl;
 } i_FailAllocHeap;
 
 void* i_failAlloc_alloc(void* heap, usize size, const char* func) {
@@ -76,39 +86,43 @@ void* i_failAlloc_alloc(void* heap, usize size, const char* func) {
   if (h->allocsUntilFail == 0) {
     return NULL;
   }
-  void* mem = malloc(size);
+  void* mem = flAlloc_alloc(h->fl, size);
   if (mem == NULL) {
     return NULL;
   }
   if (h->allocsUntilFail > 0) {
     h->allocsUntilFail--;
   }
-  h->used += size;
   return mem;
 }
 
 Status i_failAlloc_free(void* heap, void* obj) {
-  (void)heap;
-  free(obj);
+  i_FailAllocHeap* h = (i_FailAllocHeap*)heap;
+  flAlloc_free(h->fl, obj);
   return status_OK;
 }
 
 Status i_failAlloc_freeAll(void* heap) {
-  (void)heap;
+  i_FailAllocHeap* h = (i_FailAllocHeap*)heap;
+  flAlloc_freeAll(h->fl);
   return status_OK;
 }
 
 AllocatorInfo i_failAlloc_info(void* heap) {
   i_FailAllocHeap* h = (i_FailAllocHeap*)heap;
   AllocatorInfo info;
-  info.used = h->used;
-  info.total = 0;
+  info.used = flAlloc_used(h->fl);
+  info.total = flAlloc_total(h->fl);
   return info;
 }
 
 IAllocator i_failAlloc_new(i_FailAllocHeap* heap, int allocsUntilFail) {
+  Status s;
   heap->allocsUntilFail = allocsUntilFail;
-  heap->used = 0;
+  s = flAlloc_create(sizeof(heap->buffer), heap->buffer);
+  checkStatus(s);
+  heap->fl = (FLAlloc*)heap->buffer;
+
   IAllocator a;
   a.heap = heap;
   a.alloc = i_failAlloc_alloc;

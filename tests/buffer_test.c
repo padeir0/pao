@@ -203,6 +203,72 @@ bool test_buffer_readWriteByte_2(void) {
   return true;
 }
 
+// each byte becomes 2 hex digits followed by a space
+bool test_buffer_toHex_1(void) {
+  byte in_bytes[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F}; /* "Hello" */
+  Buffer in = buffer_create(in_bytes, sizeof(in_bytes));
+  in.len = sizeof(in_bytes);
+  Buffer out = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+
+  usize written = buffer_toHex(&in, &out);
+  char* expected = "48 65 6C 6C 6F ";
+
+  if (written != strlen(expected)) {
+    return false;
+  }
+  return strncmp((char*)out.ptr, expected, written) == 0;
+}
+
+// an empty input must write nothing and touch neither buffer's contents
+bool test_buffer_toHex_empty(void) {
+  Buffer in = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, DEFAULT_SIZE);
+
+  usize written = buffer_toHex(&in, &out);
+  return written == 0 && out.len == 0;
+}
+
+// out buffer only has room for whole "XX " groups; a group that
+// doesn't fully fit must not be partially written
+bool test_buffer_toHex_outOfSpace(void) {
+  byte in_bytes[] = {0xAB, 0xCD, 0xEF};
+  Buffer in = buffer_create(in_bytes, sizeof(in_bytes));
+  in.len = sizeof(in_bytes);
+  /* room for exactly 2 groups ("AB CD "), not the 3rd */
+  Buffer out = buffer_create(g_buffer_memory1, 6);
+
+  usize written = buffer_toHex(&in, &out);
+  char* expected = "AB CD ";
+
+  if (written != strlen(expected)) {
+    return false; /* NOTE(1) */
+  }
+  return strncmp((char*)out.ptr, expected, written) == 0;
+  /*
+   * NOTE(1): buffer_hasSpace gates each iteration on a full
+   *          charsPerByte group, so a buffer with room for exactly
+   *          2 groups must stop after the 2nd, not emit a truncated
+   *          3rd group.
+   */
+}
+
+// buffer_toHex appends after whatever is already in `out`
+bool test_buffer_toHex_appends(void) {
+  byte in_bytes[] = {0xFF};
+  Buffer in = buffer_create(in_bytes, sizeof(in_bytes));
+  in.len = sizeof(in_bytes);
+  Buffer out = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+
+  _writeOrBurst(&out, "prefix:");
+  usize written = buffer_toHex(&in, &out);
+  char* expected = "prefix:FF ";
+
+  if (written != 3) {
+    return false;
+  }
+  return strncmp((char*)out.ptr, expected, out.len) == 0;
+}
+
 Tester tests[] = {
   {"test_buffer_equals_1", test_buffer_equals_1},
   {"test_buffer_equals_2", test_buffer_equals_2},
@@ -215,6 +281,10 @@ Tester tests[] = {
   {"test_buffer_writeLiteral_2", test_buffer_writeLiteral_2},
   {"test_buffer_writeString_1", test_buffer_writeString_1},
   {"test_buffer_writeString_2", test_buffer_writeString_2},
+  {"test_buffer_toHex_1", test_buffer_toHex_1},
+  {"test_buffer_toHex_empty", test_buffer_toHex_empty},
+  {"test_buffer_toHex_outOfSpace", test_buffer_toHex_outOfSpace},
+  {"test_buffer_toHex_appends", test_buffer_toHex_appends},
 };
 
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))

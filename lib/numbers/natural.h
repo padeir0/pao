@@ -74,7 +74,9 @@ Natural natural_create(u32* digits, u32 size) {
 
 static inline
 void natural_free(IAllocator* mem, Natural n) {
-  i_natural_natVecFree(mem, n.digits);
+  if (n.digits != NULL) {
+    i_natural_natVecFree(mem, n.digits);
+  }
 }
 
 static inline
@@ -206,7 +208,9 @@ Status natural_copy(IAllocator* mem, const Natural* A, Natural* out) {
     if (outVec == NULL) {
       return status_OUTOFMEMORY;
     }
-    i_natural_natVecFree(mem, out->digits);
+    if (out->digits != NULL) {
+      i_natural_natVecFree(mem, out->digits);
+    }
     out->digits = outVec;
     out->cap = A->cap;
   }
@@ -851,7 +855,6 @@ Status natural_divDigit(IAllocator* mem, const Natural* A, u32 B, Natural* Q, u3
   */
 }
 
-// TODO: UNTESTED:
 static inline
 Status natural_gcd(IAllocator* mem,
                    const Natural* A, const Natural* B,
@@ -934,7 +937,6 @@ u32 i_natural_digitCountU32(u32 n) {
   return count;
 }
 
-// TODO: UNTESTED:
 static inline
 usize natural_printingSize(const Natural* nat) {
   if (nat->len == 0) {
