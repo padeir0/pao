@@ -49,7 +49,7 @@ usize i_flAlloc_pad(usize size) {
 static inline
 Status flAlloc_create(usize size, u8* buffer) {
   FLAlloc* fl;
-  if ((uptr)buffer % 8 != 0 ) {
+  if ((uptr)buffer % WORD != 0 ) {
     return status_BADALIGNMENT;
   }
   if (buffer == NULL) {
