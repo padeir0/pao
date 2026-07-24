@@ -28,6 +28,10 @@ LinearAlloc* linearAlloc_create(u8* buffer, usize size) {
     return NULL;
   }
 
+  // aligns buffer to word boundary
+  if ((uptr)buffer % 8 == 0) {
+    buffer = buffer + (WORD - (uptr)buffer%WORD);
+  }
   out = (LinearAlloc*)buffer;
   out->buffer = buffer + sizeof(LinearAlloc);
   out->buffSize = size - sizeof(LinearAlloc);

@@ -61,8 +61,9 @@ void i_pool_setList(Pool* p) {
 /* creates a pool at the beginning of the outBuffer
    returns:
     - status_NULLBUFFER: if the given buffer is null;
-    - status_BADSIZE: if the chunksize is smaller than pool_minChunkSize
-    - status_BUFFERTOOSMALL: if the buffer can't fit the pool + 1 chunk.
+    - status_BADSIZE: if the chunksize is smaller than pool_minChunkSize;
+    - status_BUFFERTOOSMALL: if the buffer can't fit the pool + 1 chunk;
+    - status_BADALIGNMENT: if the buffer is not WORD aligned;
  */
 static inline
 Status pool_new(usize buffsize, usize chunksize, u8* outBuffer) {
@@ -70,6 +71,10 @@ Status pool_new(usize buffsize, usize chunksize, u8* outBuffer) {
 
   if (outBuffer == NULL) {
     return status_NULLBUFFER;
+  }
+
+  if ((uptr)outBuffer % WORD != 0) {
+    return status_BADALIGNMENT;
   }
 
   if (chunksize < pool_MINCHUNKSIZE) {

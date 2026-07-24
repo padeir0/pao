@@ -60,7 +60,10 @@ Status flAlloc_create(usize size, u8* buffer) {
   }
 
   fl = (FLAlloc*)buffer;
-  usize heapHeaderSize = sizeof(FLAlloc) + (WORD - sizeof(FLAlloc)%8);
+  usize heapHeaderSize = sizeof(FLAlloc);
+  if (heapHeaderSize % 8 == 0 ) {
+    heapHeaderSize = heapHeaderSize + (WORD - heapHeaderSize%WORD);
+  }
   fl->head = (i_flAlloc_flNode*)(buffer + heapHeaderSize);
   fl->head->size = size - heapHeaderSize;
   fl->head->next = NULL;
