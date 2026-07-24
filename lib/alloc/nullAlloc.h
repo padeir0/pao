@@ -23,28 +23,32 @@ See the LICENSE file for more information.
 
 static inline
 void* i_nullAlloc_alloc(
-  __attribute__((unused)) void* heap,
-  __attribute__((unused)) usize size,
-  __attribute__((unused)) const char* func
+  void* heap,
+  usize size,
+  const char* func
 ) {
+  (void)heap; (void)size; (void)func;
   return NULL;
 }
 
 static inline
 Status i_nullAlloc_free(
-  __attribute__((unused)) void* heap,
-  __attribute__((unused)) void* obj
+  void* heap,
+  void* obj
 ) {
+  (void)heap; (void)obj;
   return status_FAILEDFREE;
 }
 
 static inline
-Status i_nullAlloc_freeAll(__attribute__((unused)) void* heap) {
+Status i_nullAlloc_freeAll(void* heap) {
+  (void)heap;
   return status_FAILEDFREE;
 }
 
 static inline
-AllocatorInfo i_nullAlloc_info(__attribute__((unused)) void* heap) {
+AllocatorInfo i_nullAlloc_info(void* heap) {
+  (void) heap;
   AllocatorInfo out;
   out.total = 0;
   out.used = 0;

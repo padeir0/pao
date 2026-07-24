@@ -49,6 +49,9 @@ usize i_flAlloc_pad(usize size) {
 static inline
 Status flAlloc_create(usize size, u8* buffer) {
   FLAlloc* fl;
+  if ((uptr)buffer % 8 != 0 ) {
+    return status_BADALIGNMENT;
+  }
   if (buffer == NULL) {
     return status_NULLBUFFER;
   }
@@ -57,8 +60,9 @@ Status flAlloc_create(usize size, u8* buffer) {
   }
 
   fl = (FLAlloc*)buffer;
-  fl->head = (i_flAlloc_flNode*)(buffer + sizeof(FLAlloc));
-  fl->head->size = size - sizeof(FLAlloc);
+  usize heapHeaderSize = sizeof(FLAlloc) + (WORD - sizeof(FLAlloc)%8);
+  fl->head = (i_flAlloc_flNode*)(buffer + heapHeaderSize);
+  fl->head->size = size - heapHeaderSize;
   fl->head->next = NULL;
 
   fl->begin = (uint8_t*)fl->head;
@@ -226,6 +230,7 @@ usize flAlloc_objsize(void* ptr) {
    the memory stored in `new` was already freed and joined
    with `curr`.
  */
+static inline
 bool i_flAlloc_within(i_flAlloc_flNode* curr, i_flAlloc_flNode* new) {
   return curr == new || // equal
          ((curr < new) && ((u8*)curr + curr->size) > (u8*)new); // within
@@ -269,7 +274,7 @@ void flAlloc_free(FLAlloc* fl, void* p) {
 
   while (curr != NULL) {
     if (i_flAlloc_within(curr, new)) {
-      debug_FATALFMT("Double free! obj = %p, curr = %p, curr.size = %ld;", (void*)new, (void*)curr, curr->size)
+      debug_FATALFMT("Double free! obj = %p, curr = %p, curr.size = %zu;", (void*)new, (void*)curr, curr->size);
     }
     if (prev != NULL) {
       if (prev < new && new < curr) {
@@ -331,8 +336,9 @@ static inline
 void* i_flAlloc_alloc(
   void* heap,
   usize size,
-  __attribute__((unused)) const char* func
+  const char* func
 ) {
+  (void)func;
   FLAlloc* p = (FLAlloc*) heap;
   return flAlloc_alloc(p, size);
 }

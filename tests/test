@@ -6,7 +6,7 @@ root="${1:-.}"
 
 find "$root" -name "*_test.c" | while read -r filename; do
   out="${filename%.c}.out"
-  if gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "$out"; then
+  if gcc -Wall -fsanitize=address,undefined -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "$out"; then
     "$out"
     rm "$out"
   else

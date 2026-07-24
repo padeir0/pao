@@ -83,6 +83,9 @@ Status pool_new(usize buffsize, usize chunksize, u8* outBuffer) {
   p = (Pool*)outBuffer;
   p->begin = outBuffer + sizeof(Pool);
   p->end = outBuffer + buffsize;
+  if (chunksize%8!=0) { // makes sure the pool is WORD aligned.
+    chunksize = chunksize + (WORD - chunksize%WORD);
+  }
   p->chunkSize = chunksize;
   p->size = util_distanceU8Ptr(p->begin, p->end);
 
@@ -125,7 +128,7 @@ void pool_free(Pool* p, void* ptr) {
     }
 
     if (util_distanceU8Ptr(ptr, p->begin) % p->chunkSize != 0) {
-      debug_FATALFMT("Pointer to be freed is out of alignment. ptr = %p, pool->begin = %p, pool->chunkSize = %ld.", ptr, (void*)p->begin, p->chunkSize);
+      debug_FATALFMT("Pointer to be freed is out of alignment. ptr = %p, pool->begin = %p, pool->chunkSize = %zu.", ptr, (void*)p->begin, p->chunkSize);
     }
 
     {
@@ -205,8 +208,9 @@ static inline
 void* i_pool_alloc(
   void* heap,
   usize size,
-  __attribute__((unused)) const char* func
+  const char* func
 ) {
+  (void)func;
   Pool* p = (Pool*) heap;
   if (size > p->chunkSize) {
     return NULL;

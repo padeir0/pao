@@ -12,11 +12,8 @@ bool isEmptyNat(Natural n) {
   return n.cap == 0 && n.len == 0 && n.digits == NULL;
 }
 
-/* backed by FLAlloc (see common.h) instead of stdAlloc, so that
- * info().used actually tracks live allocations: isAllFree() below
- * is a real leak check, not a constant true.
- */
-i_FailAllocHeap _heap;
+i_FailAllocHeap fa;
+u8 g_heap[common_HEAPSIZE];
 IAllocator _alloc;
 #define alloc (&_alloc)
 
@@ -2022,10 +2019,12 @@ static bool i_naturalTest_gcdCheck(u32 a, u32 b, u32 expected) {
   Natural scr_a = natural_new(), scr_b = natural_new();
   Natural scr_div = natural_new(), scr_q = natural_new();
 
+  Natural* scratch[4] = {&scr_a, &scr_b, &scr_div, &scr_q};
+
   s = natural_set(alloc, a, &A); checkStatus(s);
   s = natural_set(alloc, b, &B); checkStatus(s);
 
-  s = natural_gcd(alloc, &A, &B, &out, &scr_a, &scr_b, &scr_div, &scr_q); checkStatus(s);
+  s = natural_gcd(alloc, &A, &B, &out, scratch); checkStatus(s);
 
   bool ok = natural_equalDigit(&out, expected) && isValidNatural(&out);
 
@@ -2324,7 +2323,7 @@ bool test_natural_growShrink_6(void) {
 // fails on the very first allocation `natural_set` needs to make.
 bool test_natural_alloc_fails_set(void) {
   i_FailAllocHeap heap;
-  IAllocator fa = i_failAlloc_new(&heap, 0);
+  IAllocator fa = i_failAlloc_new(&heap, g_heap, common_HEAPSIZE, 0);
   Natural out = natural_new();
 
   Status s = natural_set(&fa, 42, &out);
@@ -2338,7 +2337,7 @@ bool test_natural_alloc_fails_set(void) {
 // digit has been pushed.
 bool test_natural_alloc_fails_setVec_firstAlloc(void) {
   i_FailAllocHeap heap;
-  IAllocator fa = i_failAlloc_new(&heap, 0);
+  IAllocator fa = i_failAlloc_new(&heap, g_heap, common_HEAPSIZE, 0);
   Natural out = natural_new();
   u32 digits[] = {1, 2, 3};
 
@@ -2355,7 +2354,7 @@ bool test_natural_alloc_fails_setVec_firstAlloc(void) {
 // rather than corrupting or leaking it.
 bool test_natural_alloc_fails_setVec_growAlloc(void) {
   i_FailAllocHeap heap;
-  IAllocator fa = i_failAlloc_new(&heap, 1);
+  IAllocator fa = i_failAlloc_new(&heap, g_heap, common_HEAPSIZE, 1);
   Natural out = natural_new();
   u32 digits[] = {5, 4, 3, 2, 1}; // MSD -> LSD
 
@@ -2376,7 +2375,7 @@ bool test_natural_alloc_fails_setVec_growAlloc(void) {
 // fails that allocation and checks `out` is left untouched.
 bool test_natural_alloc_fails_copy(void) {
   i_FailAllocHeap heap;
-  IAllocator fa = i_failAlloc_new(&heap, -1); // never fail, for setup
+  IAllocator fa = i_failAlloc_new(&heap, g_heap, common_HEAPSIZE, -1);
   Natural a = natural_new();
   Natural out = natural_new();
 
@@ -2395,7 +2394,7 @@ bool test_natural_alloc_fails_copy(void) {
 // first digit; fails that allocation and checks `out` is left untouched.
 bool test_natural_alloc_fails_add(void) {
   i_FailAllocHeap heap;
-  IAllocator fa = i_failAlloc_new(&heap, -1); // never fail, for setup
+  IAllocator fa = i_failAlloc_new(&heap, g_heap, common_HEAPSIZE, -1);
   Natural a = natural_new();
   Natural b = natural_new();
   Natural out = natural_new();
@@ -2542,7 +2541,8 @@ Tester tests[] = {
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))
 
 int main(void) {
-  _alloc = i_failAlloc_new(&_heap, -1); /* never fail */
+  _alloc = i_failAlloc_new(&fa, g_heap, common_HEAPSIZE, -1); /* never fail */
   run_tests("natural", tests, TEST_LEN);
+  return 0;
 }
 /* END: DRIVER CODE */

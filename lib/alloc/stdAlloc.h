@@ -13,26 +13,30 @@ See the LICENSE file for more information.
 
 static inline
 void* i_stdAlloc_alloc(
-  __attribute__((unused)) void* heap,
+  void* heap,
   usize size,
-  __attribute__((unused)) const char* func
+  const char* func
 ) {
+  (void)heap; (void)func;
   return malloc(size);
 }
 
 static inline
-Status i_stdAlloc_free(__attribute__((unused)) void* heap, void* obj) {
+Status i_stdAlloc_free(void* heap, void* obj) {
+  (void)heap;
   free(obj);
   return status_OK;
 }
 
 static inline
-Status i_stdAlloc_freeAll(__attribute__((unused)) void* heap) {
+Status i_stdAlloc_freeAll(void* heap) {
+  (void)heap;
   return status_FAILEDFREE;
 }
 
 static inline
-AllocatorInfo i_stdAlloc_info(__attribute__((unused)) void* heap) {
+AllocatorInfo i_stdAlloc_info(void* heap) {
+  (void)heap;
   AllocatorInfo out;
   out.total = 0;
   out.used = 0;

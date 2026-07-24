@@ -859,36 +859,62 @@ static inline
 Status natural_gcd(IAllocator* mem,
                    const Natural* A, const Natural* B,
                    Natural* out,
-                   Natural* scr_a, Natural* scr_b,
-                   Natural* scr_div, Natural* scr_q) {
+                   Natural* scratch[4]) {
   #if config_DEBUG
     if (mem == NULL || A == NULL || B == NULL || out == NULL) {
       debug_FATALFMT("Some pointer parameter is null. mem = %p, A = %p, B = %p, out = %p.", (void*)mem, (void*)A, (void*)B, (void*)out);
     }
-    if (scr_a == NULL || scr_b == NULL || scr_div == NULL || scr_q == NULL) {
-      debug_FATALFMT("Some scratch parameter is null. scr_a = %p, scr_b = %p, scr_c = %p, scr_d = %p.", (void*)scr_a, (void*)scr_b, (void*)scr_div, (void*)scr_q);
+    {
+      int i = 0;
+      while (i < 4) {
+        if (scratch[i] == NULL) {
+          debug_FATALFMT("Some scratch parameter is null. scratch[%d] == NULL.", i);
+        }
+        i++;
+      }
+    }
+    {
+      int i = 0;
+      while (i < 4) {
+        int j = 0;
+        while (j < 4) {
+          if (i != j && scratch[i] == scratch[j]) {
+            debug_FATALFMT("Aliasing requirements not met. scratch[%d] == scratch[%d].", i, j);
+          }
+          j++;
+        }
+        i++;
+      }
     }
   #endif
   Status st;
-  Natural* scr_c = out;
+  Natural* A_copy = scratch[0];
+  st = natural_copy(mem, A, A_copy); status_CHECK;
 
-  st = natural_set(mem, 0, scr_a); status_CHECK;
-  st = natural_set(mem, 0, scr_b); status_CHECK;
-  st = natural_set(mem, 0, scr_c); status_CHECK;
-  st = natural_set(mem, 0, scr_div); status_CHECK;
+  Natural* B_copy = scratch[1];
+  st = natural_copy(mem, B, B_copy); status_CHECK;
+
+  Natural* scr_out = out;
+  Natural* scr_q = scratch[2];
+  Natural* scr_div = scratch[3];
+
+  st = natural_set(mem, 0, scr_out); status_CHECK;
   st = natural_set(mem, 0, scr_q); status_CHECK;
+  st = natural_set(mem, 0, scr_div); status_CHECK;
 
-  st = natural_copy(mem, A, scr_a); status_CHECK;
-  st = natural_copy(mem, B, scr_b); status_CHECK;
 
-  while (natural_isZero(scr_b) == false) {
-    st = natural_div(mem, scr_div, scr_a, scr_b, scr_q, scr_c); status_CHECK;
-    Natural* hold = scr_a;
-    scr_a = scr_b;
-    scr_b = scr_c;
-    scr_c = hold;
+  while (natural_isZero(B_copy) == false) {
+    st = natural_div(mem, scr_div, A_copy, B_copy, scr_q, scr_out); status_CHECK;
+    Natural* hold = A_copy;
+    A_copy = B_copy;
+    B_copy = scr_out;
+    scr_out = hold;
   }
-  st = natural_copy(mem, scr_a, out); status_CHECK;
+
+  if (A_copy != out) {
+    st = natural_copy(mem, A_copy, out); status_CHECK;
+  }  
+
   return status_OK;
 }
 

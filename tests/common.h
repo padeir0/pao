@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <strings.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -31,14 +30,14 @@ static
 char print_buff[DEFAULT_SIZE];
 
 void run_tests(const char* name, Tester* tests, int length) {
-  int sucesses = 0;
+  int successes = 0;
   int i = 0;
   while (i < length) {
     Tester t = tests[i];
-    bzero(print_buff, DEFAULT_SIZE);
+    memset(print_buff, 0, DEFAULT_SIZE);
     bool ok = t.func();
     if (ok) {
-      sucesses++;
+      successes++;
     } else {
       strcat(print_buff, colors_RED "FAIL" colors_RESET ": ");
       strcat(print_buff, t.name);
@@ -47,7 +46,7 @@ void run_tests(const char* name, Tester* tests, int length) {
     }
     i++;
   }
-  printf("%s: %d/%d tests passed.\n", name, sucesses, length);
+  printf("%s: %d/%d tests passed.\n", name, successes, length);
 }
 
 /* BEGIN: failing allocator
@@ -72,12 +71,13 @@ void run_tests(const char* name, Tester* tests, int length) {
    macro would otherwise shadow the `IAllocator.alloc` field name
    used here.
 */
-#define I_FAILALLOC_BUFFSIZE 65536
+#define common_HEAPSIZE 65536
 
 typedef struct {
   int allocsUntilFail;
-  u8  buffer[I_FAILALLOC_BUFFSIZE];
   FLAlloc* fl;
+  u8* buffer;
+  usize heapSize;
 } i_FailAllocHeap;
 
 void* i_failAlloc_alloc(void* heap, usize size, const char* func) {
@@ -116,20 +116,21 @@ AllocatorInfo i_failAlloc_info(void* heap) {
   return info;
 }
 
-IAllocator i_failAlloc_new(i_FailAllocHeap* heap, int allocsUntilFail) {
+IAllocator i_failAlloc_new(i_FailAllocHeap* fa, u8* heap, usize size, int allocsUntilFail) {
   Status s;
-  heap->allocsUntilFail = allocsUntilFail;
-  s = flAlloc_create(sizeof(heap->buffer), heap->buffer);
-  checkStatus(s);
-  heap->fl = (FLAlloc*)heap->buffer;
+  usize alignment = (WORD - (uptr)heap%WORD);
+  fa->allocsUntilFail = allocsUntilFail;
+  fa->buffer = heap + alignment;
+  fa->heapSize = size - alignment;
+  s = flAlloc_create(fa->heapSize, fa->buffer); checkStatus(s);
+  fa->fl = (FLAlloc*)fa->buffer;
 
   IAllocator a;
-  a.heap = heap;
+  a.heap = fa;
   a.alloc = i_failAlloc_alloc;
   a.free = i_failAlloc_free;
   a.freeAll = i_failAlloc_freeAll;
   a.info = i_failAlloc_info;
   return a;
 }
-
 #endif

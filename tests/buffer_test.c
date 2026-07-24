@@ -269,6 +269,95 @@ bool test_buffer_toHex_appends(void) {
   return strncmp((char*)out.ptr, expected, out.len) == 0;
 }
 
+/* copies all bytes when output has room */
+bool test_buffer_copy_full(void) {
+  char* s = "Hello";
+  Buffer in = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, DEFAULT_SIZE);
+
+  buffer_writeLiteral(&in, s);
+  usize copied = buffer_copy(&in, &out);
+
+  return copied == out.len &&
+         copied == in.len &&
+         strncmp((char*)out.ptr, s, copied) == 0;
+}
+
+/* output smaller than input: only copy what fits */
+bool test_buffer_copy_outSmaller(void) {
+  char* s = "Hello";
+  Buffer in = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, 3);
+
+  buffer_writeLiteral(&in, s);
+  usize copied = buffer_copy(&in, &out);
+
+  return copied == 3 && strncmp((char*)out.ptr, "Hel", 3) == 0;
+}
+
+/* copying from empty input writes nothing */
+bool test_buffer_copy_empty(void) {
+  Buffer in  = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, DEFAULT_SIZE);
+
+  usize copied = buffer_copy(&in, &out);
+  return copied == 0 && out.len == 0;
+}
+
+/* buffer_copySome(len) == min(len, in->len, available) */
+bool test_buffer_copySome_exact(void) {
+  char* s = "Hello";
+  Buffer in  = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, DEFAULT_SIZE);
+
+  buffer_writeLiteral(&in, s);
+  usize copied = buffer_copySome(&in, &out, 3);
+
+  return copied == 3 && strncmp((char*)out.ptr, "Hel", 3) == 0;
+}
+
+/* requesting more than in->len copies only in->len */
+bool test_buffer_copySome_overRequest(void) {
+  char* s = "Hi";
+  Buffer in  = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, DEFAULT_SIZE);
+
+  buffer_writeLiteral(&in, s);
+  usize copied = buffer_copySome(&in, &out, 999);
+
+  return copied == 2 && strncmp((char*)out.ptr, "Hi", 2) == 0;
+}
+
+/* requesting 0 bytes copies nothing */
+bool test_buffer_copySome_zero(void) {
+  char* s = "Hello";
+  Buffer in  = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, DEFAULT_SIZE);
+
+  buffer_writeLiteral(&in, s);
+  usize copied = buffer_copySome(&in, &out, 0);
+
+  return copied == 0 && out.len == 0;
+}
+
+/* copy starts at in->start, not in->ptr */
+bool test_buffer_copy_afterRead(void) {
+  char* s = "Hello";
+  Buffer in  = buffer_create(g_buffer_memory1, DEFAULT_SIZE);
+  Buffer out = buffer_create(g_buffer_memory2, DEFAULT_SIZE);
+
+  buffer_writeLiteral(&in, s);
+  /* consume "Hel", leaving "lo" readable */
+  byte b;
+  buffer_readByte(&in, &b);
+  buffer_readByte(&in, &b);
+  buffer_readByte(&in, &b);
+
+  usize copied = buffer_copy(&in, &out);
+
+  return copied == 2 && strncmp((char*)out.ptr, "lo", 2) == 0;
+}
+
 Tester tests[] = {
   {"test_buffer_equals_1", test_buffer_equals_1},
   {"test_buffer_equals_2", test_buffer_equals_2},
@@ -285,6 +374,13 @@ Tester tests[] = {
   {"test_buffer_toHex_empty", test_buffer_toHex_empty},
   {"test_buffer_toHex_outOfSpace", test_buffer_toHex_outOfSpace},
   {"test_buffer_toHex_appends", test_buffer_toHex_appends},
+  {"test_buffer_copy_full", test_buffer_copy_full},
+  {"test_buffer_copy_outSmaller", test_buffer_copy_outSmaller},
+  {"test_buffer_copy_empty", test_buffer_copy_empty},
+  {"test_buffer_copySome_exact", test_buffer_copySome_exact},
+  {"test_buffer_copySome_overRequest", test_buffer_copySome_overRequest},
+  {"test_buffer_copySome_zero", test_buffer_copySome_zero},
+  {"test_buffer_copy_afterRead", test_buffer_copy_afterRead},
 };
 
 #define TEST_LEN (int)(sizeof(tests) / sizeof(tests[0]))

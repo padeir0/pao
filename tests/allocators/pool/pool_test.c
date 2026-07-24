@@ -431,7 +431,7 @@ bool test_multipleChunksizes(void) {
       return false;
     }
 
-    slots = pool_available(p) / chunksize;
+    slots = pool_available(p) / p->chunkSize;
     if (slots > I_pool_TEST_objsSize) {
       slots = I_pool_TEST_objsSize;
     }

@@ -83,16 +83,19 @@ static inline
 void* i_linearAlloc_alloc(
   void* heap,
   usize size,
-  __attribute__((unused)) const char* func
+  const char* func
 ) {
+  (void)func;
   return linearAlloc_alloc((LinearAlloc*) heap, size);
 }
 
 static inline
 Status i_linearAlloc_free(
-  __attribute__((unused)) void* heap,
-  __attribute__((unused)) void* obj
+  void* heap,
+  void* obj
 ) {
+  (void)heap;
+  (void)obj;
   return status_FAILEDFREE;
 }
 
