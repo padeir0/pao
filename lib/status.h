@@ -21,7 +21,12 @@ typedef enum {
   status_BADSIZE, 
   status_NULLBUFFER,
   /* used in the allocator interface*/
-  status_FAILEDFREE
+  status_FAILEDFREE,
+  /* used in the lexer: reasons for an invalid token */
+  status_BADCHAR,
+  status_BADESCAPE,
+  status_UNTERMINATEDSTRING,
+  status_BADNUMBER
 } Status;
 
 #define status_CHECK if (st != status_OK) { return st; }
