@@ -8,6 +8,9 @@ See the LICENSE file for more information.
 #define PAO_LIST_H
 
 #include "basicTypes.h"
+#include "str.h"
+#include "symbol.h"
+#include "numbers/number.h"
 
 typedef byte Nil;
 
@@ -20,8 +23,8 @@ typedef enum {
   atomKind_FUNCTION,
   atomKind_SYMBOL,
   atomKind_FORM,
+  // atomKind_FILE,
 } AtomKind;
-
 
 typedef struct i_List List;
 
@@ -29,11 +32,12 @@ typedef union i_AtomValue {
   Nil Nil;
   bool Bool;
   List* List;
-  // String String;
-  // Number Number;
-  // Symbol Symbol;
-  // Form Form;
-  // Function Function;
+  Str   Str;
+  Number Number;
+  Symbol Symbol;
+  // Form Form; // (if, let, etc...)
+  // Function Function; // funções puras, closures
+  // File file; // algum dia penso nisso
 } AtomValue;
 
 typedef struct {
