@@ -38,7 +38,7 @@ Rational rational_create(i8 sign,
 }
 
 static inline
-void rational_free(IAllocator* mem, Rational rat) {
+void rational_free(const IAllocator* mem, Rational rat) {
   natural_free(mem, rat.numerator);
   natural_free(mem, rat.denominator);
 }

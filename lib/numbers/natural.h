@@ -45,7 +45,7 @@ void i_natural_natVecCopy(u32* source, usize len, u32* dest) {
 }
 
 static inline
-void i_natural_natVecFree(IAllocator* mem, u32* vec) {
+void i_natural_natVecFree(const IAllocator* mem, u32* vec) {
   mem->free(mem->heap, vec);
 }
 /* END: NATVEC */
@@ -73,7 +73,7 @@ Natural natural_create(u32* digits, u32 size) {
 }
 
 static inline
-void natural_free(IAllocator* mem, Natural n) {
+void natural_free(const IAllocator* mem, Natural n) {
   if (n.digits != NULL) {
     i_natural_natVecFree(mem, n.digits);
   }

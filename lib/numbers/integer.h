@@ -37,7 +37,7 @@ Integer integer_create(u32* digits, u32 size) {
 }
 
 static inline
-void integer_free(IAllocator* mem, Integer i) {
+void integer_free(const IAllocator* mem, Integer i) {
   natural_free(mem, i.abs);
 }
 

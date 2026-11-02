@@ -25,6 +25,7 @@
 #include "../../lib/alloc/linearAlloc.h"
 #include "../../lib/alloc/nullAlloc.h"
 #include "../../lib/alloc/pool.h"
+#include "../../lib/alloc/stackAlloc.h"
 #include "../../lib/alloc/stdAlloc.h"
 #include "../../lib/numbers/integer.h"
 #include "../../lib/numbers/natural.h"
