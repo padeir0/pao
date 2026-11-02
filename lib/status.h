@@ -4,8 +4,8 @@ Copyright 2025 Artur Iure Vianna Fernandes
 See the LICENSE file for more information.
 */
 
-#ifndef PAO_status_H
-#define PAO_status_H
+#ifndef PAO_STATUS_H
+#define PAO_STATUS_H
 
 typedef enum {
   status_OK,

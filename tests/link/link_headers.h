@@ -5,6 +5,7 @@
 #ifndef PAO_TEST_LINK_HEADERS_H
 #define PAO_TEST_LINK_HEADERS_H
 
+#include "../../lib/ast.h"
 #include "../../lib/basicTypes.h"
 #include "../../lib/blank.h"
 #include "../../lib/buffer.h"
