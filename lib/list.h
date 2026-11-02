@@ -20,9 +20,9 @@ typedef enum {
   atomKind_NUMBER,
   atomKind_STRING,
   atomKind_LIST,
-  atomKind_FUNCTION,
   atomKind_SYMBOL,
-  atomKind_FORM,
+  atomKind_CALLABLE,
+  atomKind_NATIVECALLABLE,
   // atomKind_FILE,
 } AtomKind;
 
@@ -35,8 +35,8 @@ typedef union i_AtomValue {
   Str   Str;
   Number Number;
   Symbol Symbol;
-  // Form Form; // (if, let, etc...)
-  // Function Function; // funções puras, closures
+  // Callable Callable;
+  // NativeCallable NativeCallable;
   // File file; // algum dia penso nisso
 } AtomValue;
 
@@ -46,8 +46,8 @@ typedef struct {
 } Atom;
 
 struct i_List {
-  Atom value;
-  struct i_List* next;
+  Atom head;
+  Atom tail;
 };
 
 #endif
