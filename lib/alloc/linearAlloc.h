@@ -17,39 +17,61 @@ typedef struct {
   usize allocated;
 } LinearAlloc;
 
-/* returns a arena allocated at the beginning of the buffer */
+/* returns a arena allocated at the beginning of the buffer, or NULL
+ * if the buffer is NULL or too small. The buffer does not need to be aligned,
+ * but a few bytes are lost if it is not. */
 static inline
 LinearAlloc* linearAlloc_create(u8* buffer, usize size) {
   LinearAlloc* out;
+  usize shift;
+  usize room;
   if (buffer == NULL) {
-    return NULL;
-  }
-  if (size < sizeof(LinearAlloc)) {
     return NULL;
   }
 
   // aligns buffer to word boundary
-  if ((uptr)buffer % 8 == 0) {
-    buffer = buffer + (WORD - (uptr)buffer%WORD);
+  shift = (WORD - (uptr)buffer % WORD) % WORD;
+  if (size < shift || size - shift < sizeof(LinearAlloc)) {
+    return NULL;
   }
-  out = (LinearAlloc*)buffer;
-  out->buffer = buffer + sizeof(LinearAlloc);
-  out->buffSize = size - sizeof(LinearAlloc);
+  room = size - shift - sizeof(LinearAlloc);
+
+  out = (LinearAlloc*)(buffer + shift); // SAFE(1)
+  out->buffer = buffer + shift + sizeof(LinearAlloc); // NOTE(2)
+  out->buffSize = room - room % WORD;
   out->allocated = 0;
 
   return out;
+  /* SAFE(1): `shift` is less than `WORD`, and it was checked that it fits in
+              `size` along with the header, so nothing here leaves the buffer.
+     NOTE(2): `sizeof(LinearAlloc)` is a multiple of `WORD`, so `out->buffer`
+              is aligned, and trimming `buffSize` makes the end aligned too.
+  */
 }
 
-/* returns NULL if it fails to allocate */
-/* TODO: Allocate at proper alignment in AMD64/ARM64!!! */
+/* returns NULL if it fails to allocate. The size is rounded up to
+ * a multiple of `WORD` so that every object is aligned. */
 static inline
 void* linearAlloc_alloc(LinearAlloc* a, usize size) {
-  void* out = (void*)(a->buffer + a->allocated);
-  if (a->allocated+size > a->buffSize) {
+  usize padded;
+  void* out;
+  // SAFE(1)
+  if (size > SIZE_MAX - (WORD - 1)) {
     return NULL;
   }
-  a->allocated += size;
+  padded = (size + (WORD - 1)) / WORD * WORD;
+  // SAFE(2)
+  if (padded > a->buffSize - a->allocated) {
+    return NULL;
+  }
+  out = (void*)(a->buffer + a->allocated);
+  a->allocated += padded;
   return out;
+  /* SAFE(1): the rounding up cannot wrap around.
+     SAFE(2): `allocated` never exceeds `buffSize`, so the subtraction does not
+              underflow. Comparing this way, and not `allocated + padded`,
+              cannot overflow either.
+  */
 }
 
 /* frees the entire arena */

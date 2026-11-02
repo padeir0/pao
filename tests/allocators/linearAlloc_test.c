@@ -195,7 +195,8 @@ bool test_usedAndAvailable(void) {
       return false; /* NOTE(1) */
     }
 
-    if (linearAlloc_used(a) != (i + 1) * 10) {
+    /* NOTE(2) */
+    if (linearAlloc_used(a) != (i + 1) * 16) {
       return false;
     }
 
@@ -206,6 +207,7 @@ bool test_usedAndAvailable(void) {
   /*
    * NOTE(1): used + available must always equal the arena's total
    *          capacity, regardless of how much has been allocated.
+   * NOTE(2): sizes are rounded up to a multiple of 8, so 10 bytes use 16.
    */
 }
 
@@ -230,6 +232,113 @@ bool test_individualFreeFails(void) {
   s = iface.free(iface.heap, obj);
   return s == status_FAILEDFREE && linearAlloc_used(a) == 16;
 }
+
+// an aligned buffer must not lose the alignment, nor go past its end
+// (the allocator used to move aligned buffers by a word, and keep the size)
+bool test_alignedBuffer(void) {
+  /* u64 so that it is aligned */
+  static u64 raw[32];
+  u8* base = (u8*)raw;
+  usize size = 128;
+  LinearAlloc* a = linearAlloc_create(base, size);
+  void* last = NULL;
+  void* p;
+
+  if (a == NULL || (u8*)a != base) {
+    return false;
+  }
+  if (a->buffer + a->buffSize > base + size) {
+    return false; /* NOTE(1) */
+  }
+  p = linearAlloc_alloc(a, 8);
+  while (p != NULL) {
+    last = p;
+    p = linearAlloc_alloc(a, 8);
+  }
+  return last != NULL && (u8*)last + 8 <= base + size &&
+         linearAlloc_available(a) == 0;
+  /*
+   * NOTE(1): everything the allocator hands out is inside the buffer.
+   */
+}
+
+// a buffer that is not aligned is aligned by the allocator, and
+// the bytes that are lost are not counted
+bool test_misalignedBuffer(void) {
+  static u64 raw[32];
+  u8* base = (u8*)raw;
+  usize offset = 1;
+  usize size = 128;
+  LinearAlloc* a;
+  void* p;
+  void* last = NULL;
+
+  while (offset < 8) {
+    a = linearAlloc_create(base + offset, size);
+    if (a == NULL || (uptr)a % 8 != 0 || (u8*)a < base + offset) {
+      return false;
+    }
+    if (a->buffer + a->buffSize > base + offset + size) {
+      return false;
+    }
+    p = linearAlloc_alloc(a, 1);
+    while (p != NULL) {
+      last = p;
+      p = linearAlloc_alloc(a, 1);
+    }
+    if (last == NULL || (u8*)last + 8 > base + offset + size) {
+      return false;
+    }
+    offset++;
+  }
+
+  /* if the shift does not leave room for the header, it must be rejected */
+  return linearAlloc_create(base + 1, sizeof(LinearAlloc)) == NULL &&
+         linearAlloc_create(base + 8, sizeof(LinearAlloc)) != NULL;
+}
+
+// every object is aligned, and takes a multiple of 8 bytes
+bool test_allocAligned(void) {
+  LinearAlloc* a = i_linearAllocTest_make();
+  usize sizes[] = { 1, 3, 8, 10, 17, 1, 24 };
+  usize expected[] = { 8, 16, 24, 40, 64, 72, 96 };
+  usize i = 0;
+  void* p;
+
+  if (a == NULL) {
+    return false;
+  }
+  while (i < sizeof(sizes) / sizeof(sizes[0])) {
+    p = linearAlloc_alloc(a, sizes[i]);
+    if (p == NULL || (uptr)p % 8 != 0) {
+      return false;
+    }
+    if (linearAlloc_used(a) != expected[i]) {
+      return false;
+    }
+    i++;
+  }
+  return true;
+}
+
+// sizes that wrap around when added or rounded up are plain failures
+bool test_allocOverflow(void) {
+  LinearAlloc* a = i_linearAllocTest_make();
+  usize before;
+
+  if (a == NULL || linearAlloc_alloc(a, 8) == NULL) {
+    return false;
+  }
+  before = linearAlloc_used(a);
+  if (linearAlloc_alloc(a, (usize)-1) != NULL ||
+      linearAlloc_alloc(a, (usize)-3) != NULL || /* 8 + this wraps to 5 */
+      linearAlloc_alloc(a, (usize)-8) != NULL ||
+      linearAlloc_alloc(a, (usize)-16) != NULL) {
+    return false;
+  }
+  /* and nothing changed */
+  return linearAlloc_used(a) == before && linearAlloc_alloc(a, 8) != NULL;
+}
 /* END: tests */
 
 /* BEGIN: DRIVER CODE */
@@ -240,6 +349,10 @@ Tester tests[] = {
   {"test_linearAlloc_freeAll",              test_freeAll},
   {"test_linearAlloc_usedAndAvailable",     test_usedAndAvailable},
   {"test_linearAlloc_individualFreeFails",  test_individualFreeFails},
+  {"test_linearAlloc_alignedBuffer",        test_alignedBuffer},
+  {"test_linearAlloc_misalignedBuffer",     test_misalignedBuffer},
+  {"test_linearAlloc_allocAligned",         test_allocAligned},
+  {"test_linearAlloc_allocOverflow",        test_allocOverflow},
 };
 
 int main(void) {

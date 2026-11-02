@@ -15,7 +15,12 @@ for compiler in gcc clang; do
       echo "Running tests on $compiler. version: $version; optimization: $opt;"
       find "$root" -name "*_test.c" | while read -r filename; do
         out="${filename%.c}.out"
-        if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes $opt -std=$version "$filename" -o "$out"; then
+        unit="${filename%_test.c}_unit.c"
+        extra=""
+        if [ -f "$unit" ]; then
+          extra="$unit"
+        fi
+        if $compiler -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes $opt -std=$version "$filename" $extra -o "$out"; then
           "$out"
           rm "$out"
         else

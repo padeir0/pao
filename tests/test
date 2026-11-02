@@ -3,10 +3,17 @@
 root="${1:-.}"
 
 # checks *_tests.c for proper behaviour
+# if there is a `<name>_unit.c` next to a `<name>_test.c`, it is compiled
+# in the same program (a test that needs two translation units)
 
 find "$root" -name "*_test.c" | while read -r filename; do
   out="${filename%.c}.out"
-  if gcc -Wall -fsanitize=address,undefined -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" -o "$out"; then
+  unit="${filename%_test.c}_unit.c"
+  extra=""
+  if [ -f "$unit" ]; then
+    extra="$unit"
+  fi
+  if gcc -Wall -fsanitize=address,undefined -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes -std=c99 -O2 "$filename" $extra -o "$out"; then
     "$out"
     rm "$out"
   else

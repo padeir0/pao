@@ -97,6 +97,7 @@ usize rational_snprint(const Rational* rat, char* buffer, usize size) {
 /* Returns true if A and B represent the same rational value,
    not necessarily that they have the exacts numerators and denominators.
 */
+static inline
 Status rational_equal(IAllocator* mem,
                       const Rational* A, const Rational* B,
                       Natural* scr_a, Natural* scr_b,

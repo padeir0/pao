@@ -521,6 +521,17 @@ bool test_multipleSizes(void) {
   return true;
 }
 
+// the header takes exactly the space of the struct. It used to take a
+// word more when the size of the struct was already a multiple of the word
+bool test_headerSize(void) {
+  FLAlloc* fl = i_flAllocTest_make();
+  if (fl == NULL) {
+    return false;
+  }
+  return flAlloc_total(fl) == I_flAlloc_TEST_buffSize - sizeof(FLAlloc) &&
+         flAlloc_empty(fl);
+}
+
 /* END: tests */
 
 /* BEGIN: DRIVER CODE */
@@ -534,6 +545,7 @@ Tester tests[] = {
   {"test_flAlloc_objsize",          test_objsize},
   {"test_flAlloc_mixed",            test_mixed},
   {"test_flAlloc_multipleSizes",    test_multipleSizes},
+  {"test_flAlloc_headerSize",       test_headerSize},
 };
 
 int main(void) {

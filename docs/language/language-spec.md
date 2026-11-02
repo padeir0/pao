@@ -110,7 +110,7 @@ These extensions are, briefly:
 
 ```ebnf
 Whitespace = '\r' | ' ' | Comment.
-Comment = '#' {not_newline_char} '\n'.
+Comment = '#' {not_newline_char}.
 
 Program = Block.
 Block = {:I_Expr NL} [';'].
@@ -129,29 +129,55 @@ Atom = id | num | str.
 
 NL = '\n' {'\n'}.
 
-str = /"[\u0000-\uFFFF]*"/.
+str = '"' {str_char | escape} '"'.
+str_char = /[^"\\\n\t\x00-\x1f\x7f]/ | '\r'.
+escape = '\\' ('n' | 't' | '\'' | '"' | '\\').
 
 id = ident_begin {ident_continue}.
 ident_begin = /[a-zA-Z_]/.
 ident_special = /[\?\-\!]/
-ident_continue = ident_begin | ident_special | digit.
+ident_continue = ident_begin | ident_special.
 
 num = hex | bin | dec.
-dec = [neg] integer [frac | float] [exp].
+dec = [neg] integer [frac | float] [exp] [suffix].
 integer = digit {digit_}.
 frac = '/' integer.
-float = '.' integer.
+float = '.' [integer].
 exp = 'e' [neg] integer.
+suffix = 'f'.
 
 hex = '0x' hexdigits.
-hexdigits = /[0-9A-Fa-f_]+/.
+hexdigits = /[0-9A-Fa-f_]*[0-9A-Fa-f][0-9A-Fa-f_]*/.
 bin = '0b' bindigits.
-bindigits = /[01_]+/.
+bindigits = /[01_]*[01][01_]*/.
 
 neg = '-'.
 digit = /[0-9]/.
 digit_ = digit | '_'.
 ```
+
+### Lexical notes
+
+The grammar above is what the lexer (`lib/lexer.h`) implements, with
+these details that the notation does not show:
+
+ - The lexer emits one `NL` for each `'\n'`, and no `NL` is made up at the
+   end of the input. The parser treats a sequence of `NL` as the single `NL`
+   of the grammar. A comment does not consume the `'\n'` that ends it.
+ - The whole source must be valid UTF-8. Outside strings and comments only
+   ASCII is allowed. Tabs and the other control characters
+   (U+0000 to U+001F, and U+007F) are invalid everywhere, except `'\n'`
+   and `'\r'`.
+ - `neg` is only part of decimal numbers, so `-0x1` is not a number.
+   A `-` that does not start a number is invalid.
+ - `float` may have no digits after the dot, so `3.` is a number, and `3.x`
+   is not. A number after a `'.'` is still a number: `a.0.1` is `a`, `.`
+   and `0.1`.
+ - The `f` is lexed, but whoever converts the number decides what it means.
+ - A `num`, `id` or `str` must be followed by the end of the input or by one
+   of: whitespace, `'\n'`, `'#'`, `'['`, `']'`, `','`, `';'`, `':'`, `'='`,
+   `'\\'`, and also `'.'`, except after a `num`. So `a-1`, `x1`, `1-2`, `3x`
+   and `"a""b"` are not valid, and `a.b`, `f[x]` and `1,2` are.
 
 ## Function arguments
 
