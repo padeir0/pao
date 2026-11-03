@@ -35,7 +35,7 @@ typedef struct {
 
 /* BEGIN: NATVEC */
 static inline
-u32* i_natural_natVecAlloc(IAllocator* mem, usize size, const char* func) {
+u32* i_natural_natVecAlloc(const IAllocator* mem, usize size, const char* func) {
   return (u32*)mem->alloc(mem->heap, size*sizeof(u32), func);
 }
 
@@ -80,7 +80,7 @@ void natural_free(const IAllocator* mem, Natural n) {
 }
 
 static inline
-Status i_natural_pushDigit(IAllocator* mem, u32 digit, Natural* out) {
+Status i_natural_pushDigit(const IAllocator* mem, u32 digit, Natural* out) {
   if (out->cap == 0) {
     out->digits = i_natural_natVecAlloc(mem, natural_MINNATVEC, (const char*)__func__);
     if (out->digits == NULL) {
@@ -129,7 +129,7 @@ ie, MSD -> LSD. This is why the code goes backwards to fill
 the number.
 */
 static inline
-Status natural_setVec(IAllocator* mem, u32* digits, i32 len, Natural* out) {
+Status natural_setVec(const IAllocator* mem, u32* digits, i32 len, Natural* out) {
   #if config_DEBUG
     if (mem == NULL || digits == NULL || out == NULL) {
       debug_FATALFMT("Some pointer parameter is null. mem = %p, digits = %p, out = %p.", (void*)mem, (void*)digits, (void*)out);
@@ -158,7 +158,7 @@ Status natural_setVec(IAllocator* mem, u32* digits, i32 len, Natural* out) {
 }
 
 static inline
-Status natural_set(IAllocator* mem, u32 digit, Natural* out) {
+Status natural_set(const IAllocator* mem, u32 digit, Natural* out) {
   #if config_DEBUG
     if (mem == NULL || out == NULL) {
       debug_FATALFMT("Some pointer parameter is null. mem = %p, out = %p.", (void*)mem, (void*)out);
@@ -350,7 +350,7 @@ Status natural_add(IAllocator* mem, const Natural* A, const Natural* B, Natural*
 
 // `A` and `out` may be the same object
 static inline
-Status natural_addDigit(IAllocator* mem, const Natural* A, u32 B, Natural* out) {
+Status natural_addDigit(const IAllocator* mem, const Natural* A, u32 B, Natural* out) {
   #if config_DEBUG
     if (mem == NULL || A == NULL || out == NULL) {
       debug_FATALFMT("Some pointer parameter is null. mem = %p, A = %p, out = %p.", (void*)mem, (void*)A, (void*)out);
@@ -407,7 +407,7 @@ Status natural_addDigit(IAllocator* mem, const Natural* A, u32 B, Natural* out) 
 }
 
 static inline
-Status natural_multDigit(IAllocator* mem, const Natural* A, u32 B, Natural* out) {
+Status natural_multDigit(const IAllocator* mem, const Natural* A, u32 B, Natural* out) {
   #if config_DEBUG
     if (mem == NULL || A == NULL || out == NULL) {
       debug_FATALFMT("Some pointer parameter is null. mem = %p, A = %p, out = %p.", (void*)mem, (void*)A, (void*)out);

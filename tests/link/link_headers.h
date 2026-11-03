@@ -15,6 +15,7 @@
 #include "../../lib/iallocator.h"
 #include "../../lib/lexer.h"
 #include "../../lib/list.h"
+#include "../../lib/literal.h"
 #include "../../lib/order.h"
 #include "../../lib/status.h"
 #include "../../lib/str.h"

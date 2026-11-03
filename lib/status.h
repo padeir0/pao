@@ -26,7 +26,10 @@ typedef enum {
   status_BADCHAR,
   status_BADESCAPE,
   status_UNTERMINATEDSTRING,
-  status_BADNUMBER
+  status_BADNUMBER,
+  /* used in the literals: the number is well formed, but there is nothing yet
+     to hold its value (a decimal number, or a float that does not fit) */
+  status_UNSUPPORTEDNUMBER
 } Status;
 
 #define status_CHECK if (st != status_OK) { return st; }
