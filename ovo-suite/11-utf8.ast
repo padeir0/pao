@@ -1,0 +1,7 @@
+PROGRAM 1:1-2:11
+  CALL 1:1-2:11 iexpr
+    STRING 1:1-1:4 "é"
+    SYMBOL 1:5-1:6 x
+    CALL 2:3-2:11 iexpr
+      STRING 2:3-2:9 "ação"
+      SYMBOL 2:10-2:11 y

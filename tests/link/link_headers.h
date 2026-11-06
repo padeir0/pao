@@ -17,6 +17,7 @@
 #include "../../lib/list.h"
 #include "../../lib/literal.h"
 #include "../../lib/order.h"
+#include "../../lib/parser.h"
 #include "../../lib/status.h"
 #include "../../lib/str.h"
 #include "../../lib/symbol.h"

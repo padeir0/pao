@@ -243,14 +243,17 @@ Status lexeme_free(const IAllocator* mem, Lexeme l) {
 /* BEGIN: AST */
 
 /* The kind of a node says what the node is, and also what it carries:
- *   `PROGRAM` and `CALL` are composite: they have children (`leafs`) and a
- *   `range`, and no lexeme and no value.
+ *   `PROGRAM`, `CALL` and `TUPLE` are composite: they have children (`leafs`)
+ *   and a `range`, and no lexeme and no value. A `TUPLE` is what is written
+ *   between square brackets, and it is never unwrapped: whoever evaluates the
+ *   tree decides what `[a]`, `[a,]` and `[a, b]` mean.
  *   `SYMBOL`, `STRING`, `NUMBER`, `NIL` and `BOOL` are terminal: they have
  *   a lexeme (`tk`) and a value, and no children.
  * Whatever a kind does not carry is left zeroed, and must not be read. */
 typedef enum {
   astKind_PROGRAM,
   astKind_CALL,
+  astKind_TUPLE,
   astKind_SYMBOL,
   astKind_STRING,
   astKind_NUMBER,
@@ -258,13 +261,32 @@ typedef enum {
   astKind_BOOL
 } ASTKind;
 
+/* How a `CALL` was written, for whoever needs the source back (a linter, for
+ * instance) and does not want to guess it from the ranges:
+ *   `SEXPR`   between parentheses: `(f x y)`.
+ *   `IEXPR`   an indentation expression, which is a line with more than one
+ *             term and/or a block: `f x y`, `f` and an indented block.
+ *   `SUFFIX`  the desugaring of `.`, `:` and `=`: the first child is a
+ *             `SYMBOL` of the operator (its lexeme is the operator token),
+ *             and the other children are its operands: `a.b.c` is
+ *             `(. a b c)`, `a : T` is `(: a T)` and `x = 1` is `(= x 1)`.
+ *   `NONE`    the form of every node that is not a `CALL` that came from
+ *             the parser, such as a `PROGRAM`, a `TUPLE`, or a `CALL` that
+ *             was built by hand with `ast_newNode`. */
+typedef enum {
+  astForm_NONE,
+  astForm_SEXPR,
+  astForm_IEXPR,
+  astForm_SUFFIX
+} ASTForm;
+
 /* A node of the tree. Every node is separate memory from `mem`, and owns its
  * children, its lexeme and its value, so a tree is freed with `ast_free`.
  * The `AST` is read-only for whoever receives it from the parser.
  *
  * `range` is the part of the source the node covers: for a terminal it is
  * the range of `tk`, and for a composite it is the union of the ranges of
- * the children and of the range it was built with (the brackets of a call
+ * the children and of the range it was built with (the parentheses of a call
  * are not children, so they come in that range).
  *
  * `value` is limited to Str, Symbol, Number, Bool and Nil (the `Nil` of
@@ -289,6 +311,12 @@ struct i_AST {
   // Type type; // futuramente, quando eu montar o sistema de inferência.
   AST** leafs;
   usize leafsLength;
+  /* only for the composites: `form` is how a `CALL` was written, and
+   * `hasCommas` is true when a `,` was written among the terms of a `CALL`
+   * or of a `TUPLE`. Commas are never nodes. Terminals and `PROGRAM` have
+   * `astForm_NONE` and false. */
+  ASTForm form;
+  bool hasCommas;
 };
 
 /* The name of a kind, for printing. */
@@ -297,6 +325,7 @@ const char* astKind_name(ASTKind k) {
   switch (k) {
     case astKind_PROGRAM: return "PROGRAM";
     case astKind_CALL:    return "CALL";
+    case astKind_TUPLE:   return "TUPLE";
     case astKind_SYMBOL:  return "SYMBOL";
     case astKind_STRING:  return "STRING";
     case astKind_NUMBER:  return "NUMBER";
@@ -306,10 +335,22 @@ const char* astKind_name(ASTKind k) {
   return "???";
 }
 
-/* true for the kinds that have children (`PROGRAM`, `CALL`). */
+/* The name of a form, for printing: `NONE` is the empty string. */
+static inline
+const char* astForm_name(ASTForm f) {
+  switch (f) {
+    case astForm_NONE:   return "";
+    case astForm_SEXPR:  return "sexpr";
+    case astForm_IEXPR:  return "iexpr";
+    case astForm_SUFFIX: return "suffix";
+  }
+  return "???";
+}
+
+/* true for the kinds that have children (`PROGRAM`, `CALL`, `TUPLE`). */
 static inline
 bool astKind_isComposite(ASTKind k) {
-  return k == astKind_PROGRAM || k == astKind_CALL;
+  return k == astKind_PROGRAM || k == astKind_CALL || k == astKind_TUPLE;
 }
 
 /* true for the kinds that have a lexeme and a value: not composite. */
@@ -336,28 +377,39 @@ AST* i_ast_alloc(const IAllocator* mem, ASTKind kind, Range range) {
   memset(&node->value.value, 0, sizeof(node->value.value));
   node->leafs = NULL;
   node->leafsLength = 0;
+  node->form = astForm_NONE;
+  node->hasCommas = false;
   return node;
 }
 
-/* Makes a composite node (`PROGRAM` or `CALL`) of the `n` nodes at
- * `children`, which come in the order of the source. The array is copied, so
- * it stays with the caller (the parser keeps it in a stack of its own), but
- * the nodes now belong to the new node. The range is the union of `range`
- * and the ranges of the children: pass `range_none()` if there is nothing
- * else to cover. The brackets of a call, and the end of the input of an empty
- * program, are what `range` is for.
+/* Makes a composite node (`PROGRAM`, `CALL` or `TUPLE`) of the `n` nodes at
+ * `children`, which come in the order of the source, and says how it was
+ * written: `form` (only a `CALL` has one besides `astForm_NONE`) and
+ * `hasCommas` (only a `CALL` or a `TUPLE` can have commas). The array is
+ * copied, so it stays with the caller (the parser keeps it in a stack of its
+ * own), but the nodes now belong to the new node. The range is the union of
+ * `range` and the ranges of the children: pass `range_none()` if there is
+ * nothing else to cover. The parentheses of a call, and the end of the input of
+ * an empty program, are what `range` is for.
  * Returns status_OUTOFMEMORY if an allocation fails, and then nothing was
  * taken: the children are still the caller's. Free the node with `ast_free`
  * and the same `mem`. */
 static inline
-Status ast_newNode(const IAllocator* mem, ASTKind kind, AST* const* children,
-                   usize n, Range range, AST** out) {
+Status ast_newFormNode(const IAllocator* mem, ASTKind kind, ASTForm form,
+                       bool hasCommas, AST* const* children, usize n,
+                       Range range, AST** out) {
   #if config_DEBUG
     if (mem == NULL || out == NULL) {
       debug_FATAL("Argument is null.");
     }
     if (!astKind_isComposite(kind)) {
-      debug_FATAL("Only a PROGRAM or a CALL has children.");
+      debug_FATAL("Only a PROGRAM, a CALL or a TUPLE has children.");
+    }
+    if (form != astForm_NONE && kind != astKind_CALL) {
+      debug_FATAL("Only a CALL has a form.");
+    }
+    if (hasCommas && kind != astKind_CALL && kind != astKind_TUPLE) {
+      debug_FATAL("Only a CALL or a TUPLE has commas.");
     }
     if (n > 0 && children == NULL) {
       debug_FATAL("There are children but no array.");
@@ -391,12 +443,23 @@ Status ast_newNode(const IAllocator* mem, ASTKind kind, AST* const* children,
     node->leafs = leafs;
     node->leafsLength = n;
   }
+  node->form = form;
+  node->hasCommas = hasCommas;
   *out = node;
   return status_OK;
 
   /* SAFE(1): the size of the array of children fits in a `usize`. Whatever
    * the allocator does with a size it cannot give is its own business: the
    * answer is always NULL, and then status_OUTOFMEMORY. */
+}
+
+/* `ast_newFormNode` with `astForm_NONE` and no commas: what a `PROGRAM` is,
+ * and what a node built by hand is. */
+static inline
+Status ast_newNode(const IAllocator* mem, ASTKind kind, AST* const* children,
+                   usize n, Range range, AST** out) {
+  return ast_newFormNode(mem, kind, astForm_NONE, false, children, n, range,
+                         out);
 }
 
 /* Makes a terminal node of the kind `kind`, that must be a terminal kind, with
@@ -406,6 +469,7 @@ Status i_ast_newTerminal(const IAllocator* mem, ASTKind kind, Lexeme tk,
                          Atom value, AST** out) {
   #if config_DEBUG
     TokenKind want = tokenKind_ID;
+    bool fits;
     if (mem == NULL || out == NULL) {
       debug_FATAL("Argument is null.");
     }
@@ -414,7 +478,13 @@ Status i_ast_newTerminal(const IAllocator* mem, ASTKind kind, Lexeme tk,
     } else if (kind == astKind_NUMBER) {
       want = tokenKind_NUM;
     }
-    if (tk.kind != want) {
+    fits = tk.kind == want;
+    if (kind == astKind_SYMBOL) {
+      /* the operators of the suffixes are symbols too */
+      fits = fits || tk.kind == tokenKind_DOT || tk.kind == tokenKind_COLON ||
+             tk.kind == tokenKind_EQUALS;
+    }
+    if (!fits) {
       debug_FATAL("The token does not fit the kind of the node.");
     }
   #endif
@@ -428,8 +498,10 @@ Status i_ast_newTerminal(const IAllocator* mem, ASTKind kind, Lexeme tk,
   return status_OK;
 }
 
-/* A `SYMBOL` node: an identifier, with its symbol. The `tk` is an `ID` token.
- * The lexeme is taken (see `ast_newNode` for what happens when it fails). */
+/* A `SYMBOL` node: an identifier, with its symbol. The `tk` is an `ID` token,
+ * or the `.`, `:` or `=` of a suffix (see `ASTForm`), whose symbol is the one
+ * of that operator. The lexeme is taken (see `ast_newNode` for what happens
+ * when it fails). */
 static inline
 Status ast_newSymbol(const IAllocator* mem, Lexeme tk, Symbol symbol,
                      AST** out) {
@@ -690,7 +762,28 @@ usize i_ast_putValue(char* buf, const AST* node, const SymbolSpace* sp) {
       break;
     case astKind_PROGRAM:
     case astKind_CALL:
+    case astKind_TUPLE:
       break;
+  }
+  return n;
+}
+
+/* What follows the range in the line of a composite: a space and the name of
+ * its form, if it has one, and a space and `commas` if it has commas. */
+static inline
+usize i_ast_putStyle(char* buf, const AST* node) {
+  usize n = 0;
+  const char* form = astForm_name(node->form);
+  if (astKind_isTerminal(node->kind)) {
+    return 0;
+  }
+  if (node->form != astForm_NONE) {
+    n += i_ast_putChar(buf, ' ');
+    n += i_ast_put(buf == NULL ? NULL : buf + n, form, strlen(form));
+  }
+  if (node->hasCommas) {
+    n += i_ast_putChar(buf == NULL ? NULL : buf + n, ' ');
+    n += i_ast_put(buf == NULL ? NULL : buf + n, "commas", 6);
   }
   return n;
 }
@@ -712,6 +805,7 @@ usize i_ast_emit(char* buf, const AST* node, const SymbolSpace* sp,
   n += i_ast_putChar(buf == NULL ? NULL : buf + n, ' ');
   len = range_snprint(&node->range, tmp, sizeof(tmp)); // NOTE(1)
   n += i_ast_put(buf == NULL ? NULL : buf + n, tmp, len);
+  n += i_ast_putStyle(buf == NULL ? NULL : buf + n, node);
   n += i_ast_putValue(buf == NULL ? NULL : buf + n, node, sp);
   n += i_ast_putChar(buf == NULL ? NULL : buf + n, '\n');
   i = 0;
@@ -731,6 +825,8 @@ usize i_ast_emit(char* buf, const AST* node, const SymbolSpace* sp,
  *   the indentation, 2 spaces for each level of depth;
  *   the name of the kind (`astKind_name`);
  *   the range (`range_snprint`);
+ *   for the composites, a space and the name of the form (`astForm_name`,
+ *     nothing for `NONE`), and a space and `commas` if it has commas;
  *   for the terminals, a space and the value: the name of a symbol (from
  *     `sp`), a string between quotes with `\n \t \" \\` and `\xHH` escapes,
  *     a number (`%lld`, `%.17g`, `[-]digits`, `[-]num/den`), `nil`, `true`

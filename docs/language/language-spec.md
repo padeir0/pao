@@ -14,20 +14,20 @@ The name is because pão com ovo is very good.
 
 ```
 let sq
-  function [x] [mul x x]
+  function (x) (mul x x)
 
-let point [struct x y z]
+let point (struct x y z)
 
 let distance
-  function [a, b]
+  function (a, b)
     sqrt
-      sum [sq [sub a.x b.x]]
-          [sq [sub a.y b.y]]
-          [sq [sub a.z b.z]]
+      sum (sq (sub a.x b.x))
+          (sq (sub a.y b.y))
+          (sq (sub a.z b.z))
 
-let origin [point 0 0 0]
+let origin (point 0 0 0)
 let magnitude
-  function [a]
+  function (a)
     distance a origin
     
 let some-point
@@ -36,12 +36,12 @@ let some-point
         z = 157/50
 
 print-ln "magnitude: "
-         [magnitude some-point]
+         (magnitude some-point)
 ```
 
 The whole language revolves around the call syntax.
 Like the function `sq` above, it's possible to call it with
-the argument `2` like `[sq 2]` or in a few other ways.
+the argument `2` like `(sq 2)` or in a few other ways.
 Almost everything looks like a function, including special constructs
 like `if` and `let`. This is intentional and is meant to make the
 syntax simpler and more homogenous. The syntax is indentation
@@ -57,25 +57,25 @@ Consider the `point` struct used earlier:
 
 ```
 let point
-  [struct x y z]
+  (struct x y z)
 ```
 
 Then the value of all the following expressions have the same value:
 
 ```
-[point [sq 2] 3 4]
+(point (sq 2) 3 4)
 
-point [sq 2] 3 4
+point (sq 2) 3 4
 
-point [sq 2] 3
+point (sq 2) 3
   4
 
-point [sq 2]
+point (sq 2)
   3
   4
 
 point
-  [sq 2]
+  (sq 2)
   3
   4
 
@@ -90,7 +90,7 @@ point
   3
   4
 
-point [sq 2] \
+point (sq 2) \
   3 4
 ```
 
@@ -113,18 +113,20 @@ Whitespace = '\r' | ' ' | Comment.
 Comment = '#' {not_newline_char}.
 
 Program = Block.
-Block = {:I_Expr NL} [';'].
+Block = {:I_Expr NL} [:Closing_Expr NL].
 
 I_Expr = Terms {Line_Continue} [NL >Block].
+Closing_Expr = Terms {Line_Continue} ';'.
 Line_Continue = '\\' NL Terms.
 Terms = Term {[','] Term} [','].
-Term = Factor {Suffix}.
-Suffix = SuffixOp Factor.
-SuffixOp = ':' | '.' | '='.
+Term = Factor_3 ['=' Factor_3].
+Factor_3 = Factor_2 [':' Factor_2].
+Factor_2 = Factor {'.' Factor}.
 
-Factor = Atom | S_Expr.
+Factor = Atom | S_Expr | Tuple_Expr.
 
-S_Expr = '[' Terms ']'.
+S_Expr = '(' Terms ')'.
+Tuple_Expr = '[' Terms ']'.
 Atom = id | num | str.
 
 NL = '\n' {'\n'}.
@@ -156,6 +158,34 @@ digit = /[0-9]/.
 digit_ = digit | '_'.
 ```
 
+### Syntax notes
+
+ - The suffixes are the operators `.`, `:` and `=`, which bind in this
+   order: `.` first, `=` last. `=` is for named parameters (and for
+   `let a = 1`), `:` is for type annotations, and `.` is for accessing
+   what is inside another namespace (a module, a struct, etc). Only `.` may
+   be repeated, as in `a.b.c`: `a = b = c` and `a : b : c` are errors, and
+   `let a.b = c.d` is `let` called with `a.b = c.d`, whose operands are
+   `a.b` and `c.d`.
+ - A `S_Expr`, between parentheses, is always a call: `(f x)`, and even
+   `(f)`. A `Tuple_Expr`, between square brackets, is a tuple: `[a, b, c]`.
+   The parser never unwraps a tuple, so `[a]` is a tuple of one element, and
+   it is up to the evaluator to take it as a grouping. This is how a suffix
+   is the operand of another one: `let x = [a.y]`, `let [p.a] = [p.b]`.
+ - `Terms` has at least one term, so `()` and `[]` are errors. A second `,`
+   in a row is an error too.
+ - A `;` is the last token of the last line of a block, and it closes that
+   block. It is optional, and it is there so that a block cannot grow by
+   accident when the code is edited: nothing can come after it but the end
+   of the input or a line that is less indented.
+ - The first token of the program sets the column of its top level. The
+   expressions of a block are in the same column, and the lines of a
+   `Line_Continue` must be more indented than the line they continue.
+   A line that is less indented than a block ends it, and has to be in the
+   column of a block that is still open.
+ - A newline is not allowed inside `(...)` or `[...]`: an expression is
+   written either with them, in a single line, or with the indentation.
+
 ### Lexical notes
 
 The grammar above is what the lexer (`lib/lexer.h`) implements, with
@@ -175,9 +205,12 @@ these details that the notation does not show:
    and `0.1`.
  - The `f` is lexed, but whoever converts the number decides what it means.
  - A `num`, `id` or `str` must be followed by the end of the input or by one
-   of: whitespace, `'\n'`, `'#'`, `'['`, `']'`, `','`, `';'`, `':'`, `'='`,
-   `'\\'`, and also `'.'`, except after a `num`. So `a-1`, `x1`, `1-2`, `3x`
-   and `"a""b"` are not valid, and `a.b`, `f[x]` and `1,2` are.
+   of: whitespace, `'\n'`, `'#'`, `']'`, `')'`, `','`, `';'`, `':'`, `'='`,
+   `'\\'`, and also `'.'`, except after a `num`. So `a-1`, `x1`, `1-2`, `3x`,
+   `"a""b"`, `f(x)` and `f[x]` are not valid, and `a.b`, `(f x)` and `1,2`
+   are. An opening `(` or `[` is not a delimiter on purpose: `f(x)` is not
+   a call of `f` as it would be in other languages (a call is `(f x)`), and
+   what follows a term has to be separated from it, as in `f (x)`.
 
 ## Function arguments
 
@@ -189,12 +222,12 @@ the last couple arguments as optionals. Here's how:
 
 ```
 let ball-volume
-  function [radius, dimension = 2]
+  function (radius, dimension = 2)
     case
-      [equal? dimension 2]
-        mul pi [sq radius]
-      [equal? dimension 3]
-        mul 3/4 pi [cube radius]
+      (equal? dimension 2)
+        mul pi (sq radius)
+      (equal? dimension 3)
+        mul 3/4 pi (cube radius)
 
 print "unit-ball in 2D"
   ball-volume 1;

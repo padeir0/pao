@@ -1,0 +1,13 @@
+PROGRAM 1:1-9:4
+  CALL 1:1-4:4 iexpr
+    SYMBOL 1:1-1:2 a
+    CALL 2:3-3:6 iexpr
+      SYMBOL 2:3-2:4 b
+      SYMBOL 3:5-3:6 c
+    SYMBOL 4:3-4:4 d
+  CALL 7:1-9:4 iexpr
+    SYMBOL 7:1-7:2 e
+    CALL 8:3-8:6 iexpr
+      SYMBOL 8:3-8:4 f
+      SYMBOL 8:5-8:6 g
+    SYMBOL 9:3-9:4 h

@@ -62,4 +62,10 @@ done < <(find "$root" -name "*_crash.c")
 echo
 echo "$((total - failed))/$total crash tests passed"
 
-[ "$failed" -eq 0 ]
+# the `.ovo` files of the suite, which have a script of their own
+
+echo
+bash "$(dirname "$0")/../ovo-suite/run"
+suite=$?
+
+[ "$failed" -eq 0 ] && [ "$suite" -eq 0 ]

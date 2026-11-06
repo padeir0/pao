@@ -63,8 +63,11 @@ See the LICENSE file for more information.
  *   str         '"' {rune} '"', with the escapes \n \t \' \" \\. A raw
  *               newline, tab or control character is invalid.
  *   atoms       `num`, `id` and `str` must be followed by a delimiter (or
- *               the end of input): whitespace, '\n', '#', '[', ']', ',',
+ *               the end of input): whitespace, '\n', '#', ']', ')', ',',
  *               ';', ':', '=', '\\', and also '.', except after a number.
+ *               An opening '(' or '[' is not a delimiter, so `f(x)` and
+ *               `f[x]` are invalid: a call has to be written `(f x)`, and
+ *               what follows a term has to be separated from it: `f (x)`.
  */
 
 typedef enum {
@@ -73,6 +76,8 @@ typedef enum {
   tokenKind_ID,
   tokenKind_LBRACKET,
   tokenKind_RBRACKET,
+  tokenKind_LPAREN,
+  tokenKind_RPAREN,
   tokenKind_COMMA,
   tokenKind_SEMI,
   tokenKind_BACKSLASH,
@@ -112,6 +117,8 @@ const char* tokenKind_name(TokenKind k) {
     case tokenKind_ID:        return "ID";
     case tokenKind_LBRACKET:  return "LBRACKET";
     case tokenKind_RBRACKET:  return "RBRACKET";
+    case tokenKind_LPAREN:    return "LPAREN";
+    case tokenKind_RPAREN:    return "RPAREN";
     case tokenKind_COMMA:     return "COMMA";
     case tokenKind_SEMI:      return "SEMI";
     case tokenKind_BACKSLASH: return "BACKSLASH";
@@ -167,7 +174,7 @@ bool i_lexer_isControl(Rune r) {
 static inline
 bool i_lexer_isDelimiter(Rune r, bool allowDot) {
   return r == ' ' || r == '\r' || r == '\n' || r == '#' ||
-         r == '[' || r == ']' || r == ',' || r == ';' ||
+         r == ']' || r == ')' || r == ',' || r == ';' ||
          r == ':' || r == '=' || r == '\\' ||
          (allowDot && r == '.');
 }
@@ -179,6 +186,8 @@ TokenKind i_lexer_punctuation(Rune r) {
   switch (r) {
     case '[':  return tokenKind_LBRACKET;
     case ']':  return tokenKind_RBRACKET;
+    case '(':  return tokenKind_LPAREN;
+    case ')':  return tokenKind_RPAREN;
     case ',':  return tokenKind_COMMA;
     case ';':  return tokenKind_SEMI;
     case '\\': return tokenKind_BACKSLASH;

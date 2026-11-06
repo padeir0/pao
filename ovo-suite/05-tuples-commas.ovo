@@ -1,0 +1,5 @@
+let a = [1, 2, 3]
+let [a, b] = p
+(f a, b)
+f 1, dimension = 3
+[a,]

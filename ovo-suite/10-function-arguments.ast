@@ -1,0 +1,53 @@
+PROGRAM 1:1-12:31
+  CALL 1:1-7:33 iexpr
+    SYMBOL 1:1-1:4 let
+    SYMBOL 1:5-1:16 ball-volume
+    CALL 2:3-7:33 iexpr
+      SYMBOL 2:3-2:11 function
+      CALL 2:12-2:35 sexpr commas
+        SYMBOL 2:13-2:19 radius
+        CALL 2:21-2:34 suffix
+          SYMBOL 2:31-2:32 =
+          SYMBOL 2:21-2:30 dimension
+          NUMBER 2:33-2:34 2
+      CALL 3:5-7:33 iexpr
+        SYMBOL 3:5-3:9 case
+        CALL 4:7-5:27 iexpr
+          CALL 4:7-4:27 sexpr
+            SYMBOL 4:8-4:14 equal?
+            SYMBOL 4:15-4:24 dimension
+            NUMBER 4:25-4:26 2
+          CALL 5:9-5:27 iexpr
+            SYMBOL 5:9-5:12 mul
+            SYMBOL 5:13-5:15 pi
+            CALL 5:16-5:27 sexpr
+              SYMBOL 5:17-5:19 sq
+              SYMBOL 5:20-5:26 radius
+        CALL 6:7-7:33 iexpr
+          CALL 6:7-6:27 sexpr
+            SYMBOL 6:8-6:14 equal?
+            SYMBOL 6:15-6:24 dimension
+            NUMBER 6:25-6:26 3
+          CALL 7:9-7:33 iexpr
+            SYMBOL 7:9-7:12 mul
+            NUMBER 7:13-7:16 3/4
+            SYMBOL 7:17-7:19 pi
+            CALL 7:20-7:33 sexpr
+              SYMBOL 7:21-7:25 cube
+              SYMBOL 7:26-7:32 radius
+  CALL 9:1-10:16 iexpr
+    SYMBOL 9:1-9:6 print
+    STRING 9:7-9:24 "unit-ball in 2D"
+    CALL 10:3-10:16 iexpr
+      SYMBOL 10:3-10:14 ball-volume
+      NUMBER 10:15-10:16 1
+  CALL 11:1-12:31 iexpr
+    SYMBOL 11:1-11:6 print
+    STRING 11:7-11:24 "unit-ball in 3D"
+    CALL 12:3-12:31 iexpr commas
+      SYMBOL 12:3-12:14 ball-volume
+      NUMBER 12:15-12:16 1
+      CALL 12:18-12:31 suffix
+        SYMBOL 12:28-12:29 =
+        SYMBOL 12:18-12:27 dimension
+        NUMBER 12:30-12:31 3

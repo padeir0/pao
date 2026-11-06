@@ -1,0 +1,12 @@
+let ball-volume
+  function (radius, dimension = 2)
+    case
+      (equal? dimension 2)
+        mul pi (sq radius)
+      (equal? dimension 3)
+        mul 3/4 pi (cube radius)
+
+print "unit-ball in 2D"
+  ball-volume 1;
+print "unit-ball in 3D"
+  ball-volume 1, dimension = 3;

@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Runs `ovo parse` on every `.ovo` file of this directory and compares:
+#   NAME.ast   the stdout it must have (and the exit code 0, and no stderr)
+#   NAME.err   the stderr it must have (and the exit code 1, and no stdout)
+# The file is given by its name, from this directory, so the messages have
+# it as `NAME.ovo:line:col: ...`. `ovo` is built here, with the sanitizers,
+# in a temporary directory. The exit code is 0 if everything passes.
+
+dir="$(cd "$(dirname "$0")" && pwd)"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+if ! gcc -Wall -Wextra -Werror -pedantic -Wconversion -Wstrict-prototypes \
+     -fsanitize=address,undefined -std=c99 -O2 "$dir/../cmd/ovo.c" \
+     -o "$tmp/ovo"; then
+  echo "ovo-suite: the build of ovo failed"
+  exit 1
+fi
+
+RED='\033[31m'
+RESET='\033[0m'
+total=0
+failed=0
+
+cd "$dir" || exit 1
+for src in *.ovo; do
+  name="${src%.ovo}"
+  total=$((total + 1))
+  "$tmp/ovo" parse "$src" > "$tmp/stdout" 2> "$tmp/stderr"
+  code=$?
+  if [ -f "$name.ast" ]; then
+    if [ "$code" -eq 0 ] && cmp -s "$tmp/stdout" "$name.ast" \
+       && [ ! -s "$tmp/stderr" ]; then
+      continue
+    fi
+  elif [ -f "$name.err" ]; then
+    if [ "$code" -eq 1 ] && cmp -s "$tmp/stderr" "$name.err" \
+       && [ ! -s "$tmp/stdout" ]; then
+      continue
+    fi
+  else
+    echo -e "${RED}FAIL${RESET}: $src has no $name.ast and no $name.err"
+    failed=$((failed + 1))
+    continue
+  fi
+  echo -e "${RED}FAIL${RESET}: $src (exit code $code)"
+  failed=$((failed + 1))
+done
+
+echo "ovo-suite: $((total - failed))/$total passed."
+[ "$failed" -eq 0 ]

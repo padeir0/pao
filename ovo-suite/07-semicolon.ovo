@@ -1,0 +1,4 @@
+print "unit-ball in 2D"
+  ball-volume 1;
+print "unit-ball in 3D"
+  ball-volume 1, dimension = 3;

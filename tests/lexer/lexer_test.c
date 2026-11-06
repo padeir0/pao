@@ -208,17 +208,14 @@ bool test_punctuation(void) {
 bool test_delimiters(void) {
   Exp call[] = {
     tok_ok(tokenKind_ID, 0, 1, 0, 0),
-    tok_ok(tokenKind_LBRACKET, 1, 2, 0, 1),
     tok_ok(tokenKind_ID, 2, 3, 0, 2),
     tok_ok(tokenKind_RBRACKET, 3, 4, 0, 3),
     tok_ok(tokenKind_EOF, 4, 4, 0, 4),
   };
   Exp str[] = {
     tok_ok(tokenKind_STR, 0, 3, 0, 0),
-    tok_ok(tokenKind_LBRACKET, 3, 4, 0, 3),
-    tok_ok(tokenKind_ID, 4, 5, 0, 4),
-    tok_ok(tokenKind_RBRACKET, 5, 6, 0, 5),
-    tok_ok(tokenKind_EOF, 6, 6, 0, 6),
+    tok_ok(tokenKind_RPAREN, 3, 4, 0, 3),
+    tok_ok(tokenKind_EOF, 4, 4, 0, 4),
   };
   Exp num[] = {
     tok_ok(tokenKind_NUM, 0, 1, 0, 0),
@@ -234,10 +231,61 @@ bool test_delimiters(void) {
     tok_ok(tokenKind_ID, 0, 1, 0, 0),
     tok_ok(tokenKind_EOF, 3, 3, 0, 3),
   };
-  return checkStr("f[x]", call, LEN(call)) &&
-         checkStr("\"a\"[b]", str, LEN(str)) &&
+  return checkStr("f x]", call, LEN(call)) &&
+         checkStr("\"a\")", str, LEN(str)) &&
          checkStr("1:2,3;\\", num, LEN(num)) &&
          checkStr("a#c", comment, LEN(comment));
+}
+
+/* `(` and `)` are tokens, and a `[` or a `(` cannot be glued to the atom that
+ * comes before it */
+bool test_parens(void) {
+  Exp group[] = {
+    tok_ok(tokenKind_LPAREN, 0, 1, 0, 0),
+    tok_ok(tokenKind_ID, 1, 2, 0, 1),
+    tok_ok(tokenKind_COMMA, 2, 3, 0, 2),
+    tok_ok(tokenKind_NUM, 4, 5, 0, 4),
+    tok_ok(tokenKind_RPAREN, 5, 6, 0, 5),
+    tok_ok(tokenKind_EOF, 6, 6, 0, 6),
+  };
+  Exp glued[] = {
+    tok_ok(tokenKind_LPAREN, 0, 1, 0, 0),
+    tok_ok(tokenKind_RPAREN, 1, 2, 0, 1),
+    tok_ok(tokenKind_LBRACKET, 2, 3, 0, 2),
+    tok_ok(tokenKind_RBRACKET, 3, 4, 0, 3),
+    tok_ok(tokenKind_LPAREN, 4, 5, 0, 4),
+    tok_ok(tokenKind_EOF, 5, 5, 0, 5),
+  };
+  Exp spaced[] = {
+    tok_ok(tokenKind_ID, 0, 1, 0, 0),
+    tok_ok(tokenKind_LPAREN, 2, 3, 0, 2),
+    tok_ok(tokenKind_ID, 3, 4, 0, 3),
+    tok_ok(tokenKind_RPAREN, 4, 5, 0, 4),
+    tok_ok(tokenKind_LBRACKET, 6, 7, 0, 6),
+    tok_ok(tokenKind_NUM, 7, 8, 0, 7),
+    tok_ok(tokenKind_RBRACKET, 8, 9, 0, 8),
+    tok_ok(tokenKind_EOF, 9, 9, 0, 9),
+  };
+  Exp dotted[] = {
+    tok_ok(tokenKind_ID, 0, 1, 0, 0),
+    tok_ok(tokenKind_DOT, 1, 2, 0, 1),
+    tok_bad(status_BADCHAR, 2, 4, 0, 2),
+  };
+  return checkStr("(a, 1)", group, LEN(group)) &&
+         /* punctuation can be glued to punctuation */
+         checkStr("()[](", glued, LEN(glued)) &&
+         checkStr("a (b) [1]", spaced, LEN(spaced)) &&
+         /* an atom followed by an opening bracket or parenthesis, the
+          * offending rune is covered */
+         checkBadStr("f[x]", status_BADCHAR, 2) &&
+         checkBadStr("f(x)", status_BADCHAR, 2) &&
+         checkStr("x.y[", dotted, LEN(dotted)) &&
+         checkBadStr("\"a\"[b]", status_BADCHAR, 4) &&
+         checkBadStr("\"a\"(b)", status_BADCHAR, 4) &&
+         checkBadStr("1[x]", status_BADNUMBER, 2) &&
+         checkBadStr("1(x)", status_BADNUMBER, 2) &&
+         checkBadStr("0x1(", status_BADNUMBER, 4) &&
+         checkBadStr("1/2[", status_BADNUMBER, 4);
 }
 
 bool test_identifiers(void) {
@@ -503,7 +551,7 @@ bool test_lines(void) {
 
 bool test_badChars(void) {
   const char* symbols[] = {
-    "@", "{", "}", "+", "'", "~", "(", ")", "$", "|", "/", "<", ">", "*",
+    "@", "{", "}", "+", "'", "~", "$", "|", "/", "<", ">", "*",
     "%", "&", "^", "`", "\t", "\x01", "\x1f", "\x7f", "?", "!",
   };
   int i = 0;
@@ -727,6 +775,7 @@ Tester tests[] = {
   {"test_empty", test_empty},
   {"test_punctuation", test_punctuation},
   {"test_delimiters", test_delimiters},
+  {"test_parens", test_parens},
   {"test_identifiers", test_identifiers},
   {"test_badIdentifiers", test_badIdentifiers},
   {"test_numbers", test_numbers},
